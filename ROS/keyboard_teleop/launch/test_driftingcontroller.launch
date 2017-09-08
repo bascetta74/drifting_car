@@ -1,0 +1,13 @@
+<launch>
+  <!-- load parameter file -->
+  <rosparam file="$(find keyboard_teleop)/config/keyboard_teleop_params.yaml" command="load"/>
+
+  <!--- Run keyboard_teleop -->
+  <node pkg="keyboard" type="keyboard" name="keyboard" output="screen"/>
+  <node pkg="keyboard_teleop" type="keyboard_teleop" name="keyboard_teleop" output="screen"/>
+
+  <!--- Run drifting_controller -->
+  <node pkg="drifting_controller" type="drifting_controller" respawn="false" name="drifting_controller" output="screen">
+    <rosparam file="$(find drifting_controller)/config/drifting_controller_params.yaml" command="load"/>
+  </node>
+</launch>

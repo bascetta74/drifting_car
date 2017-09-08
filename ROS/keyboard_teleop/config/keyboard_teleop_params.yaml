@@ -1,0 +1,7 @@
+# Serial communication configuration parameters
+  /keyboard_teleop/run_period: 0.1    # Node execution period
+  /keyboard_teleop/delta_steer: 0.1   # Increment of steer_ref at each periodic execution
+  /keyboard_teleop/delta_speed: 0.1   # Increment of speed_ref at each periodic execution
+  /keyboard_teleop/max_speed: 10.0    # Increment of speed_ref at each periodic execution
+  /keyboard_teleop/max_steer: 50.0    # Increment of speed_ref at each periodic execution
+

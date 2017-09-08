@@ -1,0 +1,12 @@
+<launch>
+
+  <!--- Run serial_comm -->
+  <node pkg="serial_comm" type="serial_comm" respawn="false" name="serial_comm" output="screen">
+    <rosparam file="$(find serial_comm)/config/serial_comm_params.yaml" command="load" />
+  </node>
+
+  <!--- Run serial_comm_arduinoStub -->
+  <node pkg="serial_comm" type="serial_comm_arduinoStub" respawn="false" name="serial_comm_arduinoStub" output="screen">
+    <rosparam file="$(find serial_comm)/param/serial_comm_params.yaml" command="load" />
+  </node>
+</launch>
