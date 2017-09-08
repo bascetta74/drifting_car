@@ -1,0 +1,7 @@
+# Eclipse files for arduino project
+arduino/core/
+arduino/libraries/
+arduino/Release/
+arduino/.settings/
+arduino/.cproject
+arduino/.project
