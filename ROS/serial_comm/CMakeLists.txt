@@ -124,11 +124,6 @@ add_executable(serial_comm src/serial_comm.cpp src/serial_comm_node.cpp)
 add_dependencies(serial_comm car_msgs_generate_messages_cpp)
 target_link_libraries(serial_comm ${catkin_LIBRARIES} serial)
 
-add_executable(serial_comm_arduinoStub src/serial_comm_arduinoStub.cpp src/serial_comm_arduinoStub_node.cpp)
-add_dependencies(serial_comm_arduinoStub car_msgs_generate_messages_cpp)
-target_link_libraries(serial_comm_arduinoStub ${catkin_LIBRARIES} serial)
-
-
 #############
 ## Install ##
 #############
