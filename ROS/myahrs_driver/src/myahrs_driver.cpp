@@ -68,7 +68,8 @@ private:
   double magnetic_field_stddev_;
   double orientation_stddev_;
   
-  Eigen::Matrix3d Rrpy_imu2world;
+  Eigen::Matrix3d Rrpy_acc2world_, Rrpy_gyro2world_;
+  std::vector<double> acc_bias_, gyro_bias_;
 
   void OnSensorData(int sensor_id, SensorData data)
   {
@@ -86,14 +87,17 @@ public:
   MyAhrsDriverForROS(std::string port="", int baud_rate=115200)
   : iMyAhrsPlus(port, baud_rate),
     nh_priv_("~")
-  {
+  {  
     // dependent on user device
     nh_priv_.setParam("port", port);
     nh_priv_.setParam("baud_rate", baud_rate);
+    
     // default frame id
     nh_priv_.param("frame_id", frame_id_, std::string("imu_link"));
+    
     // for testing the tf
     nh_priv_.param("parent_frame_id_", parent_frame_id_, std::string("base_link"));
+    
     // defaults obtained experimentally from device
     nh_priv_.param("linear_acceleration_stddev", linear_acceleration_stddev_, 0.026831);
     nh_priv_.param("angular_velocity_stddev", angular_velocity_stddev_, 0.002428);
@@ -101,21 +105,49 @@ public:
     nh_priv_.param("orientation_stddev", orientation_stddev_, 0.002143);
 
     // calibration data
-    double r, p, y;
-    r = 0.1; p = 0.2; y = 0.3; // settare come parametri
+    std::string FullParamName;
+    std::vector<double> acc_rpy, gyro_rpy;
+    
+    FullParamName = ros::this_node::getName()+"/acc_rpy";
+    if (false == nh_.getParam(FullParamName, acc_rpy))
+     ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
 
+    FullParamName = ros::this_node::getName()+"/acc_bias";
+    if (false == nh_.getParam(FullParamName, acc_bias_))
+     ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
+
+    FullParamName = ros::this_node::getName()+"/gyro_rpy";
+    if (false == nh_.getParam(FullParamName, gyro_rpy))
+     ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
+
+    FullParamName = ros::this_node::getName()+"/gyro_bias";
+    if (false == nh_.getParam(FullParamName, gyro_bias_))
+     ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
+    
     Eigen::Matrix3d R_x, R_y, R_z;
-    R_x << 1,      0,       0;
-           0, cos(r), -sin(r);
-           0, sin(r),  cos(r);
-    R_y <<  cos(p), 0, sin(p);
-                 0, 1,      0,
-           -sin(p), 0, cos(p);  
-    R_z << cos(y),-sin(y), 0;
-           sin(y), cos(y), 0;
-                0,      0, 1;
-    Rrpy_imu2world = R_z * R_y * R_x;
 
+    R_x << 1,                  0,                   0;
+           0, cos(acc_rpy.at(0)), -sin(acc_rpy.at(0));
+           0, sin(acc_rpy.at(0)),  cos(acc_rpy.at(0));
+    R_y <<  cos(acc_rpy.at(1)), 0, sin(acc_rpy.at(1));
+                             0, 1,                  0;
+           -sin(acc_rpy.at(1)), 0, cos(acc_rpy.at(1));  
+    R_z << cos(acc_rpy.at(2)),-sin(acc_rpy.at(2)), 0;
+           sin(acc_rpy.at(2)), cos(acc_rpy.at(2)), 0;
+                            0,                  0, 1;
+    Rrpy_acc2world_ = R_z * R_y * R_x;
+
+    R_x << 1,                   0,                    0;
+           0, cos(gyro_rpy.at(0)), -sin(gyro_rpy.at(0));
+           0, sin(gyro_rpy.at(0)),  cos(gyro_rpy.at(0));
+    R_y <<  cos(gyro_rpy.at(1)), 0, sin(gyro_rpy.at(1));
+                              0, 1,                   0;
+           -sin(gyro_rpy.at(1)), 0, cos(gyro_rpy.at(1));  
+    R_z << cos(gyro_rpy.at(2)),-sin(gyro_rpy.at(2)), 0;
+           sin(gyro_rpy.at(2)), cos(gyro_rpy.at(2)), 0;
+                             0,                   0, 1;
+    Rrpy_gyro2world_ = R_z * R_y * R_x;
+    
     // publisher for streaming
     imu_data_cal_pub_   = nh_.advertise<sensor_msgs::Imu>("imu/data_cal", 1);
     imu_data_raw_pub_   = nh_.advertise<sensor_msgs::Imu>("imu/data_raw", 1);
@@ -262,12 +294,25 @@ public:
     imu_temperature_msg.data = imu.temperature;
 
     // calibrated acc/gyro
-    imu_data_cal_msg.linear_acceleration.x = Rrpy_imu2world.row(0)*Eigen::Vector3d(imu_data_raw_msg.linear_acceleration.x, imu_data_raw_msg.linear_acceleration.y, imu_data_raw_msg.linear_acceleration.z);
-    imu_data_cal_msg.linear_acceleration.y = Rrpy_imu2world.row(1)*Eigen::Vector3d(imu_data_raw_msg.linear_acceleration.x, imu_data_raw_msg.linear_acceleration.y, imu_data_raw_msg.linear_acceleration.z);
-    imu_data_cal_msg.linear_acceleration.z = Rrpy_imu2world.row(2)*Eigen::Vector3d(imu_data_raw_msg.linear_acceleration.x, imu_data_raw_msg.linear_acceleration.y, imu_data_raw_msg.linear_acceleration.z);
-//     imu_data_cal_msg.angular_velocity.x =
-//     imu_data_cal_msg.angular_velocity.y =
-//     imu_data_cal_msg.angular_velocity.z =
+    imu_data_cal_msg.linear_acceleration.x = Rrpy_acc2world_.row(0)*Eigen::Vector3d(imu_data_raw_msg.linear_acceleration.x+acc_bias_.at(0), 
+                                                                                   imu_data_raw_msg.linear_acceleration.y+acc_bias_.at(1),
+                                                                                   imu_data_raw_msg.linear_acceleration.z+acc_bias_.at(2));
+    imu_data_cal_msg.linear_acceleration.y = Rrpy_acc2world_.row(1)*Eigen::Vector3d(imu_data_raw_msg.linear_acceleration.x+acc_bias_.at(0), 
+                                                                                   imu_data_raw_msg.linear_acceleration.y+acc_bias_.at(1), 
+                                                                                   imu_data_raw_msg.linear_acceleration.z+acc_bias_.at(2));
+    imu_data_cal_msg.linear_acceleration.z = Rrpy_acc2world_.row(2)*Eigen::Vector3d(imu_data_raw_msg.linear_acceleration.x+acc_bias_.at(0), 
+                                                                                   imu_data_raw_msg.linear_acceleration.y+acc_bias_.at(1), 
+                                                                                   imu_data_raw_msg.linear_acceleration.z+acc_bias_.at(2));
+    
+    imu_data_cal_msg.angular_velocity.x = Rrpy_gyro2world_.row(0)*Eigen::Vector3d(imu_data_raw_msg.angular_velocity.x+gyro_bias_.at(0), 
+                                                                                  imu_data_raw_msg.angular_velocity.y+gyro_bias_.at(1),
+                                                                                  imu_data_raw_msg.angular_velocity.z+gyro_bias_.at(2));
+    imu_data_cal_msg.angular_velocity.y = Rrpy_gyro2world_.row(1)*Eigen::Vector3d(imu_data_raw_msg.angular_velocity.x+gyro_bias_.at(0), 
+                                                                                  imu_data_raw_msg.angular_velocity.y+gyro_bias_.at(1),
+                                                                                  imu_data_raw_msg.angular_velocity.z+gyro_bias_.at(2));
+    imu_data_cal_msg.angular_velocity.z = Rrpy_gyro2world_.row(2)*Eigen::Vector3d(imu_data_raw_msg.angular_velocity.x+gyro_bias_.at(0), 
+                                                                                  imu_data_raw_msg.angular_velocity.y+gyro_bias_.at(1),
+                                                                                  imu_data_raw_msg.angular_velocity.z+gyro_bias_.at(2));
     
     // publish the IMU data
     imu_data_cal_pub_.publish(imu_data_cal_msg);
@@ -291,9 +336,6 @@ int main(int argc, char* argv[])
 
   std::string port = std::string("/dev/ttyACM0");
   int baud_rate    = 115200;
-
-  ros::param::get("~port", port);
-  ros::param::get("~baud_rate", baud_rate);
 
   MyAhrsDriverForROS sensor(port, baud_rate);
 
