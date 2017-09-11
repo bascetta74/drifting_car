@@ -116,7 +116,7 @@ void serial_comm::PeriodicTask(void)
     switch (_statemachine.state)
     {
      case AUTOMATIC:
-      ROS_INFO("Node %s: Arduino in AUTOMATIC mode, do nothing.", ros::this_node::getName().c_str());
+      ROS_INFO("Node %s: Arduino in AUTOMATIC mode.", ros::this_node::getName().c_str());
       
       /* Verify the message and decode it */
       if (checksum_verify() && (bytes_read >= _message_size))
@@ -157,7 +157,7 @@ void serial_comm::PeriodicTask(void)
       break;
       
      case MANUAL:
-      ROS_INFO("Node %s: Arduino in MANUAL mode, do nothing.", ros::this_node::getName().c_str());
+      ROS_INFO("Node %s: Arduino in MANUAL mode.", ros::this_node::getName().c_str());
       
       /* Verify the message and decode it */
       if (checksum_verify() && (bytes_read >= _message_size))
@@ -283,13 +283,13 @@ void serial_comm::PeriodicTask(void)
     _message_buffer[0] = 0x7E;
 
     /* Steer ref */
-    uint16_t tmp_steer_ref;
+    uint16_t tmp_steer_ref = 0;
     if (!SIunits_to_us(tmp_steer_ref, _steer_ref, _steer_us_range, _steer_rad_range))
         ROS_ERROR("Node %s: steer ref value in writing serial message is out of range.", ros::this_node::getName().c_str());
     memcpy(&(_message_buffer[1]), &tmp_steer_ref, sizeof(uint16_t));
 
     /* Speed ref */
-    uint16_t tmp_speed_ref;
+    uint16_t tmp_speed_ref = 0;
     if (!SIunits_to_us(tmp_speed_ref, _speed_ref, _speed_us_range, _speed_mps_range))
         ROS_ERROR("Node %s: speed ref value in writing serial message is out of range.", ros::this_node::getName().c_str());
     memcpy(&(_message_buffer[3]), &tmp_speed_ref, sizeof(uint16_t));
