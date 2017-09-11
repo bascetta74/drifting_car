@@ -116,11 +116,48 @@ void serial_comm::PeriodicTask(void)
     switch (_statemachine.state)
     {
      case AUTOMATIC:
-     case MANUAL:
-      if (_statemachine.state == MANUAL)
-       ROS_INFO("Node %s: Arduino in MANUAL mode, do nothing.", ros::this_node::getName().c_str());
+      ROS_INFO("Node %s: Arduino in AUTOMATIC mode, do nothing.", ros::this_node::getName().c_str());
+      
+      /* Verify the message and decode it */
+      if (checksum_verify() && (bytes_read >= _message_size))
+      {    
+       /* Wheel speed */
+       bool wheel_dx_ccw, wheel_sx_ccw;
+       uint16_t  wheel_speed_sx, wheel_speed_dx;
+       memcpy(&wheel_speed_dx, &(_message_buffer[5]), sizeof(uint16_t));
+       memcpy(&wheel_speed_sx, &(_message_buffer[8]), sizeof(uint16_t));
+       wheel_dx_ccw = (_message_buffer[7]==0x00) ? false : true;
+       wheel_sx_ccw = (_message_buffer[10]==0x00) ? false : true;
+       _wheel_speed = ( ((wheel_dx_ccw) ? static_cast<double>(wheel_speed_dx) : -1.0*static_cast<double>(wheel_speed_dx)) +
+       ((wheel_sx_ccw) ? static_cast<double>(wheel_speed_sx) : -1.0*static_cast<double>(wheel_speed_sx)) ) / 2.0;
+       
+       /* Arduino state */
+       switch (_message_buffer[11])
+       {
+        case SAFE:
+         _statemachine.state = SAFE;
+         break;
+         
+        case MANUAL:
+         _statemachine.state = MANUAL;
+         break;
+         
+        case AUTOMATIC:
+         _statemachine.state = AUTOMATIC;
+         break;
+         
+        case HALT:
+         _statemachine.state = HALT;
+         break;
+       }
+       _statemachine.info = _message_buffer[12];
+      }
       else
-       ROS_INFO("Node %s: Arduino in AUTOMATIC mode, do nothing.", ros::this_node::getName().c_str());
+       ROS_ERROR("Node %s: message with wrong checksum or too few bytes from port %s.", ros::this_node::getName().c_str(), _serial_port.c_str());
+      break;
+      
+     case MANUAL:
+      ROS_INFO("Node %s: Arduino in MANUAL mode, do nothing.", ros::this_node::getName().c_str());
       
       /* Verify the message and decode it */
       if (checksum_verify() && (bytes_read >= _message_size))
