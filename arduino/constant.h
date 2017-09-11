@@ -12,7 +12,7 @@
 #define MAX_FIR_ORDER 		8		// Maximum order of FIR filters
 
 // Realtime loop
-#define LOOP_FREQUENCY 		1000	// Main loop frequency Hz
+#define LOOP_FREQUENCY 		100		// Main loop frequency Hz
 
 // Serial communication
 #define SERIAL_BAUDRATE 	115200  // Serial port baud rate
@@ -25,9 +25,9 @@
 #define STEER_MIN			1240	// Minimum value for steer command (pulse width ms)
 #define STEER_ZERO			1500	// Neutral value for steer command (pulse width ms)
 #define STEER_MAX			1740	// Maximum value for steer command (pulse width ms)
-#define SPEED_MIN			900		// Minimum value for steer command (pulse width ms)
+#define SPEED_MIN			1500	// Minimum value for steer command (pulse width ms)
 #define SPEED_ZERO			1500	// Neutral value for steer command (pulse width ms)
-#define SPEED_MAX			2000	// Maximum value for steer command (pulse width ms)
+#define SPEED_MAX			1600	// Maximum value for steer command (pulse width ms)
 #define BUTTON_ZERO			1500	// Neutral value for button (pulse width ms)
 
 // Arduino PINS
