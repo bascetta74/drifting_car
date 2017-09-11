@@ -126,25 +126,25 @@ public:
     
     Eigen::Matrix3d R_x, R_y, R_z;
 
-    R_x << 1,                  0,                   0;
-           0, cos(acc_rpy.at(0)), -sin(acc_rpy.at(0));
+    R_x << 1,                  0,                   0,
+           0, cos(acc_rpy.at(0)), -sin(acc_rpy.at(0)),
            0, sin(acc_rpy.at(0)),  cos(acc_rpy.at(0));
-    R_y <<  cos(acc_rpy.at(1)), 0, sin(acc_rpy.at(1));
-                             0, 1,                  0;
+    R_y <<  cos(acc_rpy.at(1)), 0, sin(acc_rpy.at(1)),
+                             0, 1,                  0,
            -sin(acc_rpy.at(1)), 0, cos(acc_rpy.at(1));  
-    R_z << cos(acc_rpy.at(2)),-sin(acc_rpy.at(2)), 0;
-           sin(acc_rpy.at(2)), cos(acc_rpy.at(2)), 0;
+    R_z << cos(acc_rpy.at(2)),-sin(acc_rpy.at(2)), 0,
+           sin(acc_rpy.at(2)), cos(acc_rpy.at(2)), 0,
                             0,                  0, 1;
     Rrpy_acc2world_ = R_z * R_y * R_x;
 
-    R_x << 1,                   0,                    0;
-           0, cos(gyro_rpy.at(0)), -sin(gyro_rpy.at(0));
+    R_x << 1,                   0,                    0,
+           0, cos(gyro_rpy.at(0)), -sin(gyro_rpy.at(0)),
            0, sin(gyro_rpy.at(0)),  cos(gyro_rpy.at(0));
-    R_y <<  cos(gyro_rpy.at(1)), 0, sin(gyro_rpy.at(1));
-                              0, 1,                   0;
+    R_y <<  cos(gyro_rpy.at(1)), 0, sin(gyro_rpy.at(1)),
+                              0, 1,                   0,
            -sin(gyro_rpy.at(1)), 0, cos(gyro_rpy.at(1));  
-    R_z << cos(gyro_rpy.at(2)),-sin(gyro_rpy.at(2)), 0;
-           sin(gyro_rpy.at(2)), cos(gyro_rpy.at(2)), 0;
+    R_z << cos(gyro_rpy.at(2)),-sin(gyro_rpy.at(2)), 0,
+           sin(gyro_rpy.at(2)), cos(gyro_rpy.at(2)), 0,
                              0,                   0, 1;
     Rrpy_gyro2world_ = R_z * R_y * R_x;
     
