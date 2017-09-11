@@ -1,7 +1,3 @@
-# Port parameters
-  /myahrs_driver/port: "/dev/ttyACM0"
-  /myahrs_driver/baud_rate: 115200
-
 # Accelerometer calibration
   /myahrs_driver/acc_rpy: [0.0, 0.0, 0.0]
   /myahrs_driver/acc_bias: [0.0, 0.0, 0.0]
