@@ -19,5 +19,6 @@ unsigned int get_button_value_ms();
 byte get_steer_state_ms();
 byte get_speed_state_ms();
 byte get_button_state_ms();
+byte is_receiver_button_pressed();
 
 #endif /* RECEIVER_H_ */

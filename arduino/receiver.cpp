@@ -16,6 +16,7 @@ typedef struct
 	byte state;						// Channel state (high/low)
 	unsigned int pulse_duration;	// Duration in ms of last pulse
 	unsigned long edge_time;		// Clock time of last rising/falling edge
+	byte button_state;				// Button state (for channels that handle a radio butto)
 } receiver_channel;
 
 
@@ -35,6 +36,7 @@ void init_receiverIO()
 	receiver_steer.state = receiver_speed.state = receiver_button.state = 0;
 	receiver_steer.pulse_duration = receiver_speed.pulse_duration = receiver_button.pulse_duration = 0;
 	receiver_steer.edge_time = receiver_speed.edge_time = receiver_button.edge_time = 0;
+	receiver_steer.button_state = receiver_speed.button_state = receiver_button.button_state = 0;
 }
 
 void init_receiverInterrupts()
@@ -88,6 +90,16 @@ byte get_button_state_ms()
 	return receiver_button.state;
 }
 
+byte is_receiver_button_pressed()
+{
+	if (receiver_button.button_state)
+	{
+		receiver_button.button_state = 0;
+		return 1;
+	}
+	else
+		return 0;
+}
 
 // Internal functions
 ISR (PCINT1_vect)
@@ -149,6 +161,14 @@ ISR (PCINT1_vect)
 	else if (receiver_button.state == 1) {
 		// Update channel state
 		receiver_button.state = 0;
+
+		// Update button state
+		if (receiver_button.pulse_duration < 100)	// Introduce to handle initialization
+			receiver_button.button_state = 0;
+		else if ((receiver_button.pulse_duration>(receiver_current_time-receiver_button.edge_time+100)) ||
+				(receiver_button.pulse_duration<(receiver_current_time-receiver_button.edge_time-100)))
+			receiver_button.button_state = 1;
+
 		receiver_button.pulse_duration = receiver_current_time-receiver_button.edge_time;
 	}
 }
