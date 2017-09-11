@@ -117,6 +117,11 @@ void serial_comm::PeriodicTask(void)
     {
      case AUTOMATIC:
      case MANUAL:
+      if (_statemachine.state == MANUAL)
+       ROS_INFO("Node %s: Arduino in MANUAL mode, do nothing.", ros::this_node::getName().c_str());
+      else
+       ROS_INFO("Node %s: Arduino in AUTOMATIC mode, do nothing.", ros::this_node::getName().c_str());
+      
       /* Verify the message and decode it */
       if (checksum_verify() && (bytes_read >= _message_size))
       {
