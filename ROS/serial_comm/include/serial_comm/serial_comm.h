@@ -39,7 +39,7 @@ private:
 
     /* Checksum functions */
     bool checksum_verify();
-    char checksum_calculate();
+    void checksum_calculate();
 
     /* Conversion functions */
     bool us_to_SIunits(uint16_t value_us, double& value_SIunits, std::vector<int> us_range, std::vector<double> SIunits_range);

@@ -299,7 +299,7 @@ void serial_comm::PeriodicTask(void)
     _message_buffer[12] = _statemachine.info;
 
     /* Checksum */
-    _message_buffer[_message_size-1] = checksum_calculate();
+    checksum_calculate();
 
     size_t bytes_wrote;
     try {
@@ -328,7 +328,7 @@ bool serial_comm::checksum_verify()
 }
 
 
-char serial_comm::checksum_calculate()
+void serial_comm::checksum_calculate()
 {
   char result = 0;
   unsigned int sum = 0;
@@ -336,9 +336,7 @@ char serial_comm::checksum_calculate()
   for (unsigned int i = 0; i < (_message_size - 1); i++)
     sum += _message_buffer[i];
 
-  result = sum & 0xFF;
-
-  return result;
+  _message_buffer[_message_size-1] = sum & 0xFF;
 }
 
 
