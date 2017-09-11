@@ -69,7 +69,7 @@ void serial_comm::Prepare(void)
 
 void serial_comm::RunPeriodically(void)
 {
-    while (ros::ok())
+ while (ros::ok())
     {
         /* ROS node is timed by serial read from Arduino */
         PeriodicTask();
@@ -173,7 +173,33 @@ void serial_comm::PeriodicTask(void)
       break;
       
      case SAFE:
+      /* Set commands to zero */
       _speed_ref = _steer_ref = _wheel_speed = 0.0;
+
+      /* Verify the message and decode it */
+      if (checksum_verify() && (bytes_read >= _message_size))
+      {
+       /* Arduino state */
+       switch (_message_buffer[11])
+       {
+        case SAFE:
+         _statemachine.state = SAFE;
+         break;
+         
+        case MANUAL:
+         _statemachine.state = MANUAL;
+         break;
+         
+        case AUTOMATIC:
+         _statemachine.state = AUTOMATIC;
+         break;
+         
+        case HALT:
+         _statemachine.state = HALT;
+         break;
+       }
+       _statemachine.info = _message_buffer[12];     
+      }
       
       ROS_INFO("Node %s: Arduino in SAFE mode, do nothing.", ros::this_node::getName().c_str());
       break;
