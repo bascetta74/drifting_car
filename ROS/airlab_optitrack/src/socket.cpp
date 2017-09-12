@@ -54,7 +54,7 @@ UdpMulticastSocket::UdpMulticastSocket( const int local_port, const std::string 
   error << "unknown error";
   break;
     }
-    throw SocketException( error.str().c_str() );    
+//    throw SocketException( error.str().c_str() );    
   }
   
   // Fill struct for local address
@@ -71,7 +71,7 @@ UdpMulticastSocket::UdpMulticastSocket( const int local_port, const std::string 
   {
     std::stringstream error;
     error << "Failed to bind socket to local address:" << strerror( errno );
-    throw SocketException( error.str().c_str() );
+//    throw SocketException( error.str().c_str() );
   }
   
   // Join multicast group
@@ -106,7 +106,7 @@ UdpMulticastSocket::UdpMulticastSocket( const int local_port, const std::string 
   error << "unknown error";
   break;
     }
-    throw SocketException( error.str().c_str() );    
+  //  throw SocketException( error.str().c_str() );    
   }
     
   // Make socket non-blocking
@@ -117,7 +117,7 @@ UdpMulticastSocket::UdpMulticastSocket( const int local_port, const std::string 
   {
     std::stringstream error;
     error << "Failed to enable non-blocking I/O: " << strerror( errno );
-    throw SocketException( error.str().c_str() );
+   // throw SocketException( error.str().c_str() );
   }
 }
 
