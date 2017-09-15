@@ -52,6 +52,7 @@ void serial_comm::Prepare(void)
         _wheel_speed = 0.0;
         _statemachine.state = SAFE;
         _statemachine.info = 0;
+        _enteringSafe = _enteringManual = _enteringAutomatic = _enteringHalt = true;
 
         _message_buffer = new uint8_t[_message_size];
 
@@ -116,135 +117,158 @@ void serial_comm::PeriodicTask(void)
     switch (_statemachine.state)
     {
      case AUTOMATIC:
-      ROS_INFO("Node %s: Arduino in AUTOMATIC mode.", ros::this_node::getName().c_str());
-      
-      /* Verify the message and decode it */
-      if (checksum_verify() && (bytes_read >= _message_size))
-      {    
-       /* Wheel speed */
-       bool wheel_dx_ccw, wheel_sx_ccw;
-       uint16_t  wheel_speed_sx, wheel_speed_dx;
-       memcpy(&wheel_speed_dx, &(_message_buffer[5]), sizeof(uint16_t));
-       memcpy(&wheel_speed_sx, &(_message_buffer[8]), sizeof(uint16_t));
-       wheel_dx_ccw = (_message_buffer[7]==0x00) ? false : true;
-       wheel_sx_ccw = (_message_buffer[10]==0x00) ? false : true;
-       _wheel_speed = ( ((wheel_dx_ccw) ? static_cast<double>(wheel_speed_dx) : -1.0*static_cast<double>(wheel_speed_dx)) +
-       ((wheel_sx_ccw) ? static_cast<double>(wheel_speed_sx) : -1.0*static_cast<double>(wheel_speed_sx)) ) / 2.0;
-       
-       /* Arduino state */
-       switch (_message_buffer[11])
-       {
-        case SAFE:
-         _statemachine.state = SAFE;
-         break;
+        /* Writing message to notify state change */
+        if (_enteringAutomatic)
+        {
+           ROS_INFO("Node %s: Arduino in AUTOMATIC mode.", ros::this_node::getName().c_str());         
+           _enteringAutomatic = false;
+        }
+        
+        /* Verify the message and decode it */
+        if (checksum_verify() && (bytes_read >= _message_size))
+        {    
+         /* Wheel speed */
+         bool wheel_dx_ccw, wheel_sx_ccw;
+         uint16_t  wheel_speed_sx, wheel_speed_dx;
+         memcpy(&wheel_speed_dx, &(_message_buffer[5]), sizeof(uint16_t));
+         memcpy(&wheel_speed_sx, &(_message_buffer[8]), sizeof(uint16_t));
+         wheel_dx_ccw = (_message_buffer[7]==0x00) ? false : true;
+         wheel_sx_ccw = (_message_buffer[10]==0x00) ? false : true;
+         _wheel_speed = ( ((wheel_dx_ccw) ? static_cast<double>(wheel_speed_dx) : -1.0*static_cast<double>(wheel_speed_dx)) +
+         ((wheel_sx_ccw) ? static_cast<double>(wheel_speed_sx) : -1.0*static_cast<double>(wheel_speed_sx)) ) / 2.0;
          
-        case MANUAL:
-         _statemachine.state = MANUAL;
-         break;
-         
-        case AUTOMATIC:
-         _statemachine.state = AUTOMATIC;
-         break;
-         
-        case HALT:
-         _statemachine.state = HALT;
-         break;
-       }
-       _statemachine.info = _message_buffer[12];
-      }
-      else
-       ROS_ERROR("Node %s: message with wrong checksum or too few bytes from port %s.", ros::this_node::getName().c_str(), _serial_port.c_str());
-      break;
+         /* Arduino state */
+         switch (_message_buffer[11])
+         {
+          case SAFE:
+           _statemachine.state = SAFE;
+           break;
+           
+          case MANUAL:
+           _statemachine.state = MANUAL;
+           break;
+           
+          case AUTOMATIC:
+           _statemachine.state = AUTOMATIC;
+           break;
+           
+          case HALT:
+           _statemachine.state = HALT;
+           break;
+         }
+         _statemachine.info = _message_buffer[12];
+        }
+        else
+         ROS_ERROR("Node %s: message with wrong checksum or too few bytes from port %s.", ros::this_node::getName().c_str(), _serial_port.c_str());
+        break;
       
      case MANUAL:
-      ROS_INFO("Node %s: Arduino in MANUAL mode.", ros::this_node::getName().c_str());
-      
-      /* Verify the message and decode it */
-      if (checksum_verify() && (bytes_read >= _message_size))
-      {
-       /* Steer ref */
-       uint16_t tmp_steer_ref;
-       memcpy(&tmp_steer_ref, &(_message_buffer[1]), sizeof(uint16_t));
-       if (!us_to_SIunits(tmp_steer_ref, _steer_ref, _steer_us_range, _steer_rad_range))
-        ROS_ERROR("Node %s: steer ref value in reading serial message is out of range.", ros::this_node::getName().c_str());
-       
-       /* Speed ref */
-       uint16_t tmp_speed_ref;
-       memcpy(&tmp_speed_ref, &(_message_buffer[3]), sizeof(uint16_t));
-       if (!us_to_SIunits(tmp_speed_ref, _speed_ref, _speed_us_range, _speed_mps_range))
-        ROS_ERROR("Node %s: speed ref value in reading serial message is out of range.", ros::this_node::getName().c_str());
-       
-       /* Wheel speed */
-       bool wheel_dx_ccw, wheel_sx_ccw;
-       uint16_t  wheel_speed_sx, wheel_speed_dx;
-       memcpy(&wheel_speed_dx, &(_message_buffer[5]), sizeof(uint16_t));
-       memcpy(&wheel_speed_sx, &(_message_buffer[8]), sizeof(uint16_t));
-       wheel_dx_ccw = (_message_buffer[7]==0x00) ? false : true;
-       wheel_sx_ccw = (_message_buffer[10]==0x00) ? false : true;
-       _wheel_speed = ( ((wheel_dx_ccw) ? static_cast<double>(wheel_speed_dx) : -1.0*static_cast<double>(wheel_speed_dx)) +
-       ((wheel_sx_ccw) ? static_cast<double>(wheel_speed_sx) : -1.0*static_cast<double>(wheel_speed_sx)) ) / 2.0;
-       
-       /* Arduino state */
-       switch (_message_buffer[11])
-       {
-        case SAFE:
-         _statemachine.state = SAFE;
-         break;
+        /* Writing message to notify state change */
+        if (_enteringManual)
+        {
+           ROS_INFO("Node %s: Arduino in MANUAL mode.", ros::this_node::getName().c_str());
+           _enteringManual = false;
+        }
+        
+        /* Verify the message and decode it */
+        if (checksum_verify() && (bytes_read >= _message_size))
+        {
+         /* Steer ref */
+         uint16_t tmp_steer_ref;
+         memcpy(&tmp_steer_ref, &(_message_buffer[1]), sizeof(uint16_t));
+         if (!us_to_SIunits(tmp_steer_ref, _steer_ref, _steer_us_range, _steer_rad_range))
+          ROS_ERROR("Node %s: steer ref value in reading serial message is out of range.", ros::this_node::getName().c_str());
          
-        case MANUAL:
-         _statemachine.state = MANUAL;
-         break;
+         /* Speed ref */
+         uint16_t tmp_speed_ref;
+         memcpy(&tmp_speed_ref, &(_message_buffer[3]), sizeof(uint16_t));
+         if (!us_to_SIunits(tmp_speed_ref, _speed_ref, _speed_us_range, _speed_mps_range))
+          ROS_ERROR("Node %s: speed ref value in reading serial message is out of range.", ros::this_node::getName().c_str());
          
-        case AUTOMATIC:
-         _statemachine.state = AUTOMATIC;
-         break;
+         /* Wheel speed */
+         bool wheel_dx_ccw, wheel_sx_ccw;
+         uint16_t  wheel_speed_sx, wheel_speed_dx;
+         memcpy(&wheel_speed_dx, &(_message_buffer[5]), sizeof(uint16_t));
+         memcpy(&wheel_speed_sx, &(_message_buffer[8]), sizeof(uint16_t));
+         wheel_dx_ccw = (_message_buffer[7]==0x00) ? false : true;
+         wheel_sx_ccw = (_message_buffer[10]==0x00) ? false : true;
+         _wheel_speed = ( ((wheel_dx_ccw) ? static_cast<double>(wheel_speed_dx) : -1.0*static_cast<double>(wheel_speed_dx)) +
+         ((wheel_sx_ccw) ? static_cast<double>(wheel_speed_sx) : -1.0*static_cast<double>(wheel_speed_sx)) ) / 2.0;
          
-        case HALT:
-         _statemachine.state = HALT;
-         break;
-       }
-       _statemachine.info = _message_buffer[12];
-      }
-      else
-       ROS_ERROR("Node %s: message with wrong checksum or too few bytes from port %s.", ros::this_node::getName().c_str(), _serial_port.c_str());
-      break;
+         /* Arduino state */
+         switch (_message_buffer[11])
+         {
+          case SAFE:
+           _statemachine.state = SAFE;
+           break;
+           
+          case MANUAL:
+           _statemachine.state = MANUAL;
+           break;
+           
+          case AUTOMATIC:
+           _statemachine.state = AUTOMATIC;
+           break;
+           
+          case HALT:
+           _statemachine.state = HALT;
+           break;
+         }
+         _statemachine.info = _message_buffer[12];
+        }
+        else
+         ROS_ERROR("Node %s: message with wrong checksum or too few bytes from port %s.", ros::this_node::getName().c_str(), _serial_port.c_str());
+        break;
       
      case SAFE:
-      /* Set commands to zero */
-      _speed_ref = _steer_ref = _wheel_speed = 0.0;
-
-      /* Verify the message and decode it */
-      if (checksum_verify() && (bytes_read >= _message_size))
-      {
-       /* Arduino state */
-       switch (_message_buffer[11])
-       {
-        case SAFE:
-         _statemachine.state = SAFE;
-         break;
-         
-        case MANUAL:
-         _statemachine.state = MANUAL;
-         break;
-         
-        case AUTOMATIC:
-         _statemachine.state = AUTOMATIC;
-         break;
-         
-        case HALT:
-         _statemachine.state = HALT;
-         break;
-       }
-       _statemachine.info = _message_buffer[12];     
-      }
+        /* Writing message on state change */
+        if (_enteringSafe)
+        {
+           ROS_INFO("Node %s: Arduino in SAFE mode.", ros::this_node::getName().c_str());
+           _enteringSafe = false;
+        }
       
-      ROS_INFO("Node %s: Arduino in SAFE mode, do nothing.", ros::this_node::getName().c_str());
-      break;
+        /* Set commands to zero */
+        _speed_ref = _steer_ref = _wheel_speed = 0.0;
+
+        /* Verify the message and decode it */
+        if (checksum_verify() && (bytes_read >= _message_size))
+        {
+         /* Arduino state */
+         switch (_message_buffer[11])
+         {
+          case SAFE:
+           _statemachine.state = SAFE;
+           break;
+           
+          case MANUAL:
+           _statemachine.state = MANUAL;
+           break;
+           
+          case AUTOMATIC:
+           _statemachine.state = AUTOMATIC;
+           break;
+           
+          case HALT:
+           _statemachine.state = HALT;
+           break;
+         }
+         _statemachine.info = _message_buffer[12];     
+        }
+        
+        ROS_INFO("Node %s: Arduino in SAFE mode, do nothing.", ros::this_node::getName().c_str());
+        break;
       
      case HALT:
-      ROS_ERROR("Node %s: Arduino in HALT mode, error code %d.", ros::this_node::getName().c_str(), _statemachine.info);
-      serial_comm::Shutdown();
-      break;
+        /* Writing message to notify state change */
+        if (_enteringHalt)
+        {
+           ROS_INFO("Node %s: Arduino in HALT mode.", ros::this_node::getName().c_str());
+           _enteringHalt = false;
+        }
+      
+        serial_comm::Shutdown();
+        break;
     }
     
     /* Publish car data on /radio_cmd */

@@ -33,8 +33,8 @@ private:
     typedef enum States { SAFE=0, MANUAL=1, AUTOMATIC=2, HALT=3 } statemachine_state;
     typedef struct
     {
-     statemachine_state state;
-     unsigned char info;
+       statemachine_state state;
+       unsigned char info;
     } state_info;
 
     /* Checksum functions */
@@ -51,7 +51,9 @@ private:
     bool                _auto_mode;
     double              _wheel_speed;
     state_info          _statemachine;
+    bool                _enteringSafe, _enteringManual, _enteringAutomatic, _enteringHalt;
 
+    /* Serial message */
     serial::Serial*     _serial;
     uint8_t*            _message_buffer;
 
