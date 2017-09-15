@@ -255,8 +255,6 @@ void serial_comm::PeriodicTask(void)
          }
          _statemachine.info = _message_buffer[12];     
         }
-        
-        ROS_INFO("Node %s: Arduino in SAFE mode, do nothing.", ros::this_node::getName().c_str());
         break;
       
      case HALT:
