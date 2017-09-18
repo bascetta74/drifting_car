@@ -10,7 +10,7 @@
 
 
 // Internal functions
-bool checksum_verify(const char checksum, const char* message, const size_t bufferSize);
+byte checksum_verify(const char checksum, const char* message, const size_t bufferSize);
 char checksum_calculate(const char* message, const size_t bufferSize);
 
 
@@ -31,24 +31,25 @@ void encode_odroid_message(char encoded_message[MESSAGE_SIZE], const telemetry_m
     encoded_message[MESSAGE_SIZE-1] = checksum_calculate(encoded_message, MESSAGE_SIZE);
 }
 
-bool decode_odroid_message(const char message[MESSAGE_SIZE], telemetry_message* decoded_message)
+unsigned int decode_odroid_message(const char message[MESSAGE_SIZE], telemetry_message* decoded_message)
 {
-	/* Verify the message and decode it */
-	if (checksum_verify(message[MESSAGE_SIZE-1], message, MESSAGE_SIZE) && (message[0]==0x7E))
-	{
-		memcpy(&(decoded_message->steer_cmd), &(message[1]), sizeof(unsigned int));
-		memcpy(&(decoded_message->speed_cmd), &(message[3]), sizeof(unsigned int));
-		memcpy(&(decoded_message->wheel_dx_speed), &(message[5]), sizeof(unsigned int));
-		decoded_message->wheel_dx_ccw = (bool) message[7];
-		memcpy(&(decoded_message->wheel_sx_speed), &(message[8]), sizeof(unsigned int));
-		decoded_message->wheel_sx_ccw = (bool) message[10];
-		decoded_message->arduino_state = (unsigned char) message[11];
-		decoded_message->arduino_state_info = (unsigned char) message[12];
-	}
-	else
-		return false;
+	/* Verify message checksum and header it */
+	if (!checksum_verify(message[MESSAGE_SIZE-1], message, MESSAGE_SIZE))
+		return FAULT_COMM_CHECKSUM;
+	else if (message[0]!=0x7E)
+		return FAULT_COMM_HEADER;
 
-	return true;
+	/* If everithing is ok decode the message */
+	memcpy(&(decoded_message->steer_cmd), &(message[1]), sizeof(unsigned int));
+	memcpy(&(decoded_message->speed_cmd), &(message[3]), sizeof(unsigned int));
+	memcpy(&(decoded_message->wheel_dx_speed), &(message[5]), sizeof(unsigned int));
+	decoded_message->wheel_dx_ccw = (bool) message[7];
+	memcpy(&(decoded_message->wheel_sx_speed), &(message[8]), sizeof(unsigned int));
+	decoded_message->wheel_sx_ccw = (bool) message[10];
+	decoded_message->arduino_state = (unsigned char) message[11];
+	decoded_message->arduino_state_info = (unsigned char) message[12];
+
+	return 0;
 }
 
 void initialize_odroid_message(telemetry_message* message)
@@ -90,7 +91,7 @@ void get_odroid_message(const telemetry_message* message, unsigned int* steer_cm
 
 
 // Internal functions
-bool checksum_verify(const char checksum, const char* message, const size_t bufferSize)
+byte checksum_verify(const char checksum, const char* message, const size_t bufferSize)
 {
 	int result = 0;
 	unsigned int sum = 0;
@@ -100,9 +101,9 @@ bool checksum_verify(const char checksum, const char* message, const size_t buff
 	result = sum & 0xFF;
 
 	if (checksum == result)
-		return true;
+		return 1;
 	else
-		return false;
+		return 0;
 }
 
 char checksum_calculate(const char* message, const size_t bufferSize)

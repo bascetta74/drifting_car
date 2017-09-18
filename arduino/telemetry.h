@@ -25,7 +25,7 @@ typedef struct
 } telemetry_message;
 
 void encode_odroid_message(char encoded_message[MESSAGE_SIZE], const telemetry_message* message);
-bool decode_odroid_message(const char message[MESSAGE_SIZE], telemetry_message* decoded_message);
+unsigned int decode_odroid_message(const char message[MESSAGE_SIZE], telemetry_message* decoded_message);
 
 void initialize_odroid_message(telemetry_message* message);
 void set_odroid_message(telemetry_message* message, unsigned int steer_cmd, unsigned int speed_cmd,

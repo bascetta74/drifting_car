@@ -12,9 +12,10 @@
 
 void init_encoderIO();
 void init_encoderInterrupts();
+void init_encoderWDT();
 
-unsigned int get_wheelspeed_dx_ms();
-unsigned int get_wheelspeed_sx_ms();
+unsigned int get_wheelspeed_dx_us();
+unsigned int get_wheelspeed_sx_us();
 byte is_wheel_dx_ccw();
 byte is_wheel_sx_ccw();
 

@@ -13,12 +13,12 @@
 void init_receiverIO();
 void init_receiverInterrupts();
 
-unsigned int get_steer_value_ms();
-unsigned int get_speed_value_ms();
-unsigned int get_button_value_ms();
-byte get_steer_state_ms();
-byte get_speed_state_ms();
-byte get_button_state_ms();
+unsigned int get_steer_value_us();
+unsigned int get_speed_value_us();
+unsigned int get_button_value_us();
+byte get_steer_state_us();
+byte get_speed_state_us();
+byte get_button_state_us();
 byte is_receiver_button_pressed();
 
 #endif /* RECEIVER_H_ */
