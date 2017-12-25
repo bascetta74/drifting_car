@@ -3,10 +3,12 @@
 # Identifier corresponds to Trackable ID set in Tracking Tools
 #
 rigid_bodies:
-    '1':
+    '2':
         pose: car/pose
         pose2d: car/ground_pose
         child_frame_id: car/base_link
         parent_frame_id: world
 optitrack_config:
         multicast_address: 224.0.0.1
+        server_address: 127.0.0.1 #10.0.0.245
+

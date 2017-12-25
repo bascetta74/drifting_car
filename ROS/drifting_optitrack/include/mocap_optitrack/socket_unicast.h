@@ -37,8 +37,8 @@
 
 /// \author <a href="mailto:graeve@ais.uni-bonn.de">Kathrin Gräve</a>
 
-#ifndef __SOCKET_CLASS_H__
-#define __SOCKET_CLASS_H__
+#ifndef __SOCKETUNICAST_CLASS_H__
+#define __SOCKETUNICAST_CLASS_H__
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -61,8 +61,8 @@ class SocketException : public std::runtime_error
     ~SocketException () throw() {}
 };
 
-/// \brief Allows to retrieve data from a UDP multicast group
-class UdpMulticastSocket
+/// \brief Allows to retrieve data from a UDP unicast group
+class UdpUnicastSocket
 {
   public:
     
@@ -70,10 +70,10 @@ class UdpMulticastSocket
     static const int MAXRECV = 3000;
 
     /// Creates a socket and joins the multicast group with the given address
-    UdpMulticastSocket( const int local_port, const std::string multicast_ip = "224.0.0.1" );
+    UdpUnicastSocket( const int port, const std::string server_ip = "10.0.0.245" );
     
     ///
-    ~UdpMulticastSocket();
+    ~UdpUnicastSocket();
     
     /// \brief Retrieve data from multicast group.
     /// \return The number of bytes received or -1 if no data is available
@@ -89,9 +89,9 @@ class UdpMulticastSocket
   private:
 
     int m_socket;
-    sockaddr_in m_local_addr;
+    sockaddr_in m_server_addr;
 
     char buf [ MAXRECV + 1 ];
 };
 
-#endif/*__SOCKET_CLASS_H__*/
+#endif/*__SOCKETUNICAST_CLASS_H__*/
