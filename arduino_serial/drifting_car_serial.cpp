@@ -1,5 +1,5 @@
 // Do not remove the include below
-#include "drifting_car_arduino.h"
+#include "drifting_car_serial.h"
 
 #include "constant.h"
 #include "type.h"
@@ -19,6 +19,9 @@ telemetry_message from_odroid, to_odroid;
 
 // Car measures
 unsigned int curr_speed, curr_steer;
+
+// Encoder measures
+int sx_count, dx_count;
 
 // State machine
 state_info arduino_state;
@@ -78,9 +81,6 @@ void setup()
 	// Set led "L" to show when the system is in HALT state
 	pinMode(13, OUTPUT);
 	digitalWrite(13, HIGH);
-
-	// Activate a watchdog set to 15ms
-	//init_encoderWDT();
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 }
 
@@ -136,12 +136,14 @@ void loop()
 				set_speed(SPEED_ZERO);
 
 				// Prepare the message to be sent
+				sx_count = get_wheelcount_sx();
+				dx_count = get_wheelcount_dx();
 				to_odroid.steer_cmd          = STEER_ZERO;
 				to_odroid.speed_cmd          = SPEED_ZERO;
-				to_odroid.wheel_dx_speed     = get_wheelspeed_dx_us();
-				to_odroid.wheel_sx_speed     = get_wheelspeed_sx_us();
-				to_odroid.wheel_dx_ccw       = (is_wheel_dx_ccw() == 0x01) ? true : false;
-				to_odroid.wheel_sx_ccw       = (is_wheel_sx_ccw() == 0x01) ? true : false;
+				to_odroid.wheel_dx_speed     = abs(dx_count);
+				to_odroid.wheel_sx_speed     = abs(sx_count);
+				to_odroid.wheel_dx_ccw       = (dx_count < 0) ? true : false;
+				to_odroid.wheel_sx_ccw       = (sx_count < 0) ? true : false;
 				to_odroid.arduino_state      = (unsigned char) arduino_state.state;
 				to_odroid.arduino_state_info = (unsigned char) arduino_state.info;
 				break;
@@ -160,12 +162,14 @@ void loop()
 				}
 
 				// Prepare the message to be sent
+				sx_count = get_wheelcount_sx();
+				dx_count = get_wheelcount_dx();
 				to_odroid.steer_cmd          = curr_steer;
 				to_odroid.speed_cmd          = curr_speed;
-				to_odroid.wheel_dx_speed     = get_wheelspeed_dx_us();
-				to_odroid.wheel_sx_speed     = get_wheelspeed_sx_us();
-				to_odroid.wheel_dx_ccw       = (is_wheel_dx_ccw() == 0x01) ? true : false;
-				to_odroid.wheel_sx_ccw       = (is_wheel_sx_ccw() == 0x01) ? true : false;
+				to_odroid.wheel_dx_speed     = abs(dx_count);
+				to_odroid.wheel_sx_speed     = abs(sx_count);
+				to_odroid.wheel_dx_ccw       = (dx_count < 0) ? true : false;
+				to_odroid.wheel_sx_ccw       = (sx_count < 0) ? true : false;
 				to_odroid.arduino_state      = (unsigned char) arduino_state.state;
 				to_odroid.arduino_state_info = (unsigned char) arduino_state.info;
 				break;
@@ -176,12 +180,14 @@ void loop()
 				set_speed(from_odroid.speed_cmd);
 
 				// Prepare the message to be sent
+				sx_count = get_wheelcount_sx();
+				dx_count = get_wheelcount_dx();
 				to_odroid.steer_cmd          = from_odroid.steer_cmd;
 				to_odroid.speed_cmd          = from_odroid.speed_cmd;
-				to_odroid.wheel_dx_speed     = get_wheelspeed_dx_us();
-				to_odroid.wheel_sx_speed     = get_wheelspeed_sx_us();
-				to_odroid.wheel_dx_ccw       = (is_wheel_dx_ccw() == 0x01) ? true : false;
-				to_odroid.wheel_sx_ccw       = (is_wheel_sx_ccw() == 0x01) ? true : false;
+				to_odroid.wheel_dx_speed     = abs(dx_count);
+				to_odroid.wheel_sx_speed     = abs(sx_count);
+				to_odroid.wheel_dx_ccw       = (dx_count < 0) ? true : false;
+				to_odroid.wheel_sx_ccw       = (sx_count < 0) ? true : false;
 				to_odroid.arduino_state      = (unsigned char) arduino_state.state;
 				to_odroid.arduino_state_info = (unsigned char) arduino_state.info;
 				break;
@@ -191,12 +197,14 @@ void loop()
 				set_speed(SPEED_ZERO);
 
 				// Prepare the message to be sent
+				sx_count = get_wheelcount_sx();
+				dx_count = get_wheelcount_dx();
 				to_odroid.steer_cmd          = STEER_ZERO;
 				to_odroid.speed_cmd          = SPEED_ZERO;
-				to_odroid.wheel_dx_speed     = get_wheelspeed_dx_us();
-				to_odroid.wheel_sx_speed     = get_wheelspeed_sx_us();
-				to_odroid.wheel_dx_ccw       = (is_wheel_dx_ccw() == 0x01) ? true : false;
-				to_odroid.wheel_sx_ccw       = (is_wheel_sx_ccw() == 0x01) ? true : false;
+				to_odroid.wheel_dx_speed     = abs(dx_count);;
+				to_odroid.wheel_sx_speed     = abs(sx_count);;
+				to_odroid.wheel_dx_ccw       = (dx_count < 0) ? true : false;
+				to_odroid.wheel_sx_ccw       = (sx_count < 0) ? true : false;
 				to_odroid.arduino_state      = (unsigned char) arduino_state.state;
 				to_odroid.arduino_state_info = (unsigned char) arduino_state.info;
 				break;

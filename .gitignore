@@ -1,7 +1,14 @@
 # Eclipse files for arduino project
-arduino/core/
-arduino/libraries/
-arduino/Release/
-arduino/.settings/
-arduino/.cproject
-arduino/.project
+arduino_serial/core/
+arduino_serial/libraries/
+arduino_serial/Release/
+arduino_serial/.settings/
+arduino_serial/.cproject
+arduino_serial/.project
+arduino_ethernet/core/
+arduino_ethernet/libraries/
+arduino_ethernet/Release/
+arduino_ethernet/.settings/
+arduino_ethernet/.cproject
+arduino_ethernet/.project
+
