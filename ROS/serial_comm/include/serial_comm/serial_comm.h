@@ -48,7 +48,6 @@ private:
     /* Node state variables */
     double              _steer_ref;
     double              _speed_ref;
-    bool                _auto_mode;
     double              _wheel_speed;
     state_info          _statemachine;
     bool                _enteringSafe, _enteringManual, _enteringAutomatic, _enteringHalt;
