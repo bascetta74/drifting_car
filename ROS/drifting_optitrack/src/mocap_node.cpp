@@ -44,7 +44,8 @@ const std::string MOCAP_MODEL_KEY = "mocap_model";
 const std::string RIGID_BODIES_KEY = "rigid_bodies";
 const char ** DEFAULT_MOCAP_MODEL = SKELETON_WITHOUT_TOES;
 
-const int LOCAL_PORT = 1511;
+const int LOCAL_PORT_MULTICAST = 1511;
+const int LOCAL_PORT_UNICAST = 1510;
 
 ////////////////////////////////////////////////////////////////////////
 
@@ -53,10 +54,10 @@ void processMocapData( const char** mocap_model,
                        const std::string& ip)
 {
 #ifdef MULTICAST
-  UdpMulticastSocket client_socket( LOCAL_PORT, ip );
+  UdpMulticastSocket client_socket( LOCAL_PORT_MULTICAST, ip );
 #endif
 #ifdef UNICAST
-  UdpUnicastSocket client_socket( LOCAL_PORT, ip );
+  UdpUnicastSocket client_socket( LOCAL_PORT_UNICAST, ip );
 #endif
 
   ushort payload;
@@ -70,8 +71,8 @@ void processMocapData( const char** mocap_model,
     {
       // Receive data from mocap device
       numBytes = client_socket.recv();
-      if (numBytes>0)
-        ROS_INFO("Message received, %d bytes", numBytes);
+      // if (numBytes>0)
+      //   ROS_INFO("Message received, %d bytes", numBytes);
 
       // Parse mocap data
       if( numBytes > 0 )
