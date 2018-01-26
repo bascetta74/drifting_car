@@ -51,6 +51,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   car_cmd.msg
+  arduino_telemetry.msg
 )
 
 ## Generate services in the 'srv' folder
