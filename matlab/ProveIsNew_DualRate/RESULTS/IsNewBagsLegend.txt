@@ -1,0 +1,4 @@
+IsNew bags legend:
+01: chatter 100 Hz, Simulink node 0.01 s solver step size and queue sizes =1 of both the subscriber and the publisher simulink block
+02: chatter 50 Hz, Simulink node 0.01 s solver step size and queue sizes =1 of both the subscriber and the publisher simulink block
+03: chatter 25 Hz, Simulink node 0.01 s solver step size and queue sizes =1 of both the subscriber and the publisher simulink block

@@ -1,0 +1,8 @@
+prefix=/home/marco/Dropbox/Manuali_e_Template/ROS/MatlabROS/ProveIsNew/catkin_ws/install
+
+Name: atomicdualrate
+Description: Description of atomicdualrate
+Version: 1.0.0
+Cflags: 
+Libs: -L/home/marco/Dropbox/Manuali_e_Template/ROS/MatlabROS/ProveIsNew/catkin_ws/install/lib 
+Requires: geometry_msgs roscpp std_msgs

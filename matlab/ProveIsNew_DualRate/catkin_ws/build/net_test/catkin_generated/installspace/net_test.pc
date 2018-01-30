@@ -1,0 +1,8 @@
+prefix=/home/marco/Dropbox/Manuali_e_Template/ROS/MatlabROS/ProveIsNew/catkin_ws/install
+
+Name: net_test
+Description: Description of net_test
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/marco/Dropbox/Manuali_e_Template/ROS/MatlabROS/ProveIsNew/catkin_ws/install/lib 
+Requires: 

@@ -1,0 +1,38 @@
+<launch>
+
+  <!--- Run talker -->
+  	<node pkg="net_test" 
+	type="talker" 
+	respawn="false" 
+	name="talker" 
+	required="true"
+	output="screen">
+  </node>
+
+  <!--- Run Simulink Chatter WithIsNew -->
+  <node pkg="withisnew" 
+	type="withisnew_node" 
+	respawn="false" 
+	required="true"
+	name="Simulink_Chatter_WithIsNew">
+  </node>
+
+  <!--- Run Simulink Chatter WithoutIsNew -->
+  <node pkg="withoutisnew" 
+	type="withoutisnew_node" 
+	respawn="false" 
+	required="true"
+	name="Simulink_Chatter_WithoutIsNew">
+  </node>
+
+  <!--- Run Rosbag -->
+  <!-- saved in ~/.ros/ -->
+   <node pkg="rosbag" 
+	type="record" 
+	name="harness_bag"
+	respawn="false"
+	required="true" 
+        args="-o IsNew_bag /chatter /Chatter_WithIsNew /Chatter_WithoutIsNew">
+  </node>
+
+</launch>

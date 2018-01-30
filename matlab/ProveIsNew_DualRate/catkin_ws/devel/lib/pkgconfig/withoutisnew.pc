@@ -1,0 +1,8 @@
+prefix=/home/marco/Dropbox/Manuali_e_Template/ROS/MatlabROS/ProveIsNew/catkin_ws/devel
+
+Name: withoutisnew
+Description: Description of withoutisnew
+Version: 1.0.0
+Cflags: 
+Libs: -L/home/marco/Dropbox/Manuali_e_Template/ROS/MatlabROS/ProveIsNew/catkin_ws/devel/lib 
+Requires: geometry_msgs roscpp std_msgs
