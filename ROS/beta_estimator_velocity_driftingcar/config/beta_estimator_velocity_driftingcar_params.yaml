@@ -1,0 +1,3 @@
+# Beta estimator velocity configuration parameters
+  /beta_estimator/p: 0.15              # [m] distance of the feedback linearization point from the vehicle COG
+
