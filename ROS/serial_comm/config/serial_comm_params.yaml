@@ -9,6 +9,6 @@
 # Variable ranges
   /serial_comm/steer_us_range: [1240, 1740]      # Steer range in us
   /serial_comm/steer_rad_range: [-0.518, 0.469]  # Steer range in rad
-  /serial_comm/speed_us_range: [1500, 1600]      # Speed range in us
-  /serial_comm/speed_mps_range: [0.0, 1.43]      # Speed range in m/s
+  /serial_comm/speed_us_range: [1500, 2000]      # Speed range in us
+  /serial_comm/speed_mps_range: [0.0, 1.0]      # Speed range in m/s
 
