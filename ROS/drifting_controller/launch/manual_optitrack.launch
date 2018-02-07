@@ -10,17 +10,18 @@
     <rosparam file="$(find myahrs_driver)/config/myahrs_params.yaml" command="load" />
   </node>
 
-  <!-- Run optitrack node -->
-  <arg name="mocap_config_file"
-       default="$(find mocap_optitrack)/config/mocap.yaml" />
+  <!-- Run drifting optitrack node -->
+	<arg name="optitrack_config_file"
+       default="$(find drifting_optitrack)/config/optitrack.yaml" />
 
-  <node pkg="mocap_optitrack"
-        type="mocap_node"
-        name="mocap_node"
+  <node pkg="drifting_optitrack"
+        type="optitrack_node"
+        name="optitrack_node"
         respawn="false"
         launch-prefix=""
-        required="true">
-    <rosparam file="$(arg mocap_config_file)" command="load" />
+        required="true"
+        output="screen">
+    <rosparam file="$(arg optitrack_config_file)" command="load" />
   </node>
 
 </launch>
