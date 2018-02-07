@@ -1,3 +1,0 @@
-# Beta estimator velocity configuration parameters
-  /beta_estimator_acceleration_driftingcar/PD_Num: [193930.0, -193736.0]
-  /beta_estimator_acceleration_driftingcar/PD_Den: [1.0, 0.9383]
