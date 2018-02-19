@@ -1,6 +1,23 @@
 # README #
 
-### Installation notes (kinetic) ###
+## Way of using this repo ##
+The ROS subdirectory only contains the catkin workspace's src folder (i.e. nodes packages).
+
+Simulink generated ROS nodes must not be inserted inside the ROS subdirectory on this git repo.
+The Similink schemes which generate the ROS nodes must be placed inside the repo's Matlab subdirectory. 
+Compiled nodes (i.e. the packages folders which go inside the src subfolder of the catkin workspace) must be kept only on your local machine.
+
+### into the odroid ###
+Into the odroid, the following lines have been added to the .git/info/exclude file in order to not upload also the simulink generated ROS nodes:
+"# simulink generated ROS nodes
+ROS/beta_estimator_velocity_driftingcar/
+ROS/beta_estimator_acceleration_driftingcar/"
+Note that this list has to be updated for each neewly generated simulink ROS node
+
+This repo is located in ~/Software/driftingcar.
+In the catkin_ws workspace folder, the src folder is actually a symbolic link which points to the ROS subdirectory of this repo.
+
+## Installation notes (kinetic) ##
 
 * To use gauges download and recompile rqt_gauges, and then substitute the library rqt_gauges in /opt/ros/kinetic... with the newly compiled version
 
