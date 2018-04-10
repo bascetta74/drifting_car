@@ -1,0 +1,16 @@
+<launch>
+
+  <!-- Run beta_estimator_acceleration_driftingcar node -->
+  <arg name="beta_estimator_acceleration_driftingcar_config_file"
+       default="$(find beta_estimator_acceleration_driftingcar)/config/beta_estimator_acceleration_driftingcar_params.yaml" />
+
+  <node pkg="beta_estimator_acceleration_driftingcar"
+        type="beta_estimator_acceleration_driftingcar_node"
+        name="beta_estimator_acceleration_driftingcar"
+        respawn="true"
+        launch-prefix=""
+        required="false">
+    <rosparam file="$(arg beta_estimator_acceleration_driftingcar_config_file)" command="load" />
+  </node>
+
+</launch>

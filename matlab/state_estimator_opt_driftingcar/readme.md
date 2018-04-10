@@ -19,3 +19,12 @@ The node sampling frequency is 150 Hz but the topics are published only when a n
 Queue sizes are 1, both for reading and publishing topics
 
 Be aware that in the Simulink "Model Configuration Parameters" you have to select your catkin workspace in the Hardware Implementation / Device parameters tab
+
+
+Read Topics:
+car/pose
+
+Published Topics (all float64):
+state_estimator_opt_beta
+state_estimator_opt_theta
+state_estimator_opt_V
