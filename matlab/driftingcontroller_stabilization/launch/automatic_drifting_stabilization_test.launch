@@ -1,0 +1,21 @@
+<launch>
+
+
+	<!-- Run state_estimator_opt_driftingcar node -->
+  <node pkg="state_estimator_opt_driftingcar"
+        type="state_estimator_opt_driftingcar_node"
+        name="state_estimator_opt_driftingcar"
+        respawn="false"
+        launch-prefix=""
+        required="true">
+  </node>
+
+
+  <!--- Run drifting_controller -->
+  <node pkg="driftingcontroller_stabilization" 
+	type="driftingcontroller_stabilization_node"
+	name="drifting_controller" 
+	respawn="false">
+  </node>
+
+</launch>
