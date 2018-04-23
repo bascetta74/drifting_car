@@ -12,3 +12,7 @@ arduino_ethernet/.settings/
 arduino_ethernet/.cproject
 arduino_ethernet/.project
 
+#Simulink generated ROS nodes
+ROS/driftingcontroller_stabilization/
+ROS/state_estimator_opt_driftingcar/
+
