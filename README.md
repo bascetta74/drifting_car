@@ -32,3 +32,9 @@ When ROS is missing some libraries and catkin_make cannot compile, run (inside y
 rosdep update
 rosdep install --from-paths src --ignore-src --rosdistro kinetic -y
 (where kinetic is your ROS distribution)
+
+## Telnet server installation
+Follow this link for installation:
+https://askubuntu.com/questions/668725/how-can-the-telnet-service-on-ubuntu-server-14-04-lts-be-enabled
+Follow this link for configuration:
+https://askubuntu.com/questions/680550/telnet-is-not-working-in-ubuntu-14-04
