@@ -1,5 +1,3 @@
-% Originally created by Luca Bascetta
-% Adapted by Marco Baur
 
 close all;
 clear all;
@@ -12,13 +10,13 @@ clc;
 % quello assegnato da rosbag record
 
 %% PARAMETERS
-filename='recorded_data';
-data='15February2018';
+filename='drifting_stabilization_multibeta_parquet_03'; %rosbag file name
+data='2018_10_16';
 
 %%%%%%%%%%%%
 % opt yaw tuning
 % delta_theta=4.99424; %[rad] for data of the 15 February 2018
-delta_theta=4.99271; %[rad] for data collected on 26 February 2018 4.99271
+delta_theta=5; %[rad] for data collected on 26 February 2018 4.99271
 % delta_theta=0;
 
 % imu orientation tuning:
@@ -31,30 +29,39 @@ delta_roll_imu=0; %[rad]
 %%%%%%%%%%%%%%%%
 % active topics
 imu_data_active=1;
-imu_mag_active=1;
-imu_temperature_active=1;
+imu_mag_active=0;
+imu_temperature_active=0;
 car_pose_active=1;
 car_groundpose_active=0;
 radio_cmd_active=1;
 wheel_speed_active=0;
-
 %%%%%%%%%%%%%%%
 beta_estimator_velocity_active=0;
 beta_estimator_acceleration_active=0;
 
-state_estimator_opt_active=1;
+state_estimator_opt_active=0;
+
+state_estimator_opt_driftingcar_multibeta_active=1;
+%%%%%%%%%%%%%%
+controller_cmd_active=1;
+
+OLCL_Switch_Signal_active=0;
+t0_active=0;
+
 
 %%%%%%%%%%%%%%5
-opt_time_type='rosbag_record'; % 'rosbag_record' or 'Header' time for the /car/pose PoseStamped topic
+opt_time_type= 'Header'; % 'rosbag_record' or 'Header' time for the /car/pose PoseStamped topic
 
-imu_time_type='rosbag_record'; %'rosbag_record' or 'Header' time 
+imu_time_type='Header';%%'rosbag_record' or 'Header' time 
 
-T_zero_param='imu_data_linear_acc.Time(1)';
+T_zero_param='radio_cmd_steer_ref.Time(1)';%'controller_cmd.Time(1)';%'radio_cmd_steer_ref.Time(1)';%'car_pose.Time(1)';
+
 
 %% Load rosbag
 
 filepath=fullfile(['~/WorkingDirectory2/Rosbag_Files/',data,'/',filename,'.bag']);
 robodata = rosbag(filepath);
+
 %% See all topics stored in the rosbag
 robodata.AvailableTopics
 
@@ -107,6 +114,21 @@ if wheel_speed_active
     wheel_speed_msgs{1}.showdetails
 end
 
+% Controller node cmd topic
+if controller_cmd_active
+   controller_cmd_topic=select(robodata,'Topic','/controller_cmd');
+    fprintf('\n /controller cmd topic: car_msgs/car_cmd \n');
+    controller_cmd_msgs=readMessages(controller_cmd_topic,1);
+end
+
+if OLCL_Switch_Signal_active
+   OLCL_Switch_Signal_topic=select(robodata,'Topic','/OLCL_Switch_Signal'); 
+end
+
+if t0_active
+   t0_topic=select(robodata,'Topic','/t0'); 
+end
+
 % beta estimator velocity /gamma_estimator_velocity topic
 if beta_estimator_velocity_active;
     gamma_estimator_velocity_topic=select(robodata,'Topic','/gamma_estimator_velocity');
@@ -130,6 +152,34 @@ if state_estimator_opt_active
     state_estimator_opt_theta_topic=select(robodata,'Topic','/state_estimator_opt_theta'); %[rad] from 0 to 2Pi
     state_estimator_opt_V_topic=select(robodata,'Topic','/state_estimator_opt_V');
     
+end
+
+% state_estimator_opt_driftingcar_multibeta node
+if state_estimator_opt_driftingcar_multibeta_active
+%     geometric beta:
+    state_estimator_opt_beta_topic=select(robodata,'Topic','/state_estimator_opt_beta');
+%     state_estimator_opt_beta_msgs=readMessages(state_estimator_opt_beta_topic,1);
+    
+    % velocity beta
+    state_estimator_opt_beta_vel_topic=select(robodata,'Topic','/state_estimator_opt_beta_vel');
+%     state_estimator_opt_beta_vel_msgs=readMessages(state_estimator_opt_beta_vel_topic,1);
+    
+    %     acceleration beta
+    state_estimator_opt_beta_acc_topic=select(robodata,'Topic','/state_estimator_opt_beta_acc');
+%     state_estimator_opt_beta_acc_msgs=readMessages(state_estimator_opt_beta_acc_topic,1);
+    
+%     gamma vel
+    state_estimator_opt_gamma_vel_topic=select(robodata,'Topic','/state_estimator_opt_gamma_vel');
+%     state_estimator_opt_gamma_vel_msgs=readMessages(state_estimator_opt_gamma_vel_topic,1);
+    
+    %     gamma acc
+    state_estimator_opt_gamma_acc_topic=select(robodata,'Topic','/state_estimator_opt_gamma_acc');
+%     state_estimator_opt_gamma_acc_msgs=readMessages(state_estimator_opt_gamma_acc_topic,1);
+    
+    %     theta,V
+    state_estimator_opt_theta_topic=select(robodata,'Topic','/state_estimator_opt_theta'); %[rad] from 0 to 2Pi
+    state_estimator_opt_V_topic=select(robodata,'Topic','/state_estimator_opt_V');
+
 end
 
 %% Extract messages as a time series
@@ -225,6 +275,19 @@ if wheel_speed_active
     wheel_speed= timeseries(wheel_speed_topic)
 end 
 
+% Controller cmd msgs
+if controller_cmd_active
+    controller_cmd= timeseries(controller_cmd_topic)
+end
+
+if OLCL_Switch_Signal_active
+   OLCL_Switch_Signal=timeseries(OLCL_Switch_Signal_topic); 
+end
+
+if t0_active
+    t0=timeseries(t0_topic);
+end
+
 % gamma estimator velocity msgs
 if beta_estimator_velocity_active
     gamma_estimator_velocity=timeseries(gamma_estimator_velocity_topic);
@@ -241,6 +304,15 @@ if state_estimator_opt_active
 
 end
 
+if state_estimator_opt_driftingcar_multibeta_active
+    state_estimator_opt_beta=timeseries(state_estimator_opt_beta_topic);
+    state_estimator_opt_theta=timeseries(state_estimator_opt_theta_topic);
+    state_estimator_opt_V=timeseries(state_estimator_opt_V_topic);
+    state_estimator_opt_beta_vel=timeseries(state_estimator_opt_beta_vel_topic);
+    state_estimator_opt_beta_acc=timeseries(state_estimator_opt_beta_acc_topic);
+    state_estimator_opt_gamma_vel=timeseries(state_estimator_opt_gamma_vel_topic);
+    state_estimator_opt_gamma_acc=timeseries(state_estimator_opt_gamma_acc_topic);
+end
 
 fprintf('\n timeseries objects creation ended!\n');
 
@@ -282,6 +354,18 @@ if wheel_speed_active
     set(wheel_speed,'Time',wheel_speed.Time-T_zero);
 end
 
+if controller_cmd_active
+    set(controller_cmd,'Time',controller_cmd.Time-T_zero);
+end
+
+if OLCL_Switch_Signal_active
+    set(OLCL_Switch_Signal,'Time',OLCL_Switch_Signal.Time-T_zero);
+end
+
+if t0_active
+   set(t0,'Time',t0.Time-T_zero); 
+end
+
 if beta_estimator_velocity_active
     set(gamma_estimator_velocity,'Time',gamma_estimator_velocity.Time-T_zero);
 end
@@ -297,6 +381,16 @@ if state_estimator_opt_active
 
 end
 
+if state_estimator_opt_driftingcar_multibeta_active
+    set(state_estimator_opt_beta,'Time',state_estimator_opt_beta.Time-T_zero);
+    set(state_estimator_opt_theta,'Time',state_estimator_opt_theta.Time-T_zero);
+    set(state_estimator_opt_V,'Time',state_estimator_opt_V.Time-T_zero);
+    set(state_estimator_opt_beta_vel,'Time',state_estimator_opt_beta_vel.Time-T_zero);
+    set(state_estimator_opt_beta_acc,'Time',state_estimator_opt_beta_acc.Time-T_zero);
+    set(state_estimator_opt_gamma_vel,'Time',state_estimator_opt_gamma_vel.Time-T_zero);
+    set(state_estimator_opt_gamma_acc,'Time',state_estimator_opt_gamma_acc.Time-T_zero);
+end
+
 %% data save as matlab timeseries objects
 risp=input('\n would you like to save the dataset into a mat file? [y] \n');
 if risp=='y'
@@ -307,9 +401,10 @@ if risp=='y'
     save(['~/WorkingDirectory2/Mat_Files/',filename,'.mat'],'delta_theta',...
         'opt_time_type','imu_time_type','imu_data_active','imu_mag_active',...
         'imu_temperature_active','car_pose_active','car_groundpose_active',...
-        'radio_cmd_active','wheel_speed_active',...
-        'beta_estimator_velocity_active','beta_estimator_acceleration_active',...
-        'state_estimator_opt_active','T_zero_param',...
+        'radio_cmd_active','wheel_speed_active','controller_cmd_active',...
+        't0_active','OLCL_Switch_Signal_active','beta_estimator_velocity_active','beta_estimator_acceleration_active',...
+        'state_estimator_opt_active','state_estimator_opt_driftingcar_multibeta_active',...
+        'T_zero_param',...
         'delta_yaw_imu','delta_pitch_imu','delta_roll_imu');
     
     
@@ -343,6 +438,18 @@ if risp=='y'
         save(['~/WorkingDirectory2/Mat_Files/',filename,'.mat'],'wheel_speed','-append');
     end
     
+    if controller_cmd_active
+        save(['~/WorkingDirectory2/Mat_Files/',filename,'.mat'],'controller_cmd','-append');
+    end
+    
+    if t0_active
+        save(['~/WorkingDirectory2/Mat_Files/',filename,'.mat'],'t0','-append');
+    end
+    
+    if OLCL_Switch_Signal_active
+        save(['~/WorkingDirectory2/Mat_Files/',filename,'.mat'],'OLCL_Switch_Signal','-append');
+    end
+    
     if beta_estimator_velocity_active
         save(['~/WorkingDirectory2/Mat_Files/',filename,'.mat'],'gamma_estimator_velocity','-append');
     end
@@ -354,6 +461,16 @@ if risp=='y'
     if state_estimator_opt_active
         save(['~/WorkingDirectory2/Mat_Files/',filename,'.mat'],'state_estimator_opt_beta','state_estimator_opt_theta','state_estimator_opt_V','-append');
         
+    end
+    
+    if state_estimator_opt_driftingcar_multibeta_active
+                save(['~/WorkingDirectory2/Mat_Files/',filename,'.mat'],...
+                    'state_estimator_opt_beta','state_estimator_opt_theta',...
+                    'state_estimator_opt_V',...
+                    'state_estimator_opt_beta_vel',...
+                    'state_estimator_opt_beta_acc',...
+                    'state_estimator_opt_gamma_vel',...
+                'state_estimator_opt_gamma_acc','-append');
     end
     
     fprintf('\n save completed!\n');
