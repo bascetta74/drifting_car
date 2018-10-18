@@ -1,0 +1,29 @@
+<launch>
+
+  <!-- Run beta_estimator_velocity_driftingcar node -->
+  <arg name="beta_estimator_velocity_driftingcar_config_file"
+       default="$(find beta_estimator_velocity_driftingcar)/config/beta_estimator_velocity_driftingcar_params.yaml" />
+
+  <node pkg="beta_estimator_velocity_driftingcar"
+        type="beta_estimator_velocity_driftingcar_node"
+        name="beta_estimator_velocity_driftingcar"
+        respawn="false"
+        launch-prefix=""
+        required="true">
+    <rosparam file="$(arg beta_estimator_velocity_driftingcar_config_file)" command="load" />
+  </node>
+
+<!-- Run rosbag play -->
+  <arg name="user_home_folder"
+	default="$(env HOME)" />
+
+  <node pkg="rosbag"
+        type="play"
+        name="player"
+	output="screen"
+        respawn="false"
+        launch-prefix=""
+        required="true"
+	args="$(arg user_home_folder)/WorkingDirectory2/Rosbag_Files/casual_motion_15February2018_filtered.bag"/>
+
+</launch>

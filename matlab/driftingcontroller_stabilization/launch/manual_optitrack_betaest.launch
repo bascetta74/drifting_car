@@ -1,0 +1,53 @@
+<launch>
+
+  <!--- Run serial communication node -->
+  <node pkg="serial_comm" type="serial_comm" respawn="false" name="serial_comm" output="screen">
+    <rosparam file="$(find serial_comm)/config/serial_comm_params.yaml" command="load" />
+  </node>
+
+  <!--- Run IMU node -->
+  <node pkg="myahrs_driver" type="myahrs_driver" name="myahrs_driver">
+    <rosparam file="$(find myahrs_driver)/config/myahrs_params.yaml" command="load" />
+  </node>
+
+  <!-- Run drifting optitrack node -->
+	<arg name="optitrack_config_file"
+       default="$(find drifting_optitrack)/config/optitrack.yaml" />
+
+  <node pkg="drifting_optitrack"
+        type="optitrack_node"
+        name="optitrack_node"
+        respawn="false"
+        launch-prefix=""
+        required="true"
+        output="screen">
+    <rosparam file="$(arg optitrack_config_file)" command="load" />
+  </node>
+
+<!-- Run beta_estimator_velocity_driftingcar node -->
+  <arg name="beta_estimator_velocity_driftingcar_config_file"
+       default="$(find beta_estimator_velocity_driftingcar)/config/beta_estimator_velocity_driftingcar_params.yaml" />
+
+  <node pkg="beta_estimator_velocity_driftingcar"
+        type="beta_estimator_velocity_driftingcar_node"
+        name="beta_estimator_velocity_driftingcar"
+        respawn="true"
+        launch-prefix=""
+        required="false">
+    <rosparam file="$(arg beta_estimator_velocity_driftingcar_config_file)" command="load" />
+  </node>
+
+<!-- Run beta_estimator_acceleration_driftingcar node -->
+  <arg name="config_file"
+       default="$(find beta_estimator_acceleration_driftingcar)/config/beta_estimator_acceleration_driftingcar_params.yaml" />
+
+  <node pkg="beta_estimator_acceleration_driftingcar"
+        type="beta_estimator_acceleration_driftingcar_node"
+        name="beta_estimator_acceleration_driftingcar"
+        respawn="true"
+        launch-prefix=""
+        required="false">
+    <rosparam file="$(arg config_file)" command="load" />
+  </node>
+
+</launch>
