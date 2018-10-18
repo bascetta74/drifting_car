@@ -10,6 +10,9 @@
 #define USE_KEYBOARD_TELEOP true
 /* Used only if the actual values are not retrieved from the ROS parameter server */
 
+#define TEST_COMM
+/* Activate this define to test data received by serial_comm (published back on test topics) */
+
 #define NAME_OF_THIS_NODE "serial_comm"
 
 
@@ -22,6 +25,10 @@ private:
     ros::Subscriber controllerCommand_subscriber;
     ros::Publisher  radioCommand_publisher;
     ros::Publisher  wheelSpeed_publisher;
+
+#ifdef TEST_COMM
+    ros::Publisher  controllerCommand_publisher;
+#endif
 
     /* ROS topic callbacks */
     void controllerCommand_MessageCallback(const car_msgs::car_cmd::ConstPtr& msg);

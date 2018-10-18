@@ -46,15 +46,19 @@ void serial_comm::Prepare(void)
 	radioCommand_publisher = Handle.advertise<car_msgs::car_cmd>("/radio_cmd", 1);
 	wheelSpeed_publisher = Handle.advertise<std_msgs::Float64>("/wheel_speed", 1);
 
-        /* Initialize node state */
-        _speed_ref = 0.0;
-        _steer_ref = 0.0;
-        _wheel_speed = 0.0;
-        _statemachine.state = SAFE;
-        _statemachine.info = 0;
-        _enteringSafe = _enteringManual = _enteringAutomatic = _enteringHalt = true;
+#ifdef TEST_COMM
+    controllerCommand_publisher = Handle.advertise<car_msgs::car_cmd>("/test_comm_controller_cmd", 1);
+#endif
 
-        _message_buffer = new uint8_t[_message_size];
+    /* Initialize node state */
+    _speed_ref = 0.0;
+    _steer_ref = 0.0;
+    _wheel_speed = 0.0;
+    _statemachine.state = SAFE;
+    _statemachine.info = 0;
+    _enteringSafe = _enteringManual = _enteringAutomatic = _enteringHalt = true;
+
+    _message_buffer = new uint8_t[_message_size];
 
 	/* Open the serial port */
 	try {
@@ -98,6 +102,10 @@ void serial_comm::controllerCommand_MessageCallback(const car_msgs::car_cmd::Con
         _speed_ref = msg->speed_ref;
         _steer_ref = msg->steer_ref;
     }
+
+#ifdef TEST_COMM
+    controllerCommand_publisher.publish(msg);
+#endif
 }
 
 
