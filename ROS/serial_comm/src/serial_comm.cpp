@@ -188,13 +188,15 @@ void serial_comm::PeriodicTask(void)
          /* Wheel speed */
          bool wheel_dx_ccw, wheel_sx_ccw;
          uint16_t  wheel_speed_sx, wheel_speed_dx;
+         wheel_dx_ccw = wheel_sx_ccw = false;
+         wheel_speed_dx = wheel_speed_sx = 0;
          memcpy(&wheel_speed_dx, &(_message_buffer[5]), sizeof(uint16_t));
          memcpy(&wheel_speed_sx, &(_message_buffer[8]), sizeof(uint16_t));
          wheel_dx_ccw = (_message_buffer[7]==0x00) ? false : true;
          wheel_sx_ccw = (_message_buffer[10]==0x00) ? false : true;
          _wheel_speed = ( ((wheel_dx_ccw) ? static_cast<double>(wheel_speed_dx) : -1.0*static_cast<double>(wheel_speed_dx)) +
          ((wheel_sx_ccw) ? static_cast<double>(wheel_speed_sx) : -1.0*static_cast<double>(wheel_speed_sx)) ) / 2.0;
-         
+ROS_INFO("dx %d (%d) - sx %d (%d)", wheel_speed_dx, wheel_dx_ccw, wheel_speed_sx, wheel_sx_ccw);         
          /* Arduino state */
          switch (_message_buffer[11])
          {
