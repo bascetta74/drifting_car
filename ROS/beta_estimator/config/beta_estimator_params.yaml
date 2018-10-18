@@ -1,5 +1,0 @@
-# Beta estimator configuration parameters
-  /beta_estimator/run_period: 0.1              # Node execution period
-  /beta_estimator/proportional_gain: 30.0      # PD proportional gain
-  /beta_estimator/derivative_gain: 10.0        # PD derivative gain
-  /beta_estimator/derivative_time_const: 50.0  # PD derivative time constant
