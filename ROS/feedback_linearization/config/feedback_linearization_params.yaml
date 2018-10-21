@@ -1,0 +1,15 @@
+# Feedback linearization configuration parameters
+  /feedback_linearization/run_period: 0.01          # Node execution period
+
+  /feedback_linearization/cog_dist_front: 0.1513    # Distance of cog from front
+  /feedback_linearization/cog_dist_rear: 0.1087     # Distance of cog from rear
+  /feedback_linearization/cornering_front: 47.3     # Cornering stiffness front wheels
+  /feedback_linearization/cornering_rear: 369.0     # Cornering stiffness rear wheels
+  /feedback_linearization/yaw_inertia: 0.030        # Yaw inertia
+  /feedback_linearization/mass: 2.040               # Mass
+
+  /feedback_linearization/P_dist: 0.2               # Distance of point P for feedback linearization
+  /feedback_linearization/speed_thd: 0.001          # Threshold to consider the absolute vehicle velocity equal to zero
+
+  /feedback_linearization/theta_offset: 5.0         # Offset on optitrack theta angle
+  /feedback_linearization/deltas_thd: 0.001         # Threshold to consider the motion equal to zero in velocity computation
