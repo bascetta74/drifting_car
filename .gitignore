@@ -16,3 +16,6 @@ arduino_ethernet/.project
 ROS/driftingcontroller_stabilization/
 ROS/state_estimator_opt_driftingcar/
 
+# Files
+*.so
+
