@@ -65,7 +65,7 @@ void feedback_linearization::Prepare(void)
   ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str()); 
 
  /* ROS topics */
- vehiclePose_subscriber = Handle.subscribe("/vehiclePose", 1, &feedback_linearization::vehiclePose_MessageCallback, this);
+ vehiclePose_subscriber = Handle.subscribe("/car/ground_pose", 1, &feedback_linearization::vehiclePose_MessageCallback, this);
  vehicleIMU_subscriber = Handle.subscribe("/imu/data", 1, &feedback_linearization::vehicleIMU_MessageCallback, this);
  controllerCommand_publisher = Handle.advertise<car_msgs::car_cmd>("/controller_cmd", 1);
  vehicleState_publisher = Handle.advertise<std_msgs::Float64MultiArray>("/feedback_linearization/vehicleState", 1);
