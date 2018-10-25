@@ -130,6 +130,8 @@ void serial_comm::PeriodicTask(void)
         {
            ROS_INFO("Node %s: Arduino in AUTOMATIC mode.", ros::this_node::getName().c_str());         
            _enteringAutomatic = false;
+
+           _enteringManual = _enteringSafe = _enteringHalt = true;
         }
         
         /* Verify the message and decode it */
@@ -176,6 +178,8 @@ void serial_comm::PeriodicTask(void)
         {
            ROS_INFO("Node %s: Arduino in MANUAL mode.", ros::this_node::getName().c_str());
            _enteringManual = false;
+           
+           _enteringAutomatic = _enteringSafe = _enteringHalt = true;
         }
         
         /* Verify the message and decode it */
@@ -236,6 +240,8 @@ void serial_comm::PeriodicTask(void)
         {
            ROS_INFO("Node %s: Arduino in SAFE mode.", ros::this_node::getName().c_str());
            _enteringSafe = false;
+
+           _enteringAutomatic = _enteringManual = _enteringHalt = true;
         }
       
         /* Set commands to zero */
@@ -273,6 +279,8 @@ void serial_comm::PeriodicTask(void)
         {
            ROS_INFO("Node %s: Arduino in HALT mode.", ros::this_node::getName().c_str());
            _enteringHalt = false;
+
+           _enteringAutomatic = _enteringManual = _enteringSafe = true;
         }
       
         serial_comm::Shutdown();
