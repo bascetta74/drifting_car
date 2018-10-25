@@ -2,16 +2,16 @@ clear all;close all;clc;
 
 %% PARAMETERS
 
-filename='drifting_stabilization_multibeta_18';
+filename='drifting_stabilization_differential_11_filter250rads_parquet_eq';
 
 delta_yaw_imu=0; %[rad]
 pitch0=0; %[rad]
 roll0=0; %[rad]
 
 % data filtering: filter parameters:
-wf=10*2*pi; %[rad/s]
+wf=250; %[rad/s]
 n=1; %filter order
-Ts=0.0001; %[s]
+Ts=0.01; %[s]
 
 % Optitrack gaps remotion:
 ds_min=1e-3; %[m] threshold below which samples are removed
@@ -25,6 +25,11 @@ LineWidth=1.5;
 MarkerSize=5;
 
 comet_XY_active=1;
+
+
+%%%%%%%%%% for old bags:
+circular_drifting_lqr_e_active=0;
+circular_drifting_lqr_delta_psi_active=0;
 
 %% Load mat file
 filepath=fullfile(['~/WorkingDirectory2/Mat_Files/',filename,'.mat']);
@@ -136,8 +141,12 @@ end
 
 %STATE ESTIMATOR TOPICS:
 if state_estimator_opt_active
-    state_estimator_opt_V_filtered=timeseries(filter(FilterDTF.Num{1},FilterDTF.Den{1},state_estimator_opt_V.Data),state_estimator_opt_V.Time);
-    state_estimator_opt_beta_filtered=timeseries(filter(FilterDTF.Num{1},FilterDTF.Den{1},state_estimator_opt_beta.Data),state_estimator_opt_beta.Time);
+    %causal filter:
+    state_estimator_opt_V_filter=timeseries(filter(FilterDTF.Num{1},FilterDTF.Den{1},state_estimator_opt_V.Data),state_estimator_opt_V.Time);
+    state_estimator_opt_beta_filter=timeseries(filter(FilterDTF.Num{1},FilterDTF.Den{1},state_estimator_opt_beta.Data),state_estimator_opt_beta.Time);
+    % acausal filter:
+    state_estimator_opt_V_filtfilt=timeseries(filtfilt(FilterDTF.Num{1},FilterDTF.Den{1},state_estimator_opt_V.Data),state_estimator_opt_V.Time);
+    state_estimator_opt_beta_filtfilt=timeseries(filtfilt(FilterDTF.Num{1},FilterDTF.Den{1},state_estimator_opt_beta.Data),state_estimator_opt_beta.Time);
 end
 
 % state_estimator_opt_driftingcar_multibeta TOPICS:
@@ -160,6 +169,27 @@ if state_estimator_opt_driftingcar_multibeta_active
 
 end
 
+%% Debug serial_comm
+
+if test_comm_controller_cmd_active
+    figure('name','debug serial_comm');
+    g(1)=subplot(311); %speed ref
+    stairs(controller_cmd.Time,controller_cmd.Data(:,1),'b','linewidth',LineWidth);hold on;grid on;
+    stairs(test_comm_controller_cmd.Time,test_comm_controller_cmd.Data(:,1),'r--','linewidth',LineWidth);
+    xlabel('t[s]');title('speed ref');
+    g(2)=subplot(312); %steer ref
+    stairs(controller_cmd.Time,controller_cmd.Data(:,2)*180/pi,'b','linewidth',LineWidth);hold on; grid on;
+    stairs(test_comm_controller_cmd.Time,test_comm_controller_cmd.Data(:,2)*180/pi,'r--','linewidth',LineWidth);
+    xlabel('t[s]');ylabel('[deg]');title('steer ref');
+    g(3)=subplot(313); %control state
+    stairs(controller_cmd.Time,controller_cmd.Data(:,3),'b','linewidth',LineWidth);hold on;grid on;
+    stairs(test_comm_controller_cmd.Time,test_comm_controller_cmd.Data(:,3),'r--','linewidth',LineWidth);
+    xlabel('t[s]');title('radio cmd control state');
+    linkaxes(g,'x');clear g;
+    legend('controller cmd','serial comm');
+    
+end
+   
 %% imu orientation (vehicle roll,pitch,yaw)
 if imu_data_active
     
@@ -593,14 +623,16 @@ if state_estimator_opt_active
     figure('name','effetto filtro passabasso');
     g(1)=subplot(211); %V
     plot(state_estimator_opt_V.Time,state_estimator_opt_V.Data,'b','linewidth',LineWidth);hold on;grid on;
-    plot(state_estimator_opt_V_filtered.Time,state_estimator_opt_V_filtered.Data,'g','linewidth',LineWidth);
+    plot(state_estimator_opt_V_filter.Time,state_estimator_opt_V_filter.Data,'g','linewidth',LineWidth);
+    plot(state_estimator_opt_V_filtfilt.Time,state_estimator_opt_V_filtfilt.Data,'r','linewidth',LineWidth);
     xlabel('t[s]');ylabel('[m/s]');title('V ROS node state estimator');
     g(2)=subplot(212); %beta
     plot(state_estimator_opt_beta.Time,state_estimator_opt_beta.Data*180/pi,'b','linewidth',LineWidth);hold on;grid on;
-    plot(state_estimator_opt_beta_filtered.Time,state_estimator_opt_beta_filtered.Data*180/pi,'g','linewidth',LineWidth);
+    plot(state_estimator_opt_beta_filter.Time,state_estimator_opt_beta_filter.Data*180/pi,'g','linewidth',LineWidth);
+    plot(state_estimator_opt_beta_filtfilt.Time,state_estimator_opt_beta_filtfilt.Data*180/pi,'r','linewidth',LineWidth);
     xlabel('t[s]');ylabel('[deg]');title('\beta ROS node state estimator');
-    legend('orig','filtered');
-    axis([state_estimator_opt_beta_filtered.Time(1),state_estimator_opt_beta_filtered.Time(end),-60,+60]);
+    legend('orig','causal filter','acausal filter');
+    axis([state_estimator_opt_beta_filter.Time(1),state_estimator_opt_beta_filter.Time(end),-60,+60]);
     linkaxes(g,'x');clear g;
 end
 
@@ -713,7 +745,7 @@ if car_pose_active
     
 end
 
-%% Beta estimators 
+%% multibeta (beta estimators); 
 
 if state_estimator_opt_driftingcar_multibeta_active
     
@@ -763,8 +795,12 @@ end
 % [35,42] mu=0.16, steer=-19°
 % [9,16] mu=0.18 steer=26°
 
-xlim_start=6; %[s]
-xlim_end=10; %[s]
+% file single_track_id_moquette_differential_01: good results for
+% [11,15] mu=0.2583 with ay, 0.2772 with V,r
+% [30,41] mu=2897 with ay, 0.2799 with V,r
+
+xlim_start=30; %[s]
+xlim_end=41; %[s]
 
 % I need to re-sample V_opt to match wz hits
 V_opt_interp=interp1(V_opt.Time,sqrt(V_opt.Data(:,1).^2+V_opt.Data(:,2).^2),imu_data_angular_vel_rot.Time,'pchip'); %[m/s]
@@ -1268,37 +1304,44 @@ legend('commanded','filtered');
 axis([0,t_end_grafici,-30,+30])
 
 
-%% Figure Debug Drifting Stabilizing Controller
+%% Figure Debug Drifting LQR Controller
 
 % Eqpoint Parameters:
 delta_eqpoint=-20*pi/180; %[rad]
-Fxr_eqpoint=2.09; %[N]
+Fxr_eqpoint=3.01; %[N] with rear differential,moquette
+% Fxr_eqpoint=2.09; %[N] with solid rear axle, moquette
 
-% Grey Moquette:
-Vx_eqpoint=1.0; %[m/s]
-Vy_eqpoint=-0.7055; %[rad]
-r_eqpoint=1.848; %[rad/s]
 
-% % Parquet:
+% % Grey Moquette, rear differential:
 % Vx_eqpoint=1.0; %[m/s]
-% Vy_eqpoint=-0.5835; %[rad]
-% r_eqpoint=1.41863; %[rad/s]
+% Vy_eqpoint=-0.7880; %[rad]
+% r_eqpoint=2.31807; %[rad/s]
 
+% % Grey Moquette, solid rear axle:
+% Vx_eqpoint=1.0; %[m/s]
+% Vy_eqpoint=-0.7055; %[rad]
+% r_eqpoint=1.848; %[rad/s]
+
+% parquet, rear differential:
+Vx_eqpoint=1.0; %[m/s]
+Vy_eqpoint=-0.62 %[rad]
+r_eqpoint=1.68; %[rad/s]
 
 beta_eqpoint=atan(Vy_eqpoint/Vx_eqpoint); %[rad]
+delta_psi_eqpoint=-beta_eqpoint; %[rad]
 
 % Controller state feedback matrix (A-BK) with
 % d_x=[d_Vx,d_Vy,d_r],d_u=d_delta,d_Fxr]
-K =[-1.1188   -1.3996    0.3781
-    1.0750   -3.3006    0.4159];
-
+K =[-0.8304   -0.9889    0.6146 0 0
+    1.2987   -6.6663    0.8143 0 0];
 
 % Transmission and motor parameters:
-Fdrag=3.25; %[N]
+Fdrag=1.75; %[N] 
 Rw=0.049; %[m]
 Kt=1/340.34; %[Nm/A]
 Imax=13; %[A] max motor current (set in VESC GUI)
-tau=0.1159; %transmission gear ratio
+tau=0.09799; %transmission gear ratio with rear differential
+% tau=0.11; %transmission gear ratio with solid rear axle
 
 % Control Inputs Saturation Limits
 delta_max=45*pi/180; %[rad]
@@ -1314,13 +1357,17 @@ Jz=0.030; %[Kgm^2] measured yaw moment of inertia (w/o Odroid, Arduino,IMU)
 hg=0.02; %[m] stimato a naso...
 cf=0.180; %[m] DA VERIFICARE
 cr=cf; %[m]
-Cf=47.3; %[N/rad]muf=0.35;
-Cr=369; %[N/rad]
-muf=0.28;
+Cf=47.86; %[N/rad]muf=0.35;
+Cr=127.77; %[N/rad]
+% muf=0.35; %moquette with rear differential
+muf=0.22; %parquet with rear differential
 mur=muf;
 
 Fzf=m*9.81*b/l; %[N]
 Fzr=m*9.81*a/l; %[N]
+
+servo_delay=0.04; %[s]
+wf_ac=50; %[rad/s] servo cut-off freq (I order lowpass filter model)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1349,6 +1396,8 @@ for k=2:radio_cmd_control_state.Length
         indexes_controller_cmd=[];
         indexes_opt_state_estimator=[];
         indexes_imu_yaw_rate=[];
+        indexes_car_pose=[];
+        indexes_e=[];
         
         %  topic controller_cmd
         index_start=find(controller_cmd.Time>t_begin(seq),1);
@@ -1372,6 +1421,17 @@ for k=2:radio_cmd_control_state.Length
         index_end=find(imu_data_angular_vel_rot.Time>t_end(seq),1);
         indexes_imu_yaw_rate=[indexes_imu_yaw_rate,index_start:index_end];
         
+        % topic car_pose
+        index_start=find(car_pose.Time>t_begin(seq),1);
+        index_end=find(car_pose.Time>t_end(seq),1);
+        indexes_car_pose=[indexes_car_pose,index_start:index_end];
+        
+        %topic delta_psi,e
+        if circular_drifting_lqr_e_active
+            index_start=find(circular_drifting_lqr_e.Time>t_begin(seq),1);
+            index_end=find(circular_drifting_lqr_e.Time>t_end(seq),1);
+            indexes_e=[indexes_e,index_start:index_end];
+        end
         
         %  estraggo le corrispondenti porzioni dai segnali che mi interessano:
         controller_cmd_automatic=getsamples(controller_cmd,indexes_controller_cmd);
@@ -1387,7 +1447,73 @@ for k=2:radio_cmd_control_state.Length
         wz_automatic=timeseries(imu_data_angular_vel_rot_automatic.Data(:,3),imu_data_angular_vel_rot_automatic.Time);
         ay_rot_filtfilt_automatic=getsamples(ay_rot_filtfilt,indexes_imu_yaw_rate);
         
+        car_pose_automatic=getsamples(car_pose,indexes_car_pose);
         
+        if circular_drifting_lqr_e_active
+            circular_drifting_lqr_e_automatic=getsamples(circular_drifting_lqr_e,indexes_e);
+            circular_drifting_lqr_delta_psi_automatic=getsamples(circular_drifting_lqr_delta_psi,indexes_e);
+        end
+        
+        
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % COMMANDS TO PLOT THE Fyf GRAPH:
+        % resampling parameters:
+        res_method='spline';
+        res_offset=0.25; %[s] to trim the borders of the data record to avoid fake spikes in the resampled data
+        Ts=0.01; %[s] resampling dt
+        
+        %EXPERIMENTAL DATA RESAMPLING WITH CONSTANT Ts%%%%%%%%%%
+        t_aut_res=(car_pose_automatic.Time(1)+res_offset):Ts:(car_pose_automatic.Time(end)-res_offset);
+        % Vq = interp1(X,V,Xq,METHOD)
+        wz_aut_res=interp1(wz_automatic.Time,wz_automatic.Data,t_aut_res);%[rad/s]
+        V_aut_res=interp1(state_estimator_opt_V_automatic.Time,state_estimator_opt_V_automatic.Data,t_aut_res); %[m/s]
+        delta_aut_res=interp1(controller_cmd_automatic.Time,controller_cmd_automatic.Data(:,2),t_aut_res);%[rad]
+        beta_aut_res=interp1(state_estimator_opt_beta_automatic.Time,state_estimator_opt_beta_automatic.Data,t_aut_res); %[rad]
+        
+        % ACTUATOR MODEL BUILDING:
+        ActuatorCTF=tf(1,[1/wf_ac,1]);%,'InputDelay',tau_servo);
+        ActuatorDTF=c2d(ActuatorCTF,Ts,'tustin');
+        delta_aut_res_act=filtfilt(ActuatorDTF.Num{1},ActuatorDTF.Den{1},delta_aut_res); %[rad] NB: filtfilt command does not consider delay!
+        
+        % SERVO DELAY
+        % shifto avanti dati servo (taglio coda)
+        % taglio inizio dati altre misure (yaw rate etc)
+        Ndelay=round(servo_delay/Ts);
+        
+        t_aut_res_delay=t_aut_res(Ndelay:end);
+        wz_aut_res_delay=wz_aut_res(Ndelay:end);
+        beta_aut_res_delay=beta_aut_res(Ndelay:end);
+        V_aut_res_delay=V_aut_res(Ndelay:end);
+      
+        delta_aut_res_delay=delta_aut_res(1:end-Ndelay+1);
+        
+        %ALPHA COMPUTATION:
+        Vx_aut_res_delay=V_aut_res_delay.*cos(beta_aut_res_delay);%[m/s]
+        alphaf_aut_res_delay=atan(beta_aut_res_delay+a*wz_aut_res_delay./Vx_aut_res_delay)-delta_aut_res_delay;%[rad]
+        
+        %Fyf COMPUTATION:
+        Fyf=zeros(1,length(t_aut_res_delay));
+        Np=length(Fyf);
+        alphasl=atan(3*muf*Fzf/Cf);%[rad]
+        for k=1:Np
+            alpha=alphaf_aut_res_delay(k);%[rad]
+            z=tan(alpha);
+            if abs(z)>=tan(alphasl)
+                Fyf(k)=-muf*Fzf*sign(alpha);%[N]
+            else
+                Fyf(k)=-Cf*z+Cf^2/(3*muf*Fzf)*abs(z)*z-Cf^3/(27*muf^2*Fzf^2)*z^3;%[N]
+            end
+        end
+        
+        %GRAPH:
+        figure('name','Fyf aut');
+        plot(t_aut_res_delay,Fyf,'b','linewidth',LineWidth);hold on;grid on;
+        plot([t_aut_res_delay(1),t_aut_res_delay(end)],[1,1]*muf*Fzf,'r--','linewidth',LineWidth);
+        plot([t_aut_res_delay(1),t_aut_res_delay(end)],-[1,1]*muf*Fzf,'r--','linewidth',LineWidth);
+        xlabel('t[s]');ylabel('[N]');title('F_y^f');
+
+        
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % GRAFICI
         
         % grafico ingressi di controllo
@@ -1433,6 +1559,26 @@ for k=2:radio_cmd_control_state.Length
         plot([wz_automatic.Time(1),wz_automatic.Time(end)],r_eqpoint*[1,1],'y--','linewidth',LineWidth);
         xlabel('t[s]');ylabel('[rad/s]');title('r');
         
+        % path tracking states
+        if circular_drifting_lqr_e_active
+          figure('name','e,psi automatic');
+          g(7)=subplot(211);%delta psi
+          plot(circular_drifting_lqr_delta_psi_automatic.Time,circular_drifting_lqr_delta_psi_automatic.Data*180/pi,'b','linewidth',LineWidth);hold on;grid on;
+          plot([circular_drifting_lqr_delta_psi_automatic.Time(1),circular_drifting_lqr_delta_psi_automatic.Time(end)],delta_psi_eqpoint*[1,1]*180/pi,'r--','linewidth',LineWidth);
+          xlabel('t[s]');ylabel('[deg]');title('\Delta \psi');
+          g(7)=subplot(212);%2
+          plot(circular_drifting_lqr_e_automatic.Time,circular_drifting_lqr_e_automatic.Data,'b','linewidth',LineWidth);hold on;grid on;
+          plot([circular_drifting_lqr_e_automatic.Time(1),circular_drifting_lqr_e_automatic.Time(end)],0*[1,1],'r--','linewidth',LineWidth);
+          xlabel('t[s]');ylabel('[m]');title('e');
+          linkaxes(g,'x');clear g;
+        end
+        
+%        % XY trajectory
+        figure('name','XY automatic');
+        plot(car_pose_automatic.Data(:,1),car_pose_automatic.Data(:,2),'b','linewidth',LineWidth);grid on;
+        xlabel('X[m]');ylabel('Y[m]');
+        axis square;
+        
         % grafico beta
         figure('name','beta automatic');
         plot(state_estimator_opt_beta_automatic.Time,(state_estimator_opt_beta_automatic.Data)*180/pi,'bo ');hold on;grid on;
@@ -1450,29 +1596,38 @@ for k=2:radio_cmd_control_state.Length
         K_Vx_delta=-K(1,1).*(Vx_opt_state_est_automatic.Data-Vx_eqpoint);
         K_Vy_delta=-K(1,2).*(Vy_opt_state_est_automatic.Data-Vy_eqpoint);
         K_r_delta=-K(1,3).*(wz_automatic.Data-r_eqpoint);
+        if circular_drifting_lqr_e_active
+            K_delta_psi_delta=-K(1,4).*(circular_drifting_lqr_delta_psi_automatic-delta_psi_eqpoint);
+            K_e_delta=-K(1,5).*(circular_drifting_lqr_e_automatic);
+        end
         
         K_Vx_Fxr=-K(2,1).*(Vx_opt_state_est_automatic.Data-Vx_eqpoint);
         K_Vy_Fxr=-K(2,2).*(Vy_opt_state_est_automatic.Data-Vy_eqpoint);
         K_r_Fxr=-K(2,3).*(wz_automatic.Data-r_eqpoint);
-        
+        if circular_drifting_lqr_e_active
+            K_delta_psi_Fxr=-K(2,4).*(circular_drifting_lqr_delta_psi_automatic-delta_psi_eqpoint);
+            K_e_Fxr=-K(2,5).*(circular_drifting_lqr_e_automatic);
+        end
         
         figure('name','contributi delta');
         g(1)=subplot(211);
         plot(Vx_opt_state_est_automatic.Time,K_Vx_delta,'g','linewidth',LineWidth);hold on; grid on;
-        %plot(Vx_opt_state_est_automatic.Time,Vx_opt_state_est_automatic.Data-Vx_eqpoint,'c-.','linewidth',LineWidth);
         plot(Vy_opt_state_est_automatic.Time,K_Vy_delta,'b','linewidth',LineWidth);
-        %plot(Vy_opt_state_est_automatic.Time,Vy_opt_state_est_automatic.Data-Vy_eqpoint,'m-.','linewidth',LineWidth);
         plot(wz_automatic.Time,K_r_delta,'r','linewidth',LineWidth);
-        %plot(wz_automatic.Time,wz_automatic.Data-r_eqpoint,'y-.','linewidth',LineWidth);
-        plot([wz_automatic.Time(1),wz_automatic.Time(end)],delta_eqpoint*[1,1],'y--','linewidth',LineWidth);
-        plot(controller_cmd_automatic.Time,controller_cmd_automatic.Data(:,2),'k','linewidth',LineWidth');
-        plot([controller_cmd_automatic.Time(1),controller_cmd_automatic.Time(end)],delta_max*[1,1],'k--','linewidth',LineWidth);
-        plot([controller_cmd_automatic.Time(1),controller_cmd_automatic.Time(end)],-delta_max*[1,1],'k--','linewidth',LineWidth);
+        plot([wz_automatic.Time(1),wz_automatic.Time(end)],delta_eqpoint*[1,1],'y--','linewidth',LineWidth); %eq 
+        plot(controller_cmd_automatic.Time,controller_cmd_automatic.Data(:,2),'k','linewidth',LineWidth'); %controller cmd data
+        plot([controller_cmd_automatic.Time(1),controller_cmd_automatic.Time(end)],delta_max*[1,1],'k--','linewidth',LineWidth);%sat +
+        plot([controller_cmd_automatic.Time(1),controller_cmd_automatic.Time(end)],-delta_max*[1,1],'k--','linewidth',LineWidth);%sat -
+        
+        if circular_drifting_lqr_e_active
+           plot(circular_drifting_lqr_delta_psi_automatic.Time,K_delta_psi_delta,'c','linewidth',LineWidth);
+           plot(circular_drifting_lqr_e_automatic.Time,K_e_delta,'m','linewidth',LineWidth);
+        end
+        
         axis([controller_cmd_automatic.Time(1),controller_cmd_automatic.Time(end),(-delta_max-0.1),(delta_max+0.1)]);
         xlabel('t[s]');ylabel('[rad]');
         titolo=['contributi \delta, seq ',num2str(seq)];title(titolo);
-        %legend('-K \Delta V_x','\Delta V_x','-K \Delta V_y','\Delta V_y','-K \Delta r','\Delta r','\delta eq. pt.','\delta');
-        legend('-K \Delta V_x','-K \Delta V_y','-K \Delta r','\delta eq. pt.','\delta');
+        legend('-K \Delta V_x','-K \Delta V_y','-K \Delta r','\delta eq. pt.','\delta','sat','sat','-K \Delta \psi','-K e');
         g(2)=subplot(212); %Vy,r
         yyaxis left
         plot(Vy_opt_state_est_automatic.Time,Vy_opt_state_est_automatic.Data,'linewidth',LineWidth);hold on;grid on;
@@ -1488,20 +1643,22 @@ for k=2:radio_cmd_control_state.Length
         figure('name','contributi Fxr');
         g(1)=subplot(211);
         plot(Vx_opt_state_est_automatic.Time,K_Vx_Fxr,'g','linewidth',LineWidth);hold on; grid on;
-        %plot(Vx_opt_state_est_automatic.Time,Vx_opt_state_est_automatic.Data-Vx_eqpoint,'c-.','linewidth',LineWidth);
         plot(Vy_opt_state_est_automatic.Time,K_Vy_Fxr,'b','linewidth',LineWidth);
-        %plot(Vy_opt_state_est_automatic.Time,Vy_opt_state_est_automatic.Data-Vy_eqpoint,'m-.','linewidth',LineWidth);
         plot(wz_automatic.Time,K_r_Fxr,'r','linewidth',LineWidth);
-        %plot(wz_automatic.Time,wz_automatic.Data-r_eqpoint,'y-.','linewidth',LineWidth);
         plot([controller_cmd_automatic.Time(1),controller_cmd_automatic.Time(end)],Fxr_eqpoint*[1,1],'y--','linewidth',LineWidth); %eq pt
         plot(controller_cmd_automatic.Time,controller_cmd_automatic.Data(:,1)*Imax*Kt/tau/Rw-Fdrag,'k','linewidth',LineWidth'); %throttle cmd
         plot([controller_cmd_automatic.Time(1),controller_cmd_automatic.Time(end)],mur*Fzr*[1,1],'k-.','linewidth',LineWidth); %sat limit +
         plot([controller_cmd_automatic.Time(1),controller_cmd_automatic.Time(end)],-mur*Fzr*[1,1],'k-.','linewidth',LineWidth); %sat limit -
         plot([controller_cmd_automatic.Time(1),controller_cmd_automatic.Time(end)],(Imax*Kt/tau/Rw-Fdrag)*[1,1],'k--','linewidth',LineWidth); %current limit
+        
+        if circular_drifting_lqr_e_active
+           plot(circular_drifting_lqr_delta_psi_automatic.Time,K_delta_psi_Fxr,'c','linewidth',LineWidth);
+           plot(circular_drifting_lqr_e_automatic.Time,K_e_Fxr,'m','linewidth',LineWidth);
+        end
+        
         xlabel('t[s]');
         titolo=['contributi F_x^r, seq ',num2str(seq)];title(titolo);
-        %legend('-K \Delta V_x','\Delta V_x','-K \Delta V_y','\Delta V_y','-K \Delta r','\Delta r','F_x^r eq. pt.','F_x^r');
-        legend('-K \Delta V_x','-K \Delta V_y','-K \Delta r','F_x^r eq. pt.','F_x^r');
+        legend('-K \Delta V_x','-K \Delta V_y','-K \Delta r','F_x^R eq. pt.','F_x^R','sat','sat','I lim +','-K \Delta \psi','-K e');
         g(2)=subplot(212); %Vy,r
         yyaxis left
         plot(Vy_opt_state_est_automatic.Time,Vy_opt_state_est_automatic.Data,'linewidth',LineWidth);hold on;grid on;
@@ -1557,20 +1714,20 @@ for k=2:radio_cmd_control_state.Length
         legend('V_y','V_y eq pt','r','r eq pt');
         linkaxes(g,'x');clear g;
         
-        %         figura debug contributi Fxr        
-        figure('name','debug contributi Fxr');
-        plot(Vx_opt_state_est_automatic.Time,K_Vx_Fxr,'g','linewidth',LineWidth);hold on; grid on;
-        plot(Vy_opt_state_est_automatic.Time,K_Vy_Fxr,'b','linewidth',LineWidth);
-        plot(wz_automatic.Time,K_r_Fxr,'r','linewidth',LineWidth);
-        plot([controller_cmd_automatic.Time(1),controller_cmd_automatic.Time(end)],Fxr_eqpoint*[1,1],'y--','linewidth',LineWidth);
-        plot(controller_cmd_automatic.Time,controller_cmd_automatic.Data(:,1)*Imax*Kt/tau/Rw-Fdrag,'k','linewidth',LineWidth');
-        sum=K_Vx_Fxr+K_Vy_Fxr-K(2,3)*(wz_automatic_interp.Data-r_eqpoint)+Fxr_eqpoint;
-        plot(Vx_opt_state_est_automatic.Time,sum,'m','linewidth',LineWidth);
-        plot([controller_cmd_automatic.Time(1),controller_cmd_automatic.Time(end)],mur*Fzr*[1,1],'k-.','linewidth',LineWidth);
-        plot([controller_cmd_automatic.Time(1),controller_cmd_automatic.Time(end)],-mur*Fzr*[1,1],'k-.','linewidth',LineWidth);
-        plot([controller_cmd_automatic.Time(1),controller_cmd_automatic.Time(end)],(Imax*Kt/tau/Rw-Fdrag)*[1,1],'k--','linewidth',LineWidth);
-        xlabel('t[s]');title('debug contributi F_x^R');
-        legend('-K \Delta V_x','-K \Delta V_y','-K \Delta r','F_x^r eq. pt.','F_x^r','sum');
+%         %         figura debug contributi Fxr        
+%         figure('name','debug contributi Fxr');
+%         plot(Vx_opt_state_est_automatic.Time,K_Vx_Fxr,'g','linewidth',LineWidth);hold on; grid on;
+%         plot(Vy_opt_state_est_automatic.Time,K_Vy_Fxr,'b','linewidth',LineWidth);
+%         plot(wz_automatic.Time,K_r_Fxr,'r','linewidth',LineWidth);
+%         plot([controller_cmd_automatic.Time(1),controller_cmd_automatic.Time(end)],Fxr_eqpoint*[1,1],'y--','linewidth',LineWidth);
+%         plot(controller_cmd_automatic.Time,controller_cmd_automatic.Data(:,1)*Imax*Kt/tau/Rw-Fdrag,'k','linewidth',LineWidth');
+%         sum=K_Vx_Fxr+K_Vy_Fxr-K(2,3)*(wz_automatic_interp.Data-r_eqpoint)+Fxr_eqpoint;
+%         plot(Vx_opt_state_est_automatic.Time,sum,'m','linewidth',LineWidth);
+%         plot([controller_cmd_automatic.Time(1),controller_cmd_automatic.Time(end)],mur*Fzr*[1,1],'k-.','linewidth',LineWidth);
+%         plot([controller_cmd_automatic.Time(1),controller_cmd_automatic.Time(end)],-mur*Fzr*[1,1],'k-.','linewidth',LineWidth);
+%         plot([controller_cmd_automatic.Time(1),controller_cmd_automatic.Time(end)],(Imax*Kt/tau/Rw-Fdrag)*[1,1],'k--','linewidth',LineWidth);
+%         xlabel('t[s]');title('debug contributi F_x^R');
+%         legend('-K \Delta V_x','-K \Delta V_y','-K \Delta r','F_x^r eq. pt.','F_x^r','sum');
 
         
         fprintf('\n seq = %g\n',seq);
@@ -1580,3 +1737,5 @@ for k=2:radio_cmd_control_state.Length
     end
     
 end
+
+

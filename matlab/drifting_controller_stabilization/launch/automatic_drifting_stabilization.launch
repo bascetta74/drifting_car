@@ -13,6 +13,7 @@
   <node pkg="myahrs_driver" 
 	type="myahrs_driver" 
 	name="myahrs_driver">
+    <rosparam file="$(find myahrs_driver)/config/myahrs_params.yaml" command="load" />
     <param name="port" value="/dev/ttyACM1" />
     <param name="baud_rate" value="115200" />
   </node>
@@ -41,10 +42,10 @@
   </node>
 
 
-  <!--- Run drifting_controller -->
-  <node pkg="driftingcontroller_stabilization" 
-	type="driftingcontroller_stabilization_node"
-	name="drifting_controller" 
+  <!--- Run drifting_controller_stabilization -->
+  <node pkg="drifting_controller_stabilization" 
+	type="drifting_controller_stabilization_node"
+	name="drifting_controller_stabilization" 
 	respawn="false">
   </node>
 
