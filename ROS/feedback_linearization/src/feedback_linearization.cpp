@@ -127,10 +127,20 @@ void feedback_linearization::vehiclePose_MessageCallback(const geometry_msgs::Po
   /* Vehicle 2D pose */
   _vehiclePose.at(0) = msg->x;
   _vehiclePose.at(1) = msg->y;
-  _vehiclePose.at(2) = msg->theta-theta_offset;
+  _vehiclePose.at(2) = msg->theta+theta_offset;
 
   /* Vehicle sideslip */
-  _vehicleSideslip = atan2(_vehicleVelocity.at(1),_vehicleVelocity.at(0))-_vehiclePose.at(2);
+  _vehicleSideslip = atan2( -_vehicleVelocity.at(0)*sin(_vehiclePose.at(2))+_vehicleVelocity.at(1)*cos(_vehiclePose.at(2)),
+                             _vehicleVelocity.at(0)*cos(_vehiclePose.at(2))+_vehicleVelocity.at(1)*sin(_vehiclePose.at(2)) );
+ }
+ else
+ {
+  /* Vehicle cog velocity */
+  _vehicleVelocity.at(0) = 0.0;
+  _vehicleVelocity.at(1) = 0.0;
+
+  /* Vehicle sideslip */
+  _vehicleSideslip = 0.0;
  }
 }
 
@@ -170,6 +180,9 @@ void feedback_linearization::PeriodicTask(void)
  /* Publishing for data logging */
  std_msgs::Float64MultiArray vehicleStateMsg;
  vehicleStateMsg.data.clear();
+ vehicleStateMsg.data.push_back(_vehiclePose.at(0));
+ vehicleStateMsg.data.push_back(_vehiclePose.at(1));
+ vehicleStateMsg.data.push_back(_vehiclePose.at(2));
  vehicleStateMsg.data.push_back(_vehicleVelocity.at(0));
  vehicleStateMsg.data.push_back(_vehicleVelocity.at(1));
  vehicleStateMsg.data.push_back(_vehicleSideslip);
