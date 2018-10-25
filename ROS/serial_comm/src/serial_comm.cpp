@@ -185,13 +185,13 @@ void serial_comm::PeriodicTask(void)
          uint16_t tmp_steer_ref;
          memcpy(&tmp_steer_ref, &(_message_buffer[1]), sizeof(uint16_t));
          if (!us_to_SIunits(tmp_steer_ref, _steer_ref, _steer_us_range, _steer_rad_range))
-          ROS_ERROR("Node %s: steer ref value in reading serial message is out of range.", ros::this_node::getName().c_str());
+          ROS_ERROR("Node %s: steer ref value (%u) in reading serial message is out of range.", ros::this_node::getName().c_str(), (unsigned int)tmp_steer_ref);
          
          /* Speed ref */
          uint16_t tmp_speed_ref;
          memcpy(&tmp_speed_ref, &(_message_buffer[3]), sizeof(uint16_t));
          if (!us_to_SIunits(tmp_speed_ref, _speed_ref, _speed_us_range, _speed_mps_range))
-          ROS_ERROR("Node %s: speed ref value in reading serial message is out of range.", ros::this_node::getName().c_str());
+          ROS_ERROR("Node %s: speed ref value (%u) in reading serial message is out of range.", ros::this_node::getName().c_str(), (unsigned int)tmp_speed_ref);
          
          /* Wheel speed */
          bool wheel_dx_ccw, wheel_sx_ccw;
@@ -204,7 +204,7 @@ void serial_comm::PeriodicTask(void)
          wheel_sx_ccw = (_message_buffer[10]==0x00) ? false : true;
          _wheel_speed = ( ((wheel_dx_ccw) ? static_cast<double>(wheel_speed_dx) : -1.0*static_cast<double>(wheel_speed_dx)) +
          ((wheel_sx_ccw) ? static_cast<double>(wheel_speed_sx) : -1.0*static_cast<double>(wheel_speed_sx)) ) / 2.0;
-ROS_INFO("dx %d (%d) - sx %d (%d)", wheel_speed_dx, wheel_dx_ccw, wheel_speed_sx, wheel_sx_ccw);         
+//ROS_INFO("dx %d (%d) - sx %d (%d)", wheel_speed_dx, wheel_dx_ccw, wheel_speed_sx, wheel_sx_ccw);         
          /* Arduino state */
          switch (_message_buffer[11])
          {

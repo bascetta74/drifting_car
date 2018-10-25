@@ -10,7 +10,7 @@
 #define USE_KEYBOARD_TELEOP true
 /* Used only if the actual values are not retrieved from the ROS parameter server */
 
-#define TEST_COMM
+//#define TEST_COMM
 /* Activate this define to test data received by serial_comm (published back on test topics) */
 
 #define NAME_OF_THIS_NODE "serial_comm"
