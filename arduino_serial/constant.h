@@ -27,9 +27,9 @@
 #define STEER_MIN				1240	// Minimum value for steer command (pulse width ms)
 #define STEER_ZERO				1500	// Neutral value for steer command (pulse width ms)
 #define STEER_MAX				1740	// Maximum value for steer command (pulse width ms)
-#define SPEED_MIN				1500	// Minimum value for steer command (pulse width ms)
+#define SPEED_MIN				1000	// Minimum value for steer command (pulse width ms)
 #define SPEED_ZERO				1500	// Neutral value for steer command (pulse width ms)
-#define SPEED_MAX				1600	// Maximum value for steer command (pulse width ms)
+#define SPEED_MAX				2000	// Maximum value for steer command (pulse width ms)
 #define BUTTON_ZERO				1500	// Neutral value for button (pulse width ms)
 
 // Arduino PINS

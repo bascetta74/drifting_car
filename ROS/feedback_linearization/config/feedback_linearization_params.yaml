@@ -10,6 +10,8 @@
 
   /feedback_linearization/P_dist: 0.2               # Distance of point P for feedback linearization
   /feedback_linearization/speed_thd: 0.001          # Threshold to consider the absolute vehicle velocity equal to zero
-
+  /feedback_linearization/vel_filt_coeff: [-0.3, -0.1, 0.1, 0.3]
+                                                    # FIR velocity filter coefficients
   /feedback_linearization/theta_offset: 5.0         # Offset on optitrack theta angle
-  /feedback_linearization/deltas_thd: 0.001         # Threshold to consider the motion equal to zero in velocity computation
+  /feedback_linearization/KPx: 1.0                  # Position loop proportional gain x
+  /feedback_linearization/KPy: 1.0                  # Position loop proportional gain y
