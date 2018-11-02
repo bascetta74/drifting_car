@@ -16,32 +16,15 @@ int main(int argc, char **argv)
     printf("initProblem result: %d\n\n", res);
 
     /* Set problem */
-    double H[3][3] = {
-        { 3.0, 0.0, -1.0},
-        { 0.0, 2.0,  0.0},
-        {-1.0, 0.0,  1.0}
+    double H[9] = {
+         3.0, 0.0, -1.0,
+         0.0, 2.0,  0.0,
+        -1.0, 0.0,  1.0
     };
 
-    double** H_ptr = (double**) malloc(sizeof(double*)*3);
-    for (int i=0; i<3; i++)
-        H_ptr[i] = (double*) malloc(sizeof(double)*3);
+    double f[3] = {-2.0, 3.0, 1.0};
 
-    for (int i=0; i<3; i++) {
-        for (int j=0; j<3; j++) {
-            H_ptr[i][j] = H[i][j];
-        }
-    }
-
-    double f[1][3] = {-2.0, 3.0, 1.0};
-
-    double** f_ptr = (double**) malloc(sizeof(double*));
-    f_ptr[0] = (double*) malloc(sizeof(double)*3);
-
-    for (int j=0; j<3; j++) {
-        f_ptr[0][j] = f[0][j];
-    }
-
-    res = setProblem(H_ptr, f_ptr);
+    res = setProblem(H, f);
     printf("setProblem result: %d\n\n", res);
 
     /* Solve problem */

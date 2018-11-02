@@ -10,12 +10,6 @@ CCC = g++ -O0 -std=c++11
 
 CC = gcc
 
-main: libCPLEXsolver_cwrapper.so main.o
-	$(CC) -o main main.o -L./lib -lCPLEXsolver_cwrapper
-
-main_test: libCPLEXsolver_cwrapper_test.so main.o
-	$(CC) -o main_test main.o -L./lib -lCPLEXsolver_cwrapper_test
-
 libCPLEXsolver_cwrapper.so: CPLEXsolver_cwrapper.cpp
 	$(CCC) -c $(CCFLAGS) CPLEXsolver_cwrapper.cpp -o CPLEXsolver_cwrapper.o
 	$(CCC) -c $(CCFLAGS) CPLEXsolver.cpp -o CPLEXsolver.o
@@ -30,4 +24,3 @@ all: libMPCsolver.so libMPCsolver_cwrapper.so
 
 clean:
 	@rm -rf *.o ./lib/*.so
-	@rm -rf main main_test
