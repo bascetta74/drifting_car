@@ -1,0 +1,10 @@
+# Feedback linearization configuration parameters
+  /mpc_feedback_linearization/run_period: 0.01          # Node execution period
+
+  /mpc_feedback_linearization/cog_dist_front: 0.1513    # Distance of cog from front
+  /mpc_feedback_linearization/cog_dist_rear: 0.1087     # Distance of cog from rear
+    # Cornering stiffness front wheels
+       # Threshold to consider the absolute vehicle velocity equal to zero
+
+  /mpc_feedback_linearization/theta_offset: 5.0         # Offset on optitrack theta angle
+  /mpc_feedback_linearization/deltas_thd: 0.001         # Threshold to consider the motion equal to zero in velocity computation
