@@ -18,6 +18,9 @@ arduino_ethernet/spec.d
 ROS/driftingcontroller_stabilization/
 ROS/state_estimator_opt_driftingcar/
 
+#Simulink additional files generated from compilation
+ROS/feedback_linearization/simulator/slprj
+
 # Files
 *.so
 
