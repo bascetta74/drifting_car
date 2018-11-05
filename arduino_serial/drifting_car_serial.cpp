@@ -9,6 +9,7 @@
 #include "car_commands.h"
 #include "task_timer.h"
 
+//#define DEBUG
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 // Setup/Loop global variables                                                                     //
@@ -67,6 +68,7 @@ void setup()
 	// Initialize encoder
 	init_encoderIO();
 	init_encoderInterrupts();
+	set_encoderConfiguration(ENC_A_RISING, ENC_A_RISING);
 
 	// Initialize steer and speed
 	init_carcommandsIO();
@@ -82,6 +84,10 @@ void setup()
 	pinMode(13, OUTPUT);
 	digitalWrite(13, HIGH);
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	#ifdef DEBUG
+	Serial.println("Board initialized, loop starting...");
+	#endif
 }
 
 // The loop function is called in an endless loop
@@ -89,6 +95,7 @@ void loop()
 {
 	if (canStart() & (arduino_state.state != HALT))
 	{
+		#ifndef DEBUG
 		// If one complete message is available read it and write one message back
 		if (Serial.available() >= MESSAGE_SIZE)
 		{
@@ -220,6 +227,14 @@ void loop()
 				arduino_state.info = FAULT_COMM_BYTENUM;
 			}
 		}
+		#endif
+
+		#ifdef DEBUG
+		Serial.print("dx wheel: ");
+		Serial.print(get_wheelcount_dx()*LOOP_FREQUENCY);
+		Serial.print(" - sx wheel: ");
+		Serial.println(get_wheelcount_sx()*LOOP_FREQUENCY);
+		#endif
 	}
 
 	// In case of HALT state set speed and steer to zero and start blinking led "L"
