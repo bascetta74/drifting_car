@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <avr/wdt.h>
 
-#define DEBUG
+#define DEBUG_1
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 // Setup/Loop global variables                                                                     //
@@ -38,6 +38,7 @@ state_info arduino_state;
 
 // Errors
 unsigned int message_decode_error;
+size_t byte_received, byte_sent;
 
 // Time
 unsigned int arduino_start_time;
@@ -70,6 +71,7 @@ void setup()
 	// Initialize encoder
 	init_encoderIO();
 	init_encoderInterrupts();
+	set_encoderConfiguration(ENC_A_RISING, ENC_A_RISING);
 
 	// Initialize steer and speed
 	init_carcommandsIO();
@@ -78,27 +80,27 @@ void setup()
 	initialize_odroid_message(&from_odroid);
 	initialize_odroid_message(&to_odroid);
 
-#ifdef DEBUG
+	#ifdef DEBUG_1
 	// Open serial communication for debugging
 	Serial.begin(57600);
 	while (!Serial) {
 		; // wait for serial port to connect
 	}
-#endif
+	#endif
 
 	// Start UDP connection
 	init_udpConnection(server_mac, server_ip, server_port);
 
-#ifdef DEBUG
-	Serial.print("UDP connection started, waiting for client...\n");
-#endif
+	#ifdef DEBUG_1
+	Serial.println("UDP connection started, waiting for client...");
+	#endif
 
 	// Wait for connection of a client
 	wait_client_connection();
 
-#ifdef DEBUG
-	Serial.print("Client connected, starting loop...\n");
-#endif
+	#ifdef DEBUG_1
+	Serial.println("Client connected, starting loop...");
+	#endif
 
 	// Enable watchdog for connection lost
 	wdt_enable(WDTO_120MS);
@@ -107,7 +109,11 @@ void setup()
 	init_taskTimer(LOOP_FREQUENCY);
 
 	// Initialize arduino start time
-	arduino_start_time = micros();
+	arduino_start_time = millis();
+
+	#ifdef DEBUG_1
+	Serial.println("Arduino state: SAFE");
+	#endif
 }
 
 // The loop function is called in an endless loop
@@ -116,15 +122,55 @@ void loop()
 	if (canStart() & (arduino_state.state != HALT))
 	{
 		// Receive e message from Odroid
-		receive_udpMessage(message_in);
+		byte_received = receive_udpMessage((uint8_t*) message_in, MESSAGE_SIZE);
+		if (((int)byte_received) != MESSAGE_SIZE)
+		{
+			arduino_state.state = HALT;
+			arduino_state.info = FAULT_COMM_BYTENUM;
+
+			#ifdef DEBUG_1
+			Serial.print("Wrong number of byte received (");
+			Serial.print((int)byte_received);
+			Serial.print("), error ");
+			Serial.println(arduino_state.info);
+			#endif
+		}
 
 		// Decode the message
 		message_decode_error = decode_odroid_message(message_in, &from_odroid);
 		if (message_decode_error > 0)
 		{
-//			arduino_state.state = HALT;
-//			arduino_state.info = message_decode_error;
+			arduino_state.state = HALT;
+			arduino_state.info = message_decode_error;
+
+			#ifdef DEBUG_1
+			Serial.print("Error decoding incoming message (error ");
+			Serial.print(arduino_state.info);
+			Serial.println(")");
+			#endif
 		}
+
+		#ifdef DEBUG_2
+		Serial.print("receiving ("); Serial.print(message_decode_error); Serial.print(") ");
+		Serial.print("steer: ");
+		Serial.print(from_odroid.steer_cmd);
+		Serial.print(" - speed: ");
+		Serial.print(from_odroid.speed_cmd);
+		Serial.print(" - wdx speed: ");
+		Serial.print(from_odroid.wheel_dx_speed);
+		Serial.print(" - wdx ccw: ");
+		Serial.print(from_odroid.wheel_dx_ccw);
+		Serial.print(" - wsx speed: ");
+		Serial.print(from_odroid.wheel_sx_speed);
+		Serial.print(" - wsx ccw: ");
+		Serial.print(from_odroid.wheel_sx_ccw);
+		Serial.print(" - state: ");
+		Serial.print(from_odroid.arduino_state);
+		Serial.print(" - state info: ");
+		Serial.print(from_odroid.arduino_state_info);
+		Serial.print(" - time: ");
+		Serial.println(from_odroid.arduino_time);
+		#endif
 
 		// Get current measures from the radio
 		curr_steer  = get_steer_value_us();
@@ -137,16 +183,28 @@ void loop()
 			{
 				arduino_state.state = MANUAL;
 				arduino_state.info  = 0;
+
+				#ifdef DEBUG_1
+				Serial.println("Arduino state: MANUAL");
+				#endif
 			}
 			else if (arduino_state.state == MANUAL)
 			{
 				arduino_state.state = AUTOMATIC;
 				arduino_state.info  = 0;
+
+				#ifdef DEBUG_1
+				Serial.println("Arduino state: AUTOMATIC");
+				#endif
 			}
 			else if (arduino_state.state == AUTOMATIC)
 			{
 				arduino_state.state = MANUAL;
 				arduino_state.info  = 0;
+
+				#ifdef DEBUG_1
+				Serial.println("Arduino state: MANUAL");
+				#endif
 			}
 		}
 
@@ -162,13 +220,13 @@ void loop()
 			dx_count = get_wheelcount_dx();
 			to_odroid.steer_cmd          = STEER_ZERO;
 			to_odroid.speed_cmd          = SPEED_ZERO;
-			to_odroid.wheel_dx_speed     = abs(dx_count);
-			to_odroid.wheel_sx_speed     = abs(sx_count);
+			to_odroid.wheel_dx_speed     = (unsigned int) abs(dx_count);
+			to_odroid.wheel_sx_speed     = (unsigned int) abs(sx_count);
 			to_odroid.wheel_dx_ccw       = (dx_count < 0) ? true : false;
 			to_odroid.wheel_sx_ccw       = (sx_count < 0) ? true : false;
 			to_odroid.arduino_state      = (unsigned char) arduino_state.state;
 			to_odroid.arduino_state_info = (unsigned char) arduino_state.info;
-			to_odroid.arduino_time       = (unsigned long) micros()-arduino_start_time;
+			to_odroid.arduino_time       = (unsigned long) (millis()-arduino_start_time);
 			break;
 
 		case MANUAL:
@@ -189,13 +247,13 @@ void loop()
 			dx_count = get_wheelcount_dx();
 			to_odroid.steer_cmd          = curr_steer;
 			to_odroid.speed_cmd          = curr_speed;
-			to_odroid.wheel_dx_speed     = abs(dx_count);
-			to_odroid.wheel_sx_speed     = abs(sx_count);
+			to_odroid.wheel_dx_speed     = (unsigned int) abs(dx_count);
+			to_odroid.wheel_sx_speed     = (unsigned int) abs(sx_count);
 			to_odroid.wheel_dx_ccw       = (dx_count < 0) ? true : false;
 			to_odroid.wheel_sx_ccw       = (sx_count < 0) ? true : false;
 			to_odroid.arduino_state      = (unsigned char) arduino_state.state;
 			to_odroid.arduino_state_info = (unsigned char) arduino_state.info;
-			to_odroid.arduino_time       = (unsigned long) micros()-arduino_start_time;
+			to_odroid.arduino_time       = (unsigned long) (millis()-arduino_start_time);
 			break;
 
 		case AUTOMATIC:
@@ -208,13 +266,13 @@ void loop()
 			dx_count = get_wheelcount_dx();
 			to_odroid.steer_cmd          = from_odroid.steer_cmd;
 			to_odroid.speed_cmd          = from_odroid.speed_cmd;
-			to_odroid.wheel_dx_speed     = abs(dx_count);
-			to_odroid.wheel_sx_speed     = abs(sx_count);
+			to_odroid.wheel_dx_speed     = (unsigned int) abs(dx_count);
+			to_odroid.wheel_sx_speed     = (unsigned int) abs(sx_count);
 			to_odroid.wheel_dx_ccw       = (dx_count < 0) ? true : false;
 			to_odroid.wheel_sx_ccw       = (sx_count < 0) ? true : false;
 			to_odroid.arduino_state      = (unsigned char) arduino_state.state;
 			to_odroid.arduino_state_info = (unsigned char) arduino_state.info;
-			to_odroid.arduino_time       = (unsigned long) micros()-arduino_start_time;
+			to_odroid.arduino_time       = (unsigned long) (millis()-arduino_start_time);
 			break;
 
 		case HALT:
@@ -226,13 +284,13 @@ void loop()
 			dx_count = get_wheelcount_dx();
 			to_odroid.steer_cmd          = STEER_ZERO;
 			to_odroid.speed_cmd          = SPEED_ZERO;
-			to_odroid.wheel_dx_speed     = abs(dx_count);
-			to_odroid.wheel_sx_speed     = abs(sx_count);
+			to_odroid.wheel_dx_speed     = (unsigned int) abs(dx_count);
+			to_odroid.wheel_sx_speed     = (unsigned int) abs(sx_count);
 			to_odroid.wheel_dx_ccw       = (dx_count < 0) ? true : false;
 			to_odroid.wheel_sx_ccw       = (sx_count < 0) ? true : false;
 			to_odroid.arduino_state      = (unsigned char) arduino_state.state;
 			to_odroid.arduino_state_info = (unsigned char) arduino_state.info;
-			to_odroid.arduino_time       = (unsigned long) micros()-arduino_start_time;
+			to_odroid.arduino_time       = (unsigned long) (millis()-arduino_start_time);
 			break;
 
 		}
@@ -240,8 +298,44 @@ void loop()
 		// Encode the message
 		encode_odroid_message(message_out, &to_odroid);
 
+		#ifdef DEBUG_2
+		telemetry_message tmp;
+		message_decode_error = decode_odroid_message(message_out, &tmp);
+		Serial.print("sending ("); Serial.print(message_decode_error); Serial.print(") ");
+		Serial.print("steer: ");
+		Serial.print(tmp.steer_cmd);
+		Serial.print(" - speed: ");
+		Serial.print(tmp.speed_cmd);
+		Serial.print(" - wdx speed: ");
+		Serial.print(tmp.wheel_dx_speed);
+		Serial.print(" - wdx ccw: ");
+		Serial.print(tmp.wheel_dx_ccw);
+		Serial.print(" - wsx speed: ");
+		Serial.print(tmp.wheel_sx_speed);
+		Serial.print(" - wsx ccw: ");
+		Serial.print(tmp.wheel_sx_ccw);
+		Serial.print(" - state: ");
+		Serial.print(tmp.arduino_state);
+		Serial.print(" - state info: ");
+		Serial.print(tmp.arduino_state_info);
+		Serial.print(" - time: ");
+		Serial.println(tmp.arduino_time);
+		#endif
+
 		// Send the message back
-		send_udpMessage(message_out);
+		byte_sent = send_udpMessage((const uint8_t*) message_out, MESSAGE_SIZE);
+		if (((int)byte_sent) != MESSAGE_SIZE)
+		{
+			arduino_state.state = HALT;
+			arduino_state.info = FAULT_COMM_BYTENUM;
+
+			#ifdef DEBUG_1
+			Serial.print("Wrong number of byte sent (");
+			Serial.print((int)byte_sent);
+			Serial.print("), error ");
+			Serial.println(arduino_state.info);
+			#endif
+		}
 	}
 
 	// In case of HALT state set speed and steer to zero and start blinking led "L"

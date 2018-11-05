@@ -41,26 +41,32 @@ void wait_client_connection()
 	} while (packetSize<=0);
 }
 
-void send_udpMessage(char message[UDP_TX_PACKET_MAX_SIZE])
+size_t send_udpMessage(const uint8_t *buffer, size_t buf_size)
 {
 	// Send a message over UDP
 	Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
-	Udp.write(message);
+	size_t byte_sent = Udp.write(buffer, buf_size);
 	Udp.endPacket();
+
+	return byte_sent;
 }
 
-void receive_udpMessage(char message[UDP_TX_PACKET_MAX_SIZE])
+size_t receive_udpMessage(uint8_t *buffer, size_t buf_size)
 {
+	size_t byte_read = 0;
+
 	// Receive a message over UDP (blocking call)
 	int packetSize = Udp.parsePacket();
 	do {
 		if (packetSize) {
 			// Read the packet into packetBufffer
-			memset(message,'\0', UDP_TX_PACKET_MAX_SIZE);
-			Udp.read(message, UDP_TX_PACKET_MAX_SIZE);
+			memset(buffer,'\0', buf_size);
+			byte_read = Udp.read(buffer, buf_size);
 		}
 		else {
 			packetSize = Udp.parsePacket();
 		}
-	} while (packetSize<=0);
+	} while (byte_read<=0);
+
+	return byte_read;
 }

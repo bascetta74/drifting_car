@@ -12,13 +12,13 @@
 #define MAX_FIR_ORDER 			8		// Maximum order of FIR filters
 
 // Realtime loop
-#define LOOP_FREQUENCY 			100		// Main loop frequency Hz
+#define LOOP_FREQUENCY 			200		// Main loop frequency Hz
 
 // Communication
 #define MESSAGE_SIZE			18		// Size in byte of the serial message
 
 // Fault codes
-#define FAULT_COMM_BYTENUM		100		// Wrong number of bytes wrote
+#define FAULT_COMM_BYTENUM		100		// Wrong number of bytes wrote/received
 #define FAULT_COMM_CHECKSUM		101		// Checksum error in serial message
 #define FAULT_COMM_HEADER		102		// Wrong header in serial message
 
@@ -41,5 +41,11 @@
 #define CH1_RECEIVER_PIN		14		// Channel 1 (steer) receiver pin
 #define CH2_RECEIVER_PIN		15		// Channel 2 (speed) receiver pin
 #define CH3_RECEIVER_PIN		16		// Channel 3 (button) receiver pin
+
+// Encoder configuration
+#define ENC_A_RISING			1		// Only channel A is considered on rising edges
+#define ENC_A_BOTH				2		// Only channel A is considered on rising and falling edges
+#define ENC_AB_RISING			3		// Channels A & B are considered on rising edges
+#define ENC_AB_BOTH				4		// Channels A & B are considered on rising and falling edges
 
 #endif /* CONSTANT_H_ */

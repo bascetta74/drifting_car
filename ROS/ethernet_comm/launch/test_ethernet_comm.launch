@@ -1,0 +1,10 @@
+<launch>
+
+  <!--- Run serial_comm -->
+  <node pkg="ethernet_comm" type="ethernet_comm" respawn="false" name="ethernet_comm" output="screen">
+    <rosparam file="$(find ethernet_comm)/config/ethernet_comm_params.yaml" command="load" />
+  </node>
+
+  <!-- Set use_keyboard_teleop = false -->
+  <param name="use_keyboard_teleop" value="false" />
+</launch>

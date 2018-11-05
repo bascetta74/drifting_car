@@ -1,0 +1,11 @@
+<launch>
+  <!-- load parameter files -->
+  <rosparam file="$(find ethernet_comm)/config/ethernet_comm_params.yaml" command="load"/>
+  <rosparam file="$(find keyboard_teleop)/config/keyboard_teleop_params.yaml" command="load"/>
+
+  <node pkg="ethernet_comm" type="ethernet_comm" name="ethernet_comm" output="screen">
+    <param name="use_keyboard_teleop" value="true" />
+  </node>
+  <node pkg="keyboard" type="keyboard" name="keyboard" output="screen"/>
+  <node pkg="keyboard_teleop" type="keyboard_teleop" name="keyboard_teleop" output="screen"/>
+</launch>

@@ -13,7 +13,7 @@
 
 void init_udpConnection(byte mac_address[], IPAddress ip_address, unsigned int port);
 void wait_client_connection();
-void send_udpMessage(char message[UDP_TX_PACKET_MAX_SIZE]);
-void receive_udpMessage(char message[UDP_TX_PACKET_MAX_SIZE]);
+size_t send_udpMessage(const uint8_t *buffer, size_t buf_size);
+size_t receive_udpMessage(uint8_t *buffer, size_t buf_size);
 
 #endif /* UDP_SOCKET_H_ */

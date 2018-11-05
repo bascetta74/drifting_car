@@ -105,10 +105,10 @@ byte checksum_verify(const char checksum, const char* message, const size_t buff
 		sum += message[i];
 	result = sum & 0xFF;
 
-	if (checksum == result)
-		return 1;
+	if (((byte)checksum) == result)
+		return true;
 	else
-		return 0;
+		return false;
 }
 
 char checksum_calculate(const char* message, const size_t bufferSize)
@@ -118,7 +118,6 @@ char checksum_calculate(const char* message, const size_t bufferSize)
 
   for (unsigned int i = 0; i < (bufferSize - 1); i++)
     sum += message[i];
-
   result = sum & 0xFF;
 
   return result;
