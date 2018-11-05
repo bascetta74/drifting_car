@@ -27,9 +27,9 @@
 #define STEER_MIN				1240	// Minimum value for steer command (pulse width ms)
 #define STEER_ZERO				1500	// Neutral value for steer command (pulse width ms)
 #define STEER_MAX				1740	// Maximum value for steer command (pulse width ms)
-#define SPEED_MIN				1500	// Minimum value for steer command (pulse width ms)
+#define SPEED_MIN				1000	// Minimum value for steer command (pulse width ms)
 #define SPEED_ZERO				1500	// Neutral value for steer command (pulse width ms)
-#define SPEED_MAX				1600	// Maximum value for steer command (pulse width ms)
+#define SPEED_MAX				2000	// Maximum value for steer command (pulse width ms)
 #define BUTTON_ZERO				1500	// Neutral value for button (pulse width ms)
 
 // Arduino PINS
@@ -42,5 +42,11 @@
 #define CH1_RECEIVER_PIN		14		// Channel 1 (steer) receiver pin
 #define CH2_RECEIVER_PIN		15		// Channel 2 (speed) receiver pin
 #define CH3_RECEIVER_PIN		16		// Channel 3 (button) receiver pin
+
+// Encoder configuration
+#define ENC_A_RISING			1		// Only channel A is considered on rising edges
+#define ENC_A_BOTH				2		// Only channel A is considered on rising and falling edges
+#define ENC_AB_RISING			3		// Channels A & B are considered on rising edges
+#define ENC_AB_BOTH				4		// Channels A & B are considered on rising and falling edges
 
 #endif /* CONSTANT_H_ */

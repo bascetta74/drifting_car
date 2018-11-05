@@ -13,7 +13,9 @@
 void init_encoderIO();
 void init_encoderInterrupts();
 
-unsigned int get_wheelcount_dx();
-unsigned int get_wheelcount_sx();
+void set_encoderConfiguration(int fl_config, int fr_config);
+
+int get_wheelcount_dx();
+int get_wheelcount_sx();
 
 #endif /* ENCODER_H_ */

@@ -10,8 +10,9 @@ MPCsolver* solver = NULL;
 int main(int argc, char **argv)
 {
     const int numVar          = 5;
-    const int numConstr       = 5;
-    const int numEqConstraint = 5;
+    const int numConstr       = 2;
+    const int numQConstr      = 0;
+    const int numEqConstraint = 2;
 
     std::vector<double> lB(numVar); lB.at(0) = -1.0; lB.at(1) = -1.0; lB.at(2) = -1.0; lB.at(3) = -1.0; lB.at(4) = -1.0;
     std::vector<double> uB(numVar); uB.at(0) = 5.0; uB.at(1) = 5.0; uB.at(2) = 5.0; uB.at(3) = 5.0; uB.at(4) = 5.0;
@@ -24,22 +25,16 @@ int main(int argc, char **argv)
     VectorXd f(numVar);             f << 1.0, 0.0, 1.0 ,2.0 ,-1.0;
 
     MatrixXd Ain(numConstr,numVar); Ain << 1.0, -1.0,  1.0,  0.0, -1.0,
-                                           2.0, -2.0,  1.0,  0.0,  0.0,
-                                          -1.0,  0.0,  1.0,  0.0,  1.0,
-                                           0.0,  1.0, -1.0,  2.0,  0.0,
-                                           1.0,  0.0,  1.0, -1.0, -2.0;
-    VectorXd Bin(numConstr);        Bin << 1.0, 0.0 ,-1.0, 0.0, -2.0;
+                                           2.0, -2.0,  1.0,  0.0,  0.0;
+    VectorXd Bin(numConstr);        Bin << 1.0, 0.0;
 
-    MatrixXd Aeq(numEqConstraint,numVar); Aeq << 1.0,  0.0, 0.0, 0.0, 1.0,
-                                                 0.0, -2.0, 0.0, 1.0, 0.0,
-                                                 0.0,  0.0, 0.0, 0.0, 0.0,
-                                                 0.0,  0.0, 0.0, 0.0, 0.0,
-                                                 0.0,  0.0, 0.0, 0.0, 0.0;
-    VectorXd Beq(numEqConstraint);        Beq << 1.0, 0.0, 1.0, 0.0, 0.0;
+    MatrixXd Aeq(numEqConstraint,numVar); Aeq << 1.0,  2.0, 1.0, 0.5, 1.0,
+                                                 0.0, -2.0, 0.0, 0.0, 0.0;
+    VectorXd Beq(numEqConstraint);        Beq << 1.0, 1.0;
 
 
     /** CPLEX solver example */
-    solver = new CPLEXsolver(numVar, numConstr, numEqConstraint, CPLEXsolver::AUTO);
+    solver = new CPLEXsolver(numVar, numConstr, numEqConstraint, numQConstr, CPLEXsolver::AUTO);
     cout << "CPLEX solver created" << endl;
 
     if (solver->initProblem())

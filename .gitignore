@@ -5,12 +5,14 @@ arduino_serial/Release/
 arduino_serial/.settings/
 arduino_serial/.cproject
 arduino_serial/.project
+arduino_serial/spec.d
 arduino_ethernet/core/
 arduino_ethernet/libraries/
 arduino_ethernet/Release/
 arduino_ethernet/.settings/
 arduino_ethernet/.cproject
 arduino_ethernet/.project
+arduino_ethernet/spec.d
 
 #Simulink generated ROS nodes
 ROS/state_estimator_opt_driftingcar/
@@ -20,4 +22,10 @@ ROS/AMPC_RC2/
 ROS/AMPC_RC3/
 ROS/AMPC_RC4/
 ROS/AMPC_RC5/
+
+#Simulink additional files generated from compilation
+ROS/feedback_linearization/simulator/slprj
+
+# Files
+*.so
 

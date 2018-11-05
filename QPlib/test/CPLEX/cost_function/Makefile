@@ -4,7 +4,7 @@ CCLNDIRS = -L/opt/ibm/ILOG/CPLEX_Studio1263/concert/lib/x86-64_linux/static_pic 
 
 CCOPT = -m64 -O -fPIC -fno-strict-aliasing -fexceptions -DNDEBUG -DIL_STD
 
-CCFLAGS = $(CCOPT) -I/usr/include/eigen3 -I/opt/ibm/ILOG/CPLEX_Studio1263/cplex/include/ -I/opt/ibm/ILOG/CPLEX_Studio1263/concert/include/ -I/opt/qpOASES-3.2.0/include/ -I../../../../ -I../../../../util/
+CCFLAGS = $(CCOPT) -I/usr/include/eigen3 -I/opt/ibm/ILOG/CPLEX_Studio1263/cplex/include/ -I/opt/ibm/ILOG/CPLEX_Studio1263/concert/include/ -I/opt/qpOASES-3.2.1/include/ -I../../../ -I../../../util/
 
 CCC = g++ -O0 -std=c++11
 
@@ -23,10 +23,10 @@ test_3: test_3.o CPLEXsolver.o writeMatlabScript.o
 test_3.o: test_3.cpp
 	$(CCC) -c $(CCFLAGS) test_3.cpp -o test_3.o
 
-CPLEXsolver.o: ../../../../CPLEXsolver.cpp
-	$(CCC) -c $(CCFLAGS) ../../../../CPLEXsolver.cpp -o CPLEXsolver.o
-writeMatlabScript.o: ../../../../util/writeMatlabScript.cpp
-	$(CCC) -c $(CCFLAGS) ../../../../util/writeMatlabScript.cpp -o writeMatlabScript.o
+CPLEXsolver.o: ../../../CPLEXsolver.cpp
+	$(CCC) -c $(CCFLAGS) ../../../CPLEXsolver.cpp -o CPLEXsolver.o
+writeMatlabScript.o: ../../../util/writeMatlabScript.cpp
+	$(CCC) -c $(CCFLAGS) ../../../util/writeMatlabScript.cpp -o writeMatlabScript.o
 
 all: test_1 test_2 test_3
 

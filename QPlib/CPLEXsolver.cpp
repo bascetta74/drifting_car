@@ -10,40 +10,43 @@ CPLEXsolver::~CPLEXsolver()
     _IloInitialized = false;
 }
 
-CPLEXsolver::CPLEXsolver(const int numVariable, const int numIneqConstraint, const int numEqConstraint, const solverType solverMethod)
+CPLEXsolver::CPLEXsolver(const int numVariable, const int numIneqConstraint, const int numEqConstraint, const int numQIneqConstraint, const solverType solverMethod)
 {
     /** Initialize class variables */
-    _numVariable       = numVariable;
-    _numEqConstraint   = numEqConstraint;
-    _numIneqConstraint = numIneqConstraint;
-    _solverMethod      = solverMethod;
-    _IloInitialized    = false;
+    _numVariable        = numVariable;
+    _numEqConstraint    = numEqConstraint;
+    _numIneqConstraint  = numIneqConstraint;
+    _numQIneqConstraint = numQIneqConstraint;
+    _solverMethod       = solverMethod;
+    _IloInitialized     = false;
 }
 
-CPLEXsolver::CPLEXsolver(const int numVariable, const int numIneqConstraint, const int numEqConstraint)
+CPLEXsolver::CPLEXsolver(const int numVariable, const int numIneqConstraint, const int numEqConstraint, const int numQIneqConstraint)
 {
     /** Initialize class variables */
-    _numVariable       = numVariable;
-    _numEqConstraint   = numEqConstraint;
-    _numIneqConstraint = numIneqConstraint;
-    _solverMethod      = AUTO;
-    _IloInitialized    = false;
+    _numVariable        = numVariable;
+    _numEqConstraint    = numEqConstraint;
+    _numIneqConstraint  = numIneqConstraint;
+    _numQIneqConstraint = numQIneqConstraint;
+    _solverMethod       = AUTO;
+    _IloInitialized     = false;
 }
 
 CPLEXsolver::CPLEXsolver()
 {
     /** Initialize class variables */
-    _numVariable       = -1;
-    _numEqConstraint   = -1;
-    _numIneqConstraint = -1;
-    _solverMethod      = AUTO;
-    _IloInitialized    = false;
+    _numVariable        = -1;
+    _numEqConstraint    = -1;
+    _numIneqConstraint  = -1;
+    _numQIneqConstraint = -1;
+    _solverMethod       = AUTO;
+    _IloInitialized     = false;
 }
 
 bool CPLEXsolver::initProblem()
 {
     /** Check the problem has been initialized */
-    if ( (_numVariable<0) || (_numEqConstraint<0) || (_numIneqConstraint<0))
+    if ((_numVariable<0) || (_numEqConstraint<0) || (_numIneqConstraint<0) || (_numQIneqConstraint<0))
     {
         std::cout << "[CPLEXsolver] Number of variables/constraints not initialized" << std::endl;
         return false;
@@ -69,9 +72,9 @@ bool CPLEXsolver::initProblem()
         objExpr.end();
 
         // Create a dummy set of inequality constraints
-        for (int i=0; i<_numIneqConstraint; i++)
+        for (int i=0; i<(_numIneqConstraint+_numQIneqConstraint); i++)
             _IloConstrIneq.add(_IloVar[0] <= 1.0);
-        if (_numIneqConstraint>0)
+        if ((_numIneqConstraint+_numQIneqConstraint)>0)
             _IloModel.add(_IloConstrIneq);
 
         // Create a dummy set of equality constraints
@@ -227,7 +230,7 @@ bool CPLEXsolver::setProblem(const Ref<const MatrixXd> hessian, const Ref<const 
 
 
 bool CPLEXsolver::setProblem(const Ref<const MatrixXd> hessian, const Ref<const VectorXd> gradient, const Ref<const MatrixXd> A, const Ref<const VectorXd> B)
-// Set an optimization problem characterized by cost function and inequality constraint
+// Set an optimization problem characterized by cost function and linear inequality constraints
 // Cost function           min 0.5*xT*H*x+fT*x
 // Inequality constraints       Ax <= B
 {
@@ -351,6 +354,175 @@ bool CPLEXsolver::setProblem(const Ref<const MatrixXd> hessian, const Ref<const 
 }
 
 
+bool CPLEXsolver::setProblem(const Ref<const MatrixXd> hessian, const Ref<const VectorXd> gradient, const Ref<const MatrixXd> A, const Ref<const VectorXd> B,
+                    const std::vector<VectorXd>& l, const std::vector<MatrixXd> Q, const std::vector<double>& r)
+// Set an optimization problem characterized by cost function, linear inequality constraints and quadratic inequality constraints
+// Cost function                     min 0.5*xT*H*x+fT*x
+// Linear inequality constraints         Ax <= B
+// Quadratic inequality constraints      aTi*x+xT*Qi*x <= ri   i=1,...,q
+{
+    /** Check that the problem has been initialized */
+    if (!_IloInitialized)
+    {
+        std::cout << "[CPLEXsolver] Call initProblem before setProblem" << std::endl;
+        return false;
+    }
+    if ((hessian.rows()<1) || (hessian.cols()<1))
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with an empty hessian" << std::endl;
+        return false;
+    }
+    if ((gradient.rows()<1) || (gradient.cols()<1))
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with an empty gradient" << std::endl;
+        return false;
+    }
+    if (hessian.rows()!=hessian.cols())
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with a non square hessian" << std::endl;
+        return false;
+    }
+    if ((gradient.rows()!=hessian.rows()) || (gradient.cols()>1))
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with a gradient having wrong dimensions" << std::endl;
+        return false;
+    }
+    if ((A.rows()<1) || (A.cols()<1) || (B.rows()<1) || (B.cols()<1))
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with an empty set of linear inequality constraints" << std::endl;
+        return false;
+    }
+    if ((A.cols()!=hessian.rows()) || (A.rows()!=B.rows()) || (B.cols()!=1))
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with a set of linear inequality constraints having wrong dimensions" << std::endl;
+        return false;
+    }
+    if ((l.size()!=_numQIneqConstraint) || (Q.size()!=_numQIneqConstraint) || (r.size()!=_numQIneqConstraint))
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with a wrong number of quadratic inequality constraints" << std::endl;
+        return false;
+    }
+    for (int k=0; k<l.size(); k++)
+    {
+        if ((l.at(k).rows()<1) || (l.at(k).cols()<1) || (Q.at(k).rows()<1) || (Q.at(k).cols()<1))
+        {
+            std::cout << "[CPLEXsolver] Cannot setProblem with an empty set of quadratic inequality constraints" << std::endl;
+            return false;
+        }
+        if ((l.at(k).rows()!=hessian.rows()) || (l.at(k).cols()!=1) || (Q.at(k).rows()!=hessian.rows()) || (Q.at(k).cols()!=hessian.rows()))
+        {
+            std::cout << "[CPLEXsolver] Cannot setProblem with a set of quadratic inequality constraints having wrong dimensions" << std::endl;
+            return false;
+        }
+    }
+
+    /** Set the QP problem */
+    try
+    {
+        // Check and update the number of optimization variables
+        if (_numVariable>hessian.cols())
+            _IloVar.remove(_IloVar.getSize()-(_numVariable-hessian.cols()), _numVariable-hessian.cols());
+        else if (_numVariable<hessian.cols())
+            for (int i=0; i<hessian.cols()-_numVariable; i++)
+                _IloVar.add(IloNumVar(_IloEnv, -IloInfinity, +IloInfinity));
+
+        _numVariable = _IloVar.getSize();
+
+    	// Remove unknowns lower/upper bounds
+    	for (int i=0; i<_numVariable; i++)
+    		_IloVar[i].setBounds(-IloInfinity, +IloInfinity);
+
+        // Check and remove equality constraints
+        if (_numEqConstraint>0)
+        {
+            _IloModel.remove(_IloConstrEq);
+            _IloConstrEq.endElements();
+
+            _numEqConstraint = 0;
+        }
+
+        // Modify the objective function
+        IloExpr objExpr(_IloEnv, 0.0);
+
+        for (int i=0; i<_numVariable; i++)			// Quadratic part of the objective function
+        	for (int j=i; j<_numVariable; j++)
+        	{
+        		if (i==j)
+        			objExpr += 0.5*hessian(i,j)*_IloVar[i]*_IloVar[j];
+        		else
+        			objExpr += hessian(i,j)*_IloVar[i]*_IloVar[j];
+        	}
+
+        for (int i=0; i<_numVariable; i++)			// Linear part of the objective function
+        	objExpr += gradient(i)*_IloVar[i];
+
+        _IloObj.setExpr(objExpr);
+
+        objExpr.end();
+
+    	// Update and modify the inequality constraints
+    	if ((_numIneqConstraint+_numQIneqConstraint)!=(A.rows()+r.size()))
+    	{
+            // Remove previous constraints
+            _IloModel.remove(_IloConstrIneq);
+            _IloConstrIneq.endElements();
+
+            _numIneqConstraint  = A.rows();
+            _numQIneqConstraint = r.size();
+
+            // Create a dummy set of inequality constraint
+            for (int i=0; i<(_numIneqConstraint+_numQIneqConstraint); i++)
+                _IloConstrIneq.add(_IloVar[0] <= 1.0);
+            _IloModel.add(_IloConstrIneq);
+    	}
+
+        int constr_idx = 0;
+
+        for (int i=0; i<_numIneqConstraint; i++)
+        {
+        	IloExpr conExpr(_IloEnv, 0.0);
+
+      		for (int j=0; j<_numVariable; j++)
+      			conExpr += A(i,j)*_IloVar[j];
+
+      		_IloConstrIneq[constr_idx].setExpr(conExpr);
+      		_IloConstrIneq[constr_idx].setUB(B(i));
+            constr_idx++;
+
+        	conExpr.end();
+        }
+
+        for (int i=0; i<_numQIneqConstraint; i++)
+        {
+        	IloExpr conExpr(_IloEnv, 0.0);
+
+            // Linear part of the constraint aiT*x
+      		for (int j=0; j<_numVariable; j++)
+      			conExpr += l.at(i)(j)*_IloVar[j];
+
+            // Quadratic part of the constraint xT*Q*x
+            for (int j=0; j<_numVariable; j++)
+        	    for (int k=0; k<_numVariable; k++)
+                    conExpr += Q.at(i)(j,k)*_IloVar[j]*_IloVar[k];
+
+      		_IloConstrIneq[constr_idx].setExpr(conExpr);
+      		_IloConstrIneq[constr_idx].setUB(r.at(i));
+            constr_idx++;
+
+        	conExpr.end();
+        }
+    }
+    catch (IloException& e)
+	{
+        std::cout << "[CPLEXsolver] CPlex failed setting up the QP problem:" << std::endl;
+        std::cout << "\t [" << e << "]" << std::endl;
+        return false;
+	}
+
+	return true;
+}
+
+
 bool CPLEXsolver::setProblem(const std::vector<double>& lowerBound, const std::vector<double>& upperBound, const Ref<const MatrixXd> hessian,
                              const Ref<const VectorXd> gradient)
 // Set an optimization problem characterized by cost function  and lower/upper bound
@@ -441,6 +613,151 @@ bool CPLEXsolver::setProblem(const std::vector<double>& lowerBound, const std::v
         _IloObj.setExpr(objExpr);
 
         objExpr.end();
+    }
+    catch (IloException& e)
+	{
+        std::cout << "[CPLEXsolver] CPlex failed setting up the QP problem:" << std::endl;
+        std::cout << "\t [" << e << "]" << std::endl;
+        return false;
+	}
+
+	return true;
+}
+
+bool CPLEXsolver::setProblem(const std::vector<double>& lowerBound, const std::vector<double>& upperBound, const Ref<const MatrixXd> hessian,
+                const Ref<const VectorXd> gradient, const std::vector<VectorXd>& l, const std::vector<MatrixXd> Q, const std::vector<double>& r)
+// Set an optimization problem characterized by cost function, lower/upper bound and quadratic constraints
+// Cost function                              min 0.5*xT*H*x+fT*x
+// Variable constraints                          lb <= x <= ub
+// Quadratic inequality constraints      aTi*x+xT*Qi*x <= ri   i=1,...,q
+{
+    /** Check that the problem has been initialized */
+    if (!_IloInitialized)
+    {
+        std::cout << "[CPLEXsolver] Call initProblem before setProblem" << std::endl;
+        return false;
+    }
+    if ((hessian.rows()<1) || (hessian.cols()<1))
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with an empty hessian" << std::endl;
+        return false;
+    }
+    if ((gradient.rows()<1) || (gradient.cols()<1))
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with an empty gradient" << std::endl;
+        return false;
+    }
+    if (hessian.rows()!=hessian.cols())
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with a non square hessian" << std::endl;
+        return false;
+    }
+    if ((gradient.rows()!=hessian.rows()) || (gradient.cols()>1))
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with a gradient having wrong dimensions" << std::endl;
+        return false;
+    }
+    if ((lowerBound.size()!=hessian.rows()) || (upperBound.size()!=hessian.rows()))
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with a wrong dimension on lower/upper bounds" << std::endl;
+        return false;
+    }
+    if ((l.size()!=_numQIneqConstraint) || (Q.size()!=_numQIneqConstraint) || (r.size()!=_numQIneqConstraint))
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with a wrong number of quadratic inequality constraints" << std::endl;
+        return false;
+    }
+    for (int k=0; k<l.size(); k++)
+    {
+        if ((l.at(k).rows()<1) || (l.at(k).cols()<1) || (Q.at(k).rows()<1) || (Q.at(k).cols()<1))
+        {
+            std::cout << "[CPLEXsolver] Cannot setProblem with an empty set of quadratic inequality constraints" << std::endl;
+            return false;
+        }
+        if ((l.at(k).rows()!=hessian.rows()) || (l.at(k).cols()!=1) || (Q.at(k).rows()!=hessian.rows()) || (Q.at(k).cols()!=hessian.rows()))
+        {
+            std::cout << "[CPLEXsolver] Cannot setProblem with a set of quadratic inequality constraints having wrong dimensions" << std::endl;
+            return false;
+        }
+    }
+
+    /** Set the QP problem */
+    try
+    {
+        // Check and update the number of optimization variables
+        if (_numVariable>hessian.cols())
+            _IloVar.remove(_IloVar.getSize()-(_numVariable-hessian.cols()), _numVariable-hessian.cols());
+        else if (_numVariable<hessian.cols())
+            for (int i=0; i<hessian.cols()-_numVariable; i++)
+                _IloVar.add(IloNumVar(_IloEnv, -IloInfinity, +IloInfinity));
+
+        _numVariable = _IloVar.getSize();
+
+    	// Modify unknowns lower/upper bounds
+    	for (int i=0; i<_numVariable; i++)
+    		_IloVar[i].setBounds(lowerBound.at(i), upperBound.at(i));
+
+        // Check and remove equality constraints
+        if (_numEqConstraint>0)
+        {
+            _IloModel.remove(_IloConstrEq);
+            _IloConstrEq.endElements();
+
+            _numEqConstraint = 0;
+        }
+
+    	// Modify the objective function
+        IloExpr objExpr(_IloEnv, 0.0);
+
+        for (int i=0; i<_numVariable; i++)			// Quadratic part of the objective function
+        	for (int j=i; j<_numVariable; j++)
+        	{
+        		if (i==j)
+        			objExpr += 0.5*hessian(i,j)*_IloVar[i]*_IloVar[j];
+        		else
+        			objExpr += hessian(i,j)*_IloVar[i]*_IloVar[j];
+        	}
+
+        for (int i=0; i<_numVariable; i++)			// Linear part of the objective function
+        	objExpr += gradient(i)*_IloVar[i];
+
+        _IloObj.setExpr(objExpr);
+
+        objExpr.end();
+
+    	// Update and modify the inequality constraints
+    	if (_numQIneqConstraint!=r.size())
+    	{
+            // Remove previous constraints
+            _IloModel.remove(_IloConstrIneq);
+            _IloConstrIneq.endElements();
+
+            _numQIneqConstraint = r.size();
+
+            // Create a dummy set of inequality constraint
+            for (int i=0; i<_numQIneqConstraint; i++)
+                _IloConstrIneq.add(_IloVar[0] <= 1.0);
+            _IloModel.add(_IloConstrIneq);
+    	}
+
+        for (int i=0; i<_numQIneqConstraint; i++)
+        {
+        	IloExpr conExpr(_IloEnv, 0.0);
+
+            // Linear part of the constraint aiT*x
+      		for (int j=0; j<_numVariable; j++)
+      			conExpr += l.at(i)(j)*_IloVar[j];
+
+            // Quadratic part of the constraint xT*Q*x
+            for (int j=0; j<_numVariable; j++)
+        	    for (int k=0; k<_numVariable; k++)
+                    conExpr += Q.at(i)(j,k)*_IloVar[j]*_IloVar[k];
+
+      		_IloConstrIneq[i].setExpr(conExpr);
+      		_IloConstrIneq[i].setUB(r.at(i));
+
+        	conExpr.end();
+        }
     }
     catch (IloException& e)
 	{
@@ -585,6 +902,181 @@ bool CPLEXsolver::setProblem(const std::vector<double>& lowerBound, const std::v
 
 bool CPLEXsolver::setProblem(const std::vector<double>& lowerBound, const std::vector<double>& upperBound, const Ref<const MatrixXd> hessian,
                              const Ref<const VectorXd> gradient, const Ref<const MatrixXd> A, const Ref<const VectorXd> B,
+                             const std::vector<VectorXd>& l, const std::vector<MatrixXd> Q, const std::vector<double>& r)
+// Set an optimization problem characterized by cost function and inequality constraints
+// Cost function                           min 0.5*xT*H*x+fT*x
+// Variable constraints                       lb <= x <= ub
+// Linear inequality constraints              Ax <= B
+// Quadratic inequality constraints    aTi*x+xT*Qi*x <= ri   i=1,...,q
+{
+    /** Check that the problem has been initialized */
+    if (!_IloInitialized)
+    {
+        std::cout << "[CPLEXsolver] Call initProblem before setProblem" << std::endl;
+        return false;
+    }
+    if ((hessian.rows()<1) || (hessian.cols()<1))
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with an empty hessian" << std::endl;
+        return false;
+    }
+    if ((gradient.rows()<1) || (gradient.cols()<1))
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with an empty gradient" << std::endl;
+        return false;
+    }
+    if (hessian.rows()!=hessian.cols())
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with a non square hessian" << std::endl;
+        return false;
+    }
+    if ((gradient.rows()!=hessian.rows()) || (gradient.cols()>1))
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with a gradient having wrong dimensions" << std::endl;
+        return false;
+    }
+    if ((lowerBound.size()!=hessian.rows()) || (upperBound.size()!=hessian.rows()))
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with a wrong dimension on lower/upper bounds" << std::endl;
+        return false;
+    }
+    if ((A.rows()<1) || (A.cols()<1) || (B.rows()<1) || (B.cols()<1))
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with an empty set of inequality constraints" << std::endl;
+        return false;
+    }
+    if ((A.cols()!=hessian.rows()) || (A.rows()!=B.rows()) || (B.cols()!=1))
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with a set of inequality constraints having wrong dimensions" << std::endl;
+        return false;
+    }
+    if ((l.size()!=_numQIneqConstraint) || (Q.size()!=_numQIneqConstraint) || (r.size()!=_numQIneqConstraint))
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with a wrong number of quadratic inequality constraints" << std::endl;
+        return false;
+    }
+    for (int k=0; k<l.size(); k++)
+    {
+        if ((l.at(k).rows()<1) || (l.at(k).cols()<1) || (Q.at(k).rows()<1) || (Q.at(k).cols()<1))
+        {
+            std::cout << "[CPLEXsolver] Cannot setProblem with an empty set of quadratic inequality constraints" << std::endl;
+            return false;
+        }
+        if ((l.at(k).rows()!=hessian.rows()) || (l.at(k).cols()!=1) || (Q.at(k).rows()!=hessian.rows()) || (Q.at(k).cols()!=hessian.rows()))
+        {
+            std::cout << "[CPLEXsolver] Cannot setProblem with a set of quadratic inequality constraints having wrong dimensions" << std::endl;
+            return false;
+        }
+    }
+
+    /** Set the QP problem */
+    try
+    {
+        // Check and update the number of optimization variables
+        if (_numVariable>hessian.cols())
+            _IloVar.remove(_IloVar.getSize()-(_numVariable-hessian.cols()), _numVariable-hessian.cols());
+        else if (_numVariable<hessian.cols())
+            for (int i=0; i<hessian.cols()-_numVariable; i++)
+                _IloVar.add(IloNumVar(_IloEnv, -IloInfinity, +IloInfinity));
+
+        _numVariable = _IloVar.getSize();
+
+    	// Modify unknowns lower/upper bounds
+    	for (int i=0; i<_numVariable; i++)
+    		_IloVar[i].setBounds(lowerBound.at(i), upperBound.at(i));
+
+        // Check and remove equality constraints
+        if (_numEqConstraint>0)
+        {
+            _IloModel.remove(_IloConstrEq);
+            _IloConstrEq.endElements();
+
+            _numEqConstraint = 0;
+        }
+
+    	// Modify the objective function
+        IloExpr objExpr(_IloEnv, 0.0);
+
+        for (int i=0; i<_numVariable; i++)			// Quadratic part of the objective function
+        	for (int j=i; j<_numVariable; j++)
+        	{
+        		if (i==j)
+        			objExpr += 0.5*hessian(i,j)*_IloVar[i]*_IloVar[j];
+        		else
+        			objExpr += hessian(i,j)*_IloVar[i]*_IloVar[j];
+        	}
+
+        for (int i=0; i<_numVariable; i++)			// Linear part of the objective function
+        	objExpr += gradient(i)*_IloVar[i];
+
+        _IloObj.setExpr(objExpr);
+
+        objExpr.end();
+
+    	// Update and modify the inequality constraints
+    	if ((_numIneqConstraint+_numQIneqConstraint)!=(A.rows()+r.size()))
+    	{
+            // Remove previous constraints
+            _IloModel.remove(_IloConstrIneq);
+            _IloConstrIneq.endElements();
+
+            _numIneqConstraint  = A.rows();
+            _numQIneqConstraint = r.size();
+
+            // Create a dummy set of inequality constraint
+            for (int i=0; i<(_numIneqConstraint+_numQIneqConstraint); i++)
+                _IloConstrIneq.add(_IloVar[0] <= 1.0);
+            _IloModel.add(_IloConstrIneq);
+    	}
+
+        int constr_idx = 0;
+
+        for (int i=0; i<_numIneqConstraint; i++)
+        {
+        	IloExpr conExpr(_IloEnv, 0.0);
+
+      		for (int j=0; j<_numVariable; j++)
+      			conExpr += A(i,j)*_IloVar[j];
+
+      		_IloConstrIneq[constr_idx].setExpr(conExpr);
+      		_IloConstrIneq[constr_idx].setUB(B(i));
+            constr_idx++;
+
+        	conExpr.end();
+        }
+
+        for (int i=0; i<_numQIneqConstraint; i++)
+        {
+        	IloExpr conExpr(_IloEnv, 0.0);
+
+            // Linear part of the constraint aiT*x
+      		for (int j=0; j<_numVariable; j++)
+      			conExpr += l.at(i)(j)*_IloVar[j];
+
+            // Quadratic part of the constraint xT*Q*x
+            for (int j=0; j<_numVariable; j++)
+        	    for (int k=0; k<_numVariable; k++)
+                    conExpr += Q.at(i)(j,k)*_IloVar[j]*_IloVar[k];
+
+      		_IloConstrIneq[constr_idx].setExpr(conExpr);
+      		_IloConstrIneq[constr_idx].setUB(r.at(i));
+            constr_idx++;
+
+        	conExpr.end();
+        }
+    }
+    catch (IloException& e)
+	{
+        std::cout << "[CPLEXsolver] CPlex failed setting up the QP problem:" << std::endl;
+        std::cout << "\t [" << e << "]" << std::endl;
+        return false;
+	}
+
+	return true;
+}
+
+bool CPLEXsolver::setProblem(const std::vector<double>& lowerBound, const std::vector<double>& upperBound, const Ref<const MatrixXd> hessian,
+                             const Ref<const VectorXd> gradient, const Ref<const MatrixXd> A, const Ref<const VectorXd> B,
                              const Ref<const MatrixXd> Aeq, const Ref<const VectorXd> Beq)
 // Set an optimization problem characterized by cost function and inequality constraints
 // Cost function            min 0.5*xT*H*x+fT*x
@@ -703,6 +1195,211 @@ bool CPLEXsolver::setProblem(const std::vector<double>& lowerBound, const std::v
 
       		_IloConstrIneq[i].setExpr(conExpr);
       		_IloConstrIneq[i].setUB(B(i));
+
+        	conExpr.end();
+        }
+
+    	// Update and modify the equality constraints
+    	if (_numEqConstraint!=Aeq.rows())
+    	{
+            // Remove previous constraints
+            _IloModel.remove(_IloConstrEq);
+            _IloConstrEq.endElements();
+
+            _numEqConstraint = Aeq.rows();
+
+            // Create a dummy set of equality constraint
+            for (int i=0; i<_numEqConstraint; i++)
+                _IloConstrEq.add(-1.0 <= _IloVar[0] <= 1.0);
+            _IloModel.add(_IloConstrEq);
+    	}
+
+        for (int i=0; i<_numEqConstraint; i++)
+        {
+        	IloExpr conExpr(_IloEnv, 0.0);
+
+      		for (int j=0; j<_numVariable; j++)
+      			conExpr += Aeq(i,j)*_IloVar[j];
+
+      		_IloConstrEq[i].setExpr(conExpr);
+      		_IloConstrEq[i].setBounds(Beq(i), Beq(i));
+
+        	conExpr.end();
+        }
+    }
+    catch (IloException& e)
+	{
+        std::cout << "[CPLEXsolver] CPlex failed setting up the QP problem:" << std::endl;
+        std::cout << "\t [" << e << "]" << std::endl;
+        return false;
+	}
+
+	return true;
+}
+
+bool CPLEXsolver::setProblem(const std::vector<double>& lowerBound, const std::vector<double>& upperBound, const Ref<const MatrixXd> hessian,
+                             const Ref<const VectorXd> gradient, const Ref<const MatrixXd> A, const Ref<const VectorXd> B, const Ref<const MatrixXd> Aeq,
+                             const Ref<const VectorXd> Beq, const std::vector<VectorXd>& l, const std::vector<MatrixXd> Q, const std::vector<double>& r)
+// Set an optimization problem characterized by cost function and inequality constraints
+// Cost function                    min 0.5*xT*H*x+fT*x
+// Variable constraints                lb <= x <= ub
+// Linear inequality constraints       Ax <= B
+// Equality constraints                Aeqx = Beq
+// Quadratic inequality constraints    aTi*x+xT*Qi*x <= ri   i=1,...,q
+{
+    /** Check that the problem has been initialized */
+    if (!_IloInitialized)
+    {
+        std::cout << "[CPLEXsolver] Call initProblem before setProblem" << std::endl;
+        return false;
+    }
+    if ((hessian.rows()<1) || (hessian.cols()<1))
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with an empty hessian" << std::endl;
+        return false;
+    }
+    if ((gradient.rows()<1) || (gradient.cols()<1))
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with an empty gradient" << std::endl;
+        return false;
+    }
+    if (hessian.rows()!=hessian.cols())
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with a non square hessian" << std::endl;
+        return false;
+    }
+    if ((gradient.rows()!=hessian.rows()) || (gradient.cols()>1))
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with a gradient having wrong dimensions" << std::endl;
+        return false;
+    }
+    if ((lowerBound.size()!=hessian.rows()) || (upperBound.size()!=hessian.rows()))
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with a wrong dimension on lower/upper bounds" << std::endl;
+        return false;
+    }
+    if ((A.rows()<1) || (A.cols()<1) || (B.rows()<1) || (B.cols()<1))
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with an empty set of inequality constraints" << std::endl;
+        return false;
+    }
+    if ((A.cols()!=hessian.rows()) || (A.rows()!=B.rows()) || (B.cols()!=1))
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with a set of inequality constraints having wrong dimensions" << std::endl;
+        return false;
+    }
+    if ((Aeq.rows()<1) || (Aeq.cols()<1) || (Beq.rows()<1) || (Beq.cols()<1))
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with an empty set of equality constraints" << std::endl;
+        return false;
+    }
+    if ((Aeq.cols()!=hessian.rows()) || (Aeq.rows()!=Beq.rows()) || (Beq.cols()!=1))
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with a set of equality constraints having wrong dimensions" << std::endl;
+        return false;
+    }
+    if ((l.size()!=_numQIneqConstraint) || (Q.size()!=_numQIneqConstraint) || (r.size()!=_numQIneqConstraint))
+    {
+        std::cout << "[CPLEXsolver] Cannot setProblem with a wrong number of quadratic inequality constraints" << std::endl;
+        return false;
+    }
+    for (int k=0; k<l.size(); k++)
+    {
+        if ((l.at(k).rows()<1) || (l.at(k).cols()<1) || (Q.at(k).rows()<1) || (Q.at(k).cols()<1))
+        {
+            std::cout << "[CPLEXsolver] Cannot setProblem with an empty set of quadratic inequality constraints" << std::endl;
+            return false;
+        }
+        if ((l.at(k).rows()!=hessian.rows()) || (l.at(k).cols()!=1) || (Q.at(k).rows()!=hessian.rows()) || (Q.at(k).cols()!=hessian.rows()))
+        {
+            std::cout << "[CPLEXsolver] Cannot setProblem with a set of quadratic inequality constraints having wrong dimensions" << std::endl;
+            return false;
+        }
+    }
+
+    /** Set the QP problem */
+    try
+    {
+        // Check and update the number of optimization variables
+        if (_numVariable>hessian.cols())
+            _IloVar.remove(_IloVar.getSize()-(_numVariable-hessian.cols()), _numVariable-hessian.cols());
+        else if (_numVariable<hessian.cols())
+            for (int i=0; i<hessian.cols()-_numVariable; i++)
+                _IloVar.add(IloNumVar(_IloEnv, -IloInfinity, +IloInfinity));
+
+        _numVariable = _IloVar.getSize();
+
+    	// Modify unknowns lower/upper bounds
+    	for (int i=0; i<_numVariable; i++)
+    		_IloVar[i].setBounds(lowerBound.at(i), upperBound.at(i));
+
+    	// Modify the objective function
+        IloExpr objExpr(_IloEnv, 0.0);
+
+        for (int i=0; i<_numVariable; i++)			// Quadratic part of the objective function
+        	for (int j=i; j<_numVariable; j++)
+        	{
+        		if (i==j)
+        			objExpr += 0.5*hessian(i,j)*_IloVar[i]*_IloVar[j];
+        		else
+        			objExpr += hessian(i,j)*_IloVar[i]*_IloVar[j];
+        	}
+
+        for (int i=0; i<_numVariable; i++)			// Linear part of the objective function
+        	objExpr += gradient(i)*_IloVar[i];
+
+        _IloObj.setExpr(objExpr);
+
+        objExpr.end();
+
+    	// Update and modify the inequality constraints
+    	if ((_numIneqConstraint+_numQIneqConstraint)!=(A.rows()+r.size()))
+    	{
+            // Remove previous constraints
+            _IloModel.remove(_IloConstrIneq);
+            _IloConstrIneq.endElements();
+
+            _numIneqConstraint  = A.rows();
+            _numQIneqConstraint = r.size();
+
+            // Create a dummy set of inequality constraint
+            for (int i=0; i<(_numIneqConstraint+_numQIneqConstraint); i++)
+                _IloConstrIneq.add(_IloVar[0] <= 1.0);
+            _IloModel.add(_IloConstrIneq);
+    	}
+
+        int constr_idx = 0;
+
+        for (int i=0; i<_numIneqConstraint; i++)
+        {
+        	IloExpr conExpr(_IloEnv, 0.0);
+
+      		for (int j=0; j<_numVariable; j++)
+      			conExpr += A(i,j)*_IloVar[j];
+
+      		_IloConstrIneq[constr_idx].setExpr(conExpr);
+      		_IloConstrIneq[constr_idx].setUB(B(i));
+            constr_idx++;
+
+        	conExpr.end();
+        }
+
+        for (int i=0; i<_numQIneqConstraint; i++)
+        {
+        	IloExpr conExpr(_IloEnv, 0.0);
+
+            // Linear part of the constraint aiT*x
+      		for (int j=0; j<_numVariable; j++)
+      			conExpr += l.at(i)(j)*_IloVar[j];
+
+            // Quadratic part of the constraint xT*Q*x
+            for (int j=0; j<_numVariable; j++)
+        	    for (int k=0; k<_numVariable; k++)
+                    conExpr += Q.at(i)(j,k)*_IloVar[j]*_IloVar[k];
+
+      		_IloConstrIneq[constr_idx].setExpr(conExpr);
+      		_IloConstrIneq[constr_idx].setUB(r.at(i));
+            constr_idx++;
 
         	conExpr.end();
         }

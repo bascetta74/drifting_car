@@ -11,6 +11,7 @@ int main(int argc, char **argv)
 {
     const int numVar          = 5;
     const int numConstr       = 0;
+    const int numQConstr      = 0;
     const int numEqConstraint = 0;
     MatrixXd H(numVar,numVar);      H << 4.0, 0.0,  1.0,  0.0, -1.0,
                                          0.0, 5.0,  1.0,  0.0,  0.0,
@@ -21,7 +22,7 @@ int main(int argc, char **argv)
     VectorXd f(numVar);             f << 1.0, 0.0, 1.0, 2.0, -1.0;
 
     /** CPLEX solver example */
-    solver = new CPLEXsolver(numVar, numConstr, numEqConstraint, CPLEXsolver::AUTO);
+    solver = new CPLEXsolver(numVar, numConstr, numEqConstraint, numQConstr, CPLEXsolver::AUTO);
     cout << "CPLEX solver created" << endl;
 
     if (solver->initProblem())

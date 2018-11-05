@@ -11,6 +11,7 @@ int main(int argc, char **argv)
 {
     const int numVar          = 3;
     const int numConstr       = 0;
+    const int numQConstr      = 0;
     const int numEqConstraint = 0;
 
     std::vector<double> lB(numVar); lB.at(0) = -1.0; lB.at(1) = -1.0; lB.at(2) = -1.0;
@@ -23,7 +24,7 @@ int main(int argc, char **argv)
     VectorXd f(numVar);             f << -2.0, 3.0, 1.0;
 
     /** CPLEX solver example */
-    solver = new CPLEXsolver(numVar, numConstr, numEqConstraint, CPLEXsolver::AUTO);
+    solver = new CPLEXsolver(numVar, numConstr, numEqConstraint, numQConstr, CPLEXsolver::AUTO);
     cout << "CPLEX solver created" << endl;
 
     if (solver->initProblem())

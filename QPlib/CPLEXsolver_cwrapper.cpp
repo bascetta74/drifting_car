@@ -311,11 +311,11 @@ extern "C" {
     /* Internal functions */
     void doublePtr_eigenMatrix(double* mat, int row, int col, Ref<MatrixXd> eigen_mat)
     {
-        for(int i=0; i<row; i++)
+        for(int j=0; j<col; j++)
         {
-            for(int j=0; j<col; j++)
+            for(int i=0; i<row; i++)
             {
-                eigen_mat(i,j) = mat[i*col+j];
+                eigen_mat(i,j) = mat[j*row+i];
             }
         }
     }
