@@ -6,7 +6,7 @@
 #include <iostream>
 #include <Eigen/Dense>
 
-#define DEBUG
+//#define DEBUG
 
 extern "C" {
     /* Internal function prototypes */
@@ -27,19 +27,19 @@ extern "C" {
     int numConstIneq = 0;
 
     /* Wrapper initialization functions */
-    int init_CPLEXsolver_cwrapper(const int numVariable, const int numIneqConstraint, const int numEqConstraint)
+    int init_CPLEXsolver_cwrapper(const int numVariable, const int numIneqConstraint, const int numEqConstraint, const int numQIneqConstraint)
     {
         if (solver) {
             return -1;
         } else {
-            solver = reinterpret_cast<void*>(new CPLEXsolver(numVariable, numIneqConstraint, numEqConstraint));
+            solver = reinterpret_cast<void*>(new CPLEXsolver(numVariable, numIneqConstraint, numEqConstraint, numQIneqConstraint));
             numOptimVar = numVariable;
             numConstEq = numEqConstraint;
             numConstIneq = numIneqConstraint;
 
 #ifdef DEBUG
             printf("\n --> CPLEXsolver_cwrapper: initializing wrapper\n");
-            printf("numVariable: %d - numIneqConstraint: %d - numEqConstraint: %d\n", numVariable, numIneqConstraint, numEqConstraint);
+            printf("numVariable: %d - numIneqConstraint: %d - numEqConstraint: %d\n", numVariable, numIneqConstraint, numEqConstraint, numQIneqConstraint);
 #endif
         }
 

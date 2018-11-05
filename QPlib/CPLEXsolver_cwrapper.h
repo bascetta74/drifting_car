@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-int init_CPLEXsolver_cwrapper(const int numVariable, const int numIneqConstraint, const int numEqConstraint);
+int init_CPLEXsolver_cwrapper(const int numVariable, const int numIneqConstraint, const int numEqConstraint, const int numQIneqConstraint);
 int deinit_CPLEXsolver_cwrapper();
 
 int initProblem();
