@@ -1,7 +1,8 @@
 #include "feedback_linearization/feedback_linearization.h"
 
 #include <tf/transform_datatypes.h>
-#include <geometry_msgs/Point.h>
+#include <geometry_msgs/PointStamped.h>
+#include <geometry_msgs/TwistStamped.h>
 #include <std_msgs/Float64MultiArray.h>
 
 #include "car_msgs/car_cmd.h"
@@ -73,13 +74,25 @@ void feedback_linearization::Prepare(void)
  if (false == Handle.getParam(FullParamName, theta_offset))
   ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str()); 
 
+ FullParamName = ros::this_node::getName()+"/use_sim_sideslip";
+ if (false == Handle.getParam(FullParamName, use_sim_sideslip))
+  ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str()); 
+
+ FullParamName = "/use_sim_time";
+ if (false == Handle.getParam(FullParamName, use_sim_time))
+  use_sim_time = false;
+
  /* ROS topics */
  vehiclePose_subscriber = Handle.subscribe("/car/ground_pose", 1, &feedback_linearization::vehiclePose_MessageCallback, this);
  vehicleIMU_subscriber = Handle.subscribe("/imu/data", 1, &feedback_linearization::vehicleIMU_MessageCallback, this);
+ sideslip_subscriber = Handle.subscribe("/car_simulator/sideslip", 1, &feedback_linearization::sideslip_MessageCallback, this);
+
  controllerCommand_publisher = Handle.advertise<car_msgs::car_cmd>("/controller_cmd", 1);
  vehicleState_publisher = Handle.advertise<std_msgs::Float64MultiArray>("/feedback_linearization/vehicleState", 1);
- pointP_publisher = Handle.advertise<geometry_msgs::Point>("/feedback_linearization/pointP", 1);
- pointPvelocity_publisher = Handle.advertise<geometry_msgs::Point>("/feedback_linearization/pointPvelocity", 1);
+ pointPact_publisher = Handle.advertise<geometry_msgs::PointStamped>("/feedback_linearization/pointP_actPos", 1);
+ pointPref_publisher = Handle.advertise<geometry_msgs::PointStamped>("/feedback_linearization/pointP_refPos", 1);
+ pointPvelocity_publisher = Handle.advertise<geometry_msgs::TwistStamped>("/feedback_linearization/pointP_actVel", 1);
+ vehicleRef_publisher = Handle.advertise<geometry_msgs::PointStamped>("/feedback_linearization/vehicle_refPos", 1);
 
  /* Initialize node state */
  _time = 0.0;
@@ -89,9 +102,6 @@ void feedback_linearization::Prepare(void)
  _vehiclePose.push_back(0.0);
  _vehiclePose.push_back(0.0);
  _vehiclePose.push_back(0.0);
-
- _pointPposition.push_back(0.0);
- _pointPposition.push_back(0.0);
 
  _vehicleVelocity.push_back(0.0);
  _vehicleVelocity.push_back(0.0);
@@ -127,7 +137,10 @@ void feedback_linearization::Prepare(void)
  if (_linearizer)
   _linearizer->set_bicycleParam(m, Jz, Cf, Cr, a, b);
 
- ROS_INFO("Node %s ready to run.", ros::this_node::getName().c_str());
+ if (use_sim_time)
+   ROS_INFO("Node %s running in simulation mode.", ros::this_node::getName().c_str());
+ else
+   ROS_INFO("Node %s ready to run.", ros::this_node::getName().c_str());
 }
 
 void feedback_linearization::RunPeriodically(float Period)
@@ -181,8 +194,9 @@ void feedback_linearization::vehiclePose_MessageCallback(const geometry_msgs::Po
  _vehiclePose.at(2) = msg->theta+theta_offset;
 
  /* Vehicle sideslip */
- _vehicleSideslip = atan2( -_vehicleVelocity.at(0)*sin(_vehiclePose.at(2))+_vehicleVelocity.at(1)*cos(_vehiclePose.at(2)),
-                            _vehicleVelocity.at(0)*cos(_vehiclePose.at(2))+_vehicleVelocity.at(1)*sin(_vehiclePose.at(2)) );
+ if (!use_sim_sideslip)
+  _vehicleSideslip = atan2( -_vehicleVelocity.at(0)*sin(_vehiclePose.at(2))+_vehicleVelocity.at(1)*cos(_vehiclePose.at(2)),
+                             _vehicleVelocity.at(0)*cos(_vehiclePose.at(2))+_vehicleVelocity.at(1)*sin(_vehiclePose.at(2)) );
 }
 
 void feedback_linearization::vehicleIMU_MessageCallback(const sensor_msgs::Imu::ConstPtr& msg)
@@ -196,11 +210,21 @@ void feedback_linearization::vehicleIMU_MessageCallback(const sensor_msgs::Imu::
  _vehicleAngularVelocity.at(2) = msg->angular_velocity.z;
 }
 
+void feedback_linearization::sideslip_MessageCallback(const std_msgs::Float64::ConstPtr& msg)
+{
+ if (use_sim_sideslip)
+  _vehicleSideslip = msg->data;
+}
+
 void feedback_linearization::PeriodicTask(void)
 {
  /* Reference trajectory generation */
  double xref, yref;
- // generate reference
+ // Line
+ //xref = yref = 0.5*_time;
+ // Circle
+ xref = -0.5 + 1.0*cos(0.1*_time-0.5*M_PI);
+ yref =  1.0 + 1.0*sin(0.1*_time-0.5*M_PI);
 
  double xPref, yPref;
  if (_linearizer)
@@ -208,29 +232,39 @@ void feedback_linearization::PeriodicTask(void)
  else
   ROS_ERROR("Error, no feedback linearization has been activated");
 
- /* Position controller */
- double vPx, vPy;
- vPx = 0.0; //KPx*(xPref-_pointPposition.at(0));
- vPy = 0.0; //KPy*(yPref-_pointPposition.at(1));
-
- /* Compute feedback linearization */
+ /* Actual position update */
  if (_linearizer)
  {
-  _linearizer->set_bicycleState(_vehiclePose.at(0), _vehiclePose.at(1), _vehiclePose.at(3), _vehicleSideslip, _vehicleAngularVelocity.at(2));
+  _linearizer->set_bicycleState(_vehiclePose.at(0), _vehiclePose.at(1), _vehiclePose.at(2), _vehicleSideslip, _vehicleAngularVelocity.at(2));
   _linearizer->set_bicycleAbsoluteVelocity(sqrt(pow(_vehicleVelocity.at(0),2)+pow(_vehicleVelocity.at(1),2)));
  }
  else
   ROS_ERROR("Error, no feedback linearization has been activated");
 
- double speed, steer, xP, yP;
+ double xP, yP;
  if (_linearizer)
- {
-  _linearizer->control_transformation(vPx, vPy, speed, steer);
   _linearizer->ouput_transformation(xP, yP);
+ else
+  ROS_ERROR("Error, no feedback linearization has been activated");
 
-  _pointPposition.at(0) = xP;
-  _pointPposition.at(1) = yP;
- }
+ /* Position controller / open loop test */
+ double vPx, vPy;
+ #ifdef OPEN_LOOP_TEST
+ vPx = 1.0/sqrt(2.0);
+ if (_time>=2.5)
+  vPy = 1.0/sqrt(2.0);
+ else
+  vPy = 0.25;
+ #endif
+ #ifdef CLOSED_LOOP_TEST
+ vPx = KPx*(xPref-xP);
+ vPy = KPy*(yPref-yP);
+ #endif
+
+ /* Compute feedback linearization */
+ double speed, steer;
+ if (_linearizer)
+  _linearizer->control_transformation(vPx, vPy, speed, steer);
  else
   ROS_ERROR("Error, no feedback linearization has been activated");
 
@@ -239,8 +273,16 @@ void feedback_linearization::PeriodicTask(void)
 
  /* Publishing car command values */
  car_msgs::car_cmd msg;
- msg.speed_ref = speed;
- msg.steer_ref = steer;
+ if (use_sim_time)
+ {
+   msg.speed_ref = speed;
+   msg.steer_ref = steer;
+ }
+ else
+ {
+   msg.speed_ref = speed*cos(_vehicleSideslip);
+   msg.steer_ref = steer;
+ }
  controllerCommand_publisher.publish(msg);
 
  /* Publishing for data logging */
@@ -252,17 +294,37 @@ void feedback_linearization::PeriodicTask(void)
  vehicleStateMsg.data.push_back(_vehicleVelocity.at(0));
  vehicleStateMsg.data.push_back(_vehicleVelocity.at(1));
  vehicleStateMsg.data.push_back(_vehicleSideslip);
+ vehicleStateMsg.data.push_back(_vehicleAcceleration.at(0));
+ vehicleStateMsg.data.push_back(_vehicleAcceleration.at(1));
+ vehicleStateMsg.data.push_back(_vehicleAngularVelocity.at(2));
  vehicleState_publisher.publish(vehicleStateMsg);
 
- geometry_msgs::Point pointP;
- pointP.x = xP;
- pointP.y = yP;
- pointP.z = 0;
- pointP_publisher.publish(pointP);
+ geometry_msgs::PointStamped pointPact;
+ pointPact.header.stamp = ros::Time(_time);
+ pointPact.point.x = xP;
+ pointPact.point.y = yP;
+ pointPact.point.z = 0;
+ pointPact_publisher.publish(pointPact);
 
- geometry_msgs::Point pointPvelocity;
- pointPvelocity.x = vPx;
- pointPvelocity.y = vPy;
- pointPvelocity.z = 0;
+ geometry_msgs::PointStamped pointPref;
+ pointPref.header.stamp = ros::Time(_time);
+ pointPref.point.x = xPref;
+ pointPref.point.y = yPref;
+ pointPref.point.z = 0;
+ pointPref_publisher.publish(pointPref);
+
+ geometry_msgs::PointStamped vehicleRef;
+ vehicleRef.header.stamp = ros::Time(_time);
+ vehicleRef.point.x = xref;
+ vehicleRef.point.y = yref;
+ vehicleRef.point.z = 0;
+ vehicleRef_publisher.publish(vehicleRef);
+
+ geometry_msgs::TwistStamped pointPvelocity;
+ pointPvelocity.header.stamp = ros::Time(_time);
+ pointPvelocity.twist.linear.x = vPx;
+ pointPvelocity.twist.linear.y = vPy;
+ pointPvelocity.twist.linear.z = 0;
+ pointPvelocity.twist.angular.x = pointPvelocity.twist.angular.y = pointPvelocity.twist.angular.z = 0;
  pointPvelocity_publisher.publish(pointPvelocity);
 }

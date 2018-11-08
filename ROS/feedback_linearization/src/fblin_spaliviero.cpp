@@ -16,14 +16,12 @@ fblin_spaliviero::~fblin_spaliviero()
 
 void fblin_spaliviero::control_transformation(double vPx, double vPy, double& speed, double& steer)
 {
- double v = vPx*cos(_beta+_psi)+vPy*sin(_beta+_psi);
+ speed = vPx*cos(_beta+_psi)+vPy*sin(_beta+_psi);
 
- if (fabs(v)<_zero_speed_thd)
+ if (fabs(speed)<_zero_speed_thd)
     steer = 0;
  else
-    steer = _m*v/(_Cf*_p)*(vPy*cos(_beta+_psi)-vPx*sin(_beta+_psi)) + (_Cr/_Cf+1)*_beta - (_Cr/_Cf*_lr-_lf)/v*_r;
-
- speed = v*cos(_beta);
+    steer = _m*speed/(_Cf*_p)*(vPy*cos(_beta+_psi)-vPx*sin(_beta+_psi)) + (_Cr/_Cf+1)*_beta - (_Cr/_Cf*_lr-_lf)/speed*_r;
 }
 
 void fblin_spaliviero::ouput_transformation(double& xP, double& yP)

@@ -1,6 +1,8 @@
 # Feedback linearization configuration parameters
   /feedback_linearization/run_period: 0.01          # Node execution period
 
+  /feedback_linearization/use_sim_sideslip: false   # Set to true to use the simulated sideslip angle or false to compute sideslip from vehicle position
+
   /feedback_linearization/cog_dist_front: 0.1513    # Distance of cog from front
   /feedback_linearization/cog_dist_rear: 0.1087     # Distance of cog from rear
   /feedback_linearization/cornering_front: 47.3     # Cornering stiffness front wheels
@@ -8,10 +10,10 @@
   /feedback_linearization/yaw_inertia: 0.030        # Yaw inertia
   /feedback_linearization/mass: 2.040               # Mass
 
-  /feedback_linearization/P_dist: 0.2               # Distance of point P for feedback linearization
+  /feedback_linearization/P_dist: 0.50              # Distance of point P for feedback linearization
   /feedback_linearization/speed_thd: 0.001          # Threshold to consider the absolute vehicle velocity equal to zero
-  /feedback_linearization/vel_filt_coeff: [-0.3, -0.1, 0.1, 0.3]
+  /feedback_linearization/vel_filt_coeff: [1.0, -1.0]
                                                     # FIR velocity filter coefficients
-  /feedback_linearization/theta_offset: 5.0         # Offset on optitrack theta angle
+  /feedback_linearization/theta_offset: 0.0         # Offset on optitrack theta angle
   /feedback_linearization/KPx: 1.0                  # Position loop proportional gain x
   /feedback_linearization/KPy: 1.0                  # Position loop proportional gain y

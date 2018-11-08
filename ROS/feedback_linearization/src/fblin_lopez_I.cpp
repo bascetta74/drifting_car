@@ -27,7 +27,7 @@ void fblin_lopez_I::control_transformation(double vPx, double vPy, double& speed
  else
     steer = _m/(_Cf*_p)*(vPy*cos(_beta+_psi)-vPx*sin(_beta+_psi)) + (_Cr/_Cf+1)*_beta - (_Cr/_Cf*_lr-_lf)/_v*_r;
 
- speed = _v*cos(_beta);
+ speed = _v;
 }
 
 void fblin_lopez_I::ouput_transformation(double& xP, double& yP)
