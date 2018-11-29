@@ -122,7 +122,7 @@ include_directories(
 
 add_executable(ethernet_comm src/ethernet_comm.cpp src/ethernet_comm_node.cpp)
 add_dependencies(ethernet_comm car_msgs_generate_messages_cpp)
-target_link_libraries(ethernet_comm ${catkin_LIBRARIES} serial)
+target_link_libraries(ethernet_comm ${catkin_LIBRARIES})
 
 #############
 ## Install ##
