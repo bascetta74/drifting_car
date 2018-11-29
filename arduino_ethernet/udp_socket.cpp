@@ -7,6 +7,8 @@
 
 #include "udp_socket.h"
 
+#include <avr/interrupt.h>
+
 
 // Internal variables
 EthernetUDP Udp;							// UDP object
@@ -58,7 +60,7 @@ size_t receive_udpMessage(uint8_t *buffer, size_t buf_size)
 	// Receive a message over UDP (blocking call)
 	int packetSize = Udp.parsePacket();
 	do {
-		if (packetSize) {
+		if (packetSize>=buf_size) {
 			// Read the packet into packetBufffer
 			memset(buffer,'\0', buf_size);
 			byte_read = Udp.read(buffer, buf_size);
@@ -66,7 +68,7 @@ size_t receive_udpMessage(uint8_t *buffer, size_t buf_size)
 		else {
 			packetSize = Udp.parsePacket();
 		}
-	} while (byte_read<=0);
+	} while (byte_read<buf_size);
 
 	return byte_read;
 }

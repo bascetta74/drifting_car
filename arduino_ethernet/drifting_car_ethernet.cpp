@@ -121,7 +121,7 @@ void loop()
 {
 	if (canStart() & (arduino_state.state != HALT))
 	{
-		// Receive e message from Odroid
+		// Receive a message from Odroid
 		byte_received = receive_udpMessage((uint8_t*) message_in, MESSAGE_SIZE);
 		if (((int)byte_received) != MESSAGE_SIZE)
 		{
