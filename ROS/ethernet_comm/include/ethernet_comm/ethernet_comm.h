@@ -1,8 +1,9 @@
 #ifndef ETHERNET_COMM_H_
 #define ETHERNET_COMM_H_
 
-#include "car_msgs/car_cmd.h"
 #include "car_msgs/arduino_telemetry.h"
+#include "car_msgs/car_cmd.h"
+#include "car_msgs/wheel_spd.h"
 #include "ros/ros.h"
 
 #include <arpa/inet.h>
@@ -25,7 +26,8 @@ private:
   ros::Publisher arduinoTelemetry_publisher;
 
   /* ROS topic callbacks */
-  void controllerCommand_MessageCallback(const car_msgs::car_cmd::ConstPtr &msg);
+  void
+  controllerCommand_MessageCallback(const car_msgs::car_cmd::ConstPtr &msg);
 
   /* Node periodic task */
   void PeriodicTask(void);
@@ -42,7 +44,13 @@ private:
     unsigned char info;
   } state_info;
 
-  /* Checksum functions */
+  /* Communication functions */
+  int message_decode(uint16_t &steer_cmd, uint16_t &speed_cmd,
+                     uint16_t &wheel_sx_speed, uint16_t &wheel_dx_speed,
+                     bool &wheel_sx_ccw, bool &wheel_dx_ccw,
+                     uint16_t &arduino_state, uint16_t &arduino_state_info);
+  void message_encode(uint16_t steer_cmd, uint16_t speed_cmd,
+                      uint16_t arduino_state, uint16_t arduino_state_info);
   bool checksum_verify();
   void checksum_calculate();
 
@@ -60,7 +68,6 @@ private:
   double _wheel_speed;
   state_info _statemachine;
   bool _enteringSafe, _enteringManual, _enteringAutomatic, _enteringHalt;
-  unsigned long _time;
 
   /* Communication */
   struct sockaddr_in sockaddr_server;
@@ -70,6 +77,8 @@ private:
   int _server_port;
   int _message_size;
   int _socket;
+  size_t _bytes_read, _bytes_wrote;
+  uint32_t _message_number;
 
   /* Node parameters */
   std::vector<int> _steer_us_range, _speed_us_range;

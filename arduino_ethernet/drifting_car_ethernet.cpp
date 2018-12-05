@@ -3,7 +3,6 @@
 
 #include "constant.h"
 #include "type.h"
-#include "task_timer.h"
 #include "udp_socket.h"
 #include "telemetry.h"
 #include "receiver.h"
@@ -12,8 +11,12 @@
 
 #include <stdio.h>
 #include <avr/wdt.h>
+#include <TimerOne.h>
 
 #define DEBUG_1
+#define TEST_LOOP_TIMING
+
+void timer_callback();
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 // Setup/Loop global variables                                                                     //
@@ -40,8 +43,10 @@ state_info arduino_state;
 unsigned int message_decode_error;
 size_t byte_received, byte_sent;
 
-// Time
-unsigned int arduino_start_time;
+// Test variables
+#ifdef TEST_LOOP_TIMING
+bool output_on;
+#endif
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -105,11 +110,9 @@ void setup()
 	// Enable watchdog for connection lost
 	wdt_enable(WDTO_120MS);
 
-	// Start loop timer
-	init_taskTimer(LOOP_FREQUENCY);
-
-	// Initialize arduino start time
-	arduino_start_time = millis();
+	// Initialize task timer
+	Timer1.initialize(LOOP_PERIOD*1000000);
+	Timer1.attachInterrupt(timer_callback);
 
 	#ifdef DEBUG_1
 	Serial.println("Arduino state: SAFE");
@@ -119,7 +122,13 @@ void setup()
 // The loop function is called in an endless loop
 void loop()
 {
-	if (canStart() & (arduino_state.state != HALT))
+	// Do nothing
+}
+
+// Timed periodic loop
+void timer_callback()
+{
+	if (arduino_state.state != HALT)
 	{
 		// Receive a message from Odroid
 		byte_received = receive_udpMessage((uint8_t*) message_in, MESSAGE_SIZE);
@@ -167,9 +176,7 @@ void loop()
 		Serial.print(" - state: ");
 		Serial.print(from_odroid.arduino_state);
 		Serial.print(" - state info: ");
-		Serial.print(from_odroid.arduino_state_info);
-		Serial.print(" - time: ");
-		Serial.println(from_odroid.arduino_time);
+		Serial.println(from_odroid.arduino_state_info);
 		#endif
 
 		// Get current measures from the radio
@@ -226,7 +233,6 @@ void loop()
 			to_odroid.wheel_sx_ccw       = (sx_count < 0) ? true : false;
 			to_odroid.arduino_state      = (unsigned char) arduino_state.state;
 			to_odroid.arduino_state_info = (unsigned char) arduino_state.info;
-			to_odroid.arduino_time       = (unsigned long) (millis()-arduino_start_time);
 			break;
 
 		case MANUAL:
@@ -253,7 +259,6 @@ void loop()
 			to_odroid.wheel_sx_ccw       = (sx_count < 0) ? true : false;
 			to_odroid.arduino_state      = (unsigned char) arduino_state.state;
 			to_odroid.arduino_state_info = (unsigned char) arduino_state.info;
-			to_odroid.arduino_time       = (unsigned long) (millis()-arduino_start_time);
 			break;
 
 		case AUTOMATIC:
@@ -272,7 +277,6 @@ void loop()
 			to_odroid.wheel_sx_ccw       = (sx_count < 0) ? true : false;
 			to_odroid.arduino_state      = (unsigned char) arduino_state.state;
 			to_odroid.arduino_state_info = (unsigned char) arduino_state.info;
-			to_odroid.arduino_time       = (unsigned long) (millis()-arduino_start_time);
 			break;
 
 		case HALT:
@@ -290,7 +294,6 @@ void loop()
 			to_odroid.wheel_sx_ccw       = (sx_count < 0) ? true : false;
 			to_odroid.arduino_state      = (unsigned char) arduino_state.state;
 			to_odroid.arduino_state_info = (unsigned char) arduino_state.info;
-			to_odroid.arduino_time       = (unsigned long) (millis()-arduino_start_time);
 			break;
 
 		}
@@ -317,9 +320,7 @@ void loop()
 		Serial.print(" - state: ");
 		Serial.print(tmp.arduino_state);
 		Serial.print(" - state info: ");
-		Serial.print(tmp.arduino_state_info);
-		Serial.print(" - time: ");
-		Serial.println(tmp.arduino_time);
+		Serial.println(tmp.arduino_state_info);
 		#endif
 
 		// Send the message back
@@ -347,4 +348,18 @@ void loop()
 
 	// Reset connection watchdog
 	wdt_reset();
+
+	// Generate a square wave to check loop timing
+	#ifdef TEST_LOOP_TIMING
+	if (output_on)
+	{
+		output_on = false;
+		digitalWrite(4,LOW);
+	}
+	else
+	{
+		output_on = true;
+		digitalWrite(4, HIGH);
+	}
+	#endif
 }

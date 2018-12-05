@@ -1,6 +1,5 @@
 #include "ethernet_comm/ethernet_comm.h"
 
-#include "std_msgs/Float64.h"
 #include <iostream>
 
 void ethernet_comm::Prepare(void) {
@@ -43,10 +42,13 @@ void ethernet_comm::Prepare(void) {
               ros::this_node::getName().c_str(), FullParamName.c_str());
 
   /* ROS topics */
-  controllerCommand_subscriber = Handle.subscribe("/controller_cmd", 1, &ethernet_comm::controllerCommand_MessageCallback, this);
+  controllerCommand_subscriber =
+      Handle.subscribe("/controller_cmd", 1,
+                       &ethernet_comm::controllerCommand_MessageCallback, this);
   radioCommand_publisher = Handle.advertise<car_msgs::car_cmd>("/radio_cmd", 1);
-  wheelSpeed_publisher = Handle.advertise<std_msgs::Float64>("/wheel_speed", 1);
-  arduinoTelemetry_publisher = Handle.advertise<car_msgs::arduino_telemetry>("/arduino_telemetry", 1);
+  wheelSpeed_publisher = Handle.advertise<car_msgs::wheel_spd>("/wheel_speed", 1);
+  arduinoTelemetry_publisher =
+      Handle.advertise<car_msgs::arduino_telemetry>("/arduino_telemetry", 1);
 
   /* Initialize node state */
   _speed_ref = 0.0;
@@ -55,13 +57,14 @@ void ethernet_comm::Prepare(void) {
   _statemachine.state = SAFE;
   _statemachine.info = 0;
   _enteringSafe = _enteringManual = _enteringAutomatic = _enteringHalt = true;
-  _time = 0;
+  _message_number = 0;
 
   _message_buffer = new uint8_t[_message_size];
 
   /* Create a UDP socket */
   if ((_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
-    ROS_ERROR("Node %s: cannot create a UDP socket.", ros::this_node::getName().c_str());
+    ROS_ERROR("Node %s: cannot create a UDP socket.",
+              ros::this_node::getName().c_str());
   }
 
   memset((char *)&sockaddr_server, 0, sizeof(sockaddr_server));
@@ -69,7 +72,8 @@ void ethernet_comm::Prepare(void) {
   sockaddr_server.sin_port = htons(_server_port);
 
   if (inet_aton(_server_ip.c_str(), &sockaddr_server.sin_addr) == 0) {
-    ROS_ERROR("Node %s: inet_aton() failed.", ros::this_node::getName().c_str());
+    ROS_ERROR("Node %s: inet_aton() failed.",
+              ros::this_node::getName().c_str());
   }
 
   /* Send a message to start the communication with the server */
@@ -77,14 +81,16 @@ void ethernet_comm::Prepare(void) {
   sprintf((char *)_message_buffer, "%s", "start");
   if (sendto(_socket, (char *)_message_buffer, _message_size, 0,
              (struct sockaddr *)&sockaddr_server, sockaddr_len) == -1) {
-    ROS_ERROR("Node %s: start communication message cannot be sent.", ros::this_node::getName().c_str());
+    ROS_ERROR("Node %s: start communication message cannot be sent.",
+              ros::this_node::getName().c_str());
   }
 
   /* Receive an ACK from the server */
   memset(&(_message_buffer[0]), 0, _message_size * sizeof(uint8_t));
   if (recvfrom(_socket, _message_buffer, _message_size, 0,
                (struct sockaddr *)&sockaddr_server, &sockaddr_len) == -1) {
-    ROS_ERROR("Node %s: ack to start communication message cannot be received.", ros::this_node::getName().c_str());
+    ROS_ERROR("Node %s: ack to start communication message cannot be received.",
+              ros::this_node::getName().c_str());
   }
 
   ROS_INFO("Node %s ready to run.", ros::this_node::getName().c_str());
@@ -119,69 +125,69 @@ void ethernet_comm::controllerCommand_MessageCallback(
 }
 
 void ethernet_comm::PeriodicTask(void) {
-  /* Write a message to the server */
-  memset(&(_message_buffer[0]), 0, _message_size * sizeof(uint8_t));
+  int message_decode_err = 0;
+  bool wheel_dx_ccw, wheel_sx_ccw;
+  uint16_t wheel_sx_speed, wheel_dx_speed;
+  uint16_t arduino_state, arduino_state_info;
+  uint16_t steer_cmd, speed_cmd;
 
-  /* Initial code */
-  _message_buffer[0] = 0x7E;
+  /* Send a message to Arduino */
 
   /* Steer ref */
-  uint16_t tmp_steer_ref = 0;
-  if (!SIunits_to_us(tmp_steer_ref, _steer_ref, _steer_us_range, _steer_rad_range))
-    ROS_ERROR("Node %s: steer ref value in writing ethernet message is out of range.", ros::this_node::getName().c_str());
-  memcpy(&(_message_buffer[1]), &tmp_steer_ref, sizeof(uint16_t));
+  if (!SIunits_to_us(steer_cmd, _steer_ref, _steer_us_range, _steer_rad_range))
+    ROS_ERROR(
+        "Node %s: steer ref value in writing ethernet message is out of range.",
+        ros::this_node::getName().c_str());
 
   /* Speed ref */
-  uint16_t tmp_speed_ref = 0;
-  if (!SIunits_to_us(tmp_speed_ref, _speed_ref, _speed_us_range, _speed_mps_range))
-    ROS_ERROR("Node %s: speed ref value in writing ethernet message is out of range.", ros::this_node::getName().c_str());
-  memcpy(&(_message_buffer[3]), &tmp_speed_ref, sizeof(uint16_t));
+  if (!SIunits_to_us(speed_cmd, _speed_ref, _speed_us_range, _speed_mps_range))
+    ROS_ERROR(
+        "Node %s: speed ref value in writing ethernet message is out of range.",
+        ros::this_node::getName().c_str());
 
-  /* Arduino state */
-  _message_buffer[11] = _statemachine.state;
-  _message_buffer[12] = _statemachine.info;
- 
-  /* Checksum */
-  checksum_calculate();
+  message_encode(steer_cmd, speed_cmd, _statemachine.state, _statemachine.info);
 
-  ssize_t bytes_wrote;
-  if ((bytes_wrote = sendto(_socket, _message_buffer, _message_size, 0,
-      (struct sockaddr *)&sockaddr_server, sockaddr_len)) == -1) {
-    ROS_ERROR("Node %s: cannot write a message to port.", ros::this_node::getName().c_str());
+  if ((_bytes_wrote =
+           sendto(_socket, _message_buffer, _message_size, 0,
+                  (struct sockaddr *)&sockaddr_server, sockaddr_len)) == -1) {
+    ROS_ERROR("Node %s: cannot write a message to port.",
+              ros::this_node::getName().c_str());
   }
 
   /* Manage incoming messages from the server */
   memset(&(_message_buffer[0]), 0, _message_size * sizeof(uint8_t));
 
-  ssize_t bytes_read;
-  if ((bytes_read = recvfrom(_socket, _message_buffer, _message_size, MSG_WAITALL,
-      (struct sockaddr *)&sockaddr_server, &sockaddr_len)) == -1) {
-    ROS_ERROR("Node %s: cannot receive a message from the server.", ros::this_node::getName().c_str());
+  if ((_bytes_read = recvfrom(_socket, _message_buffer, _message_size,
+                              MSG_WAITALL, (struct sockaddr *)&sockaddr_server,
+                              &sockaddr_len)) == -1) {
+    ROS_ERROR("Node %s: cannot receive a message from the server.",
+              ros::this_node::getName().c_str());
   }
 
+  /* Run different actions depending on the system state */
   switch (_statemachine.state) {
   case AUTOMATIC:
     /* Writing message to notify state change */
     if (_enteringAutomatic) {
-      ROS_INFO("Node %s: Arduino in AUTOMATIC mode.", ros::this_node::getName().c_str());
+      ROS_INFO("Node %s: Arduino in AUTOMATIC mode.",
+               ros::this_node::getName().c_str());
       _enteringAutomatic = false;
     }
 
-    /* Verify the message and decode it */
-    if (checksum_verify() && (bytes_read >= _message_size)) {
+    /* Decode the message */
+    if ((message_decode_err = message_decode(
+             steer_cmd, speed_cmd, wheel_sx_speed, wheel_dx_speed, wheel_sx_ccw,
+             wheel_dx_ccw, arduino_state, arduino_state_info)) == 0) {
       /* Wheel speed */
-      bool wheel_dx_ccw, wheel_sx_ccw;
-      uint16_t wheel_speed_sx, wheel_speed_dx;
-      memcpy(&wheel_speed_dx, &(_message_buffer[5]), sizeof(uint16_t));
-      memcpy(&wheel_speed_sx, &(_message_buffer[8]), sizeof(uint16_t));
-      wheel_dx_ccw = (_message_buffer[7] == 0x00) ? false : true;
-      wheel_sx_ccw = (_message_buffer[10] == 0x00) ? false : true;
-      _wheel_speed = (((wheel_dx_ccw) ? static_cast<double>(wheel_speed_dx)
-          : -1.0 * static_cast<double>(wheel_speed_dx)) + ((wheel_sx_ccw) ? static_cast<double>(wheel_speed_sx)
-          : -1.0 * static_cast<double>(wheel_speed_sx))) / 2.0;
+      _wheel_speed =
+          (((wheel_dx_ccw) ? static_cast<double>(wheel_dx_speed)
+                           : -1.0 * static_cast<double>(wheel_dx_speed)) +
+           ((wheel_sx_ccw) ? static_cast<double>(wheel_sx_speed)
+                           : -1.0 * static_cast<double>(wheel_sx_speed))) /
+          2.0;
 
       /* Arduino state */
-      switch (_message_buffer[11]) {
+      switch (arduino_state) {
       case SAFE:
         _statemachine.state = SAFE;
         break;
@@ -198,48 +204,60 @@ void ethernet_comm::PeriodicTask(void) {
         _statemachine.state = HALT;
         break;
       }
-      _statemachine.info = _message_buffer[12];
+      _statemachine.info = arduino_state_info;
+    } else {
+      switch (message_decode_err) {
+      case 1:
+        ROS_ERROR("Node %s: message with wrong checksum.",
+                  ros::this_node::getName().c_str());
+        break;
 
-      /* Time */
-      memcpy(&_time, &(_message_buffer[13]), sizeof(uint32_t));
-    } else
-      ROS_ERROR("Node %s: message with wrong checksum or too few bytes from port.", ros::this_node::getName().c_str());
+      case 2:
+        ROS_ERROR(
+            "Node %s: message with wrong number of bytes (%d instead of %d).",
+            ros::this_node::getName().c_str(), (int)_bytes_read,
+            (int)_message_size);
+        break;
+      }
+    }
     break;
 
   case MANUAL:
     /* Writing message to notify state change */
     if (_enteringManual) {
-      ROS_INFO("Node %s: Arduino in MANUAL mode.", ros::this_node::getName().c_str());
+      ROS_INFO("Node %s: Arduino in MANUAL mode.",
+               ros::this_node::getName().c_str());
       _enteringManual = false;
     }
 
-    /* Verify the message and decode it */
-    if (checksum_verify() && (bytes_read >= _message_size)) {
+    /* Decode the message */
+    if ((message_decode_err = message_decode(
+             steer_cmd, speed_cmd, wheel_sx_speed, wheel_dx_speed, wheel_sx_ccw,
+             wheel_dx_ccw, arduino_state, arduino_state_info)) == 0) {
       /* Steer ref */
-      uint16_t tmp_steer_ref;
-      memcpy(&tmp_steer_ref, &(_message_buffer[1]), sizeof(uint16_t));
-      if (!us_to_SIunits(tmp_steer_ref, _steer_ref, _steer_us_range, _steer_rad_range))
-        ROS_ERROR("Node %s: steer ref value in reading ethernet message is out of range.", ros::this_node::getName().c_str());
+      if (!us_to_SIunits(steer_cmd, _steer_ref, _steer_us_range,
+                         _steer_rad_range))
+        ROS_ERROR("Node %s: steer ref value in reading ethernet message is out "
+                  "of range.",
+                  ros::this_node::getName().c_str());
 
       /* Speed ref */
-      uint16_t tmp_speed_ref;
-      memcpy(&tmp_speed_ref, &(_message_buffer[3]), sizeof(uint16_t));
-      if (!us_to_SIunits(tmp_speed_ref, _speed_ref, _speed_us_range, _speed_mps_range))
-        ROS_ERROR("Node %s: speed ref value in reading ethernet message is out of range.", ros::this_node::getName().c_str());
+      if (!us_to_SIunits(speed_cmd, _speed_ref, _speed_us_range,
+                         _speed_mps_range))
+        ROS_ERROR("Node %s: speed ref value in reading ethernet message is out "
+                  "of range.",
+                  ros::this_node::getName().c_str());
 
       /* Wheel speed */
-      bool wheel_dx_ccw, wheel_sx_ccw;
-      uint16_t wheel_speed_sx, wheel_speed_dx;
-      memcpy(&wheel_speed_dx, &(_message_buffer[5]), sizeof(uint16_t));
-      memcpy(&wheel_speed_sx, &(_message_buffer[8]), sizeof(uint16_t));
-      wheel_dx_ccw = (_message_buffer[7] == 0x00) ? false : true;
-      wheel_sx_ccw = (_message_buffer[10] == 0x00) ? false : true;
-      _wheel_speed = (((wheel_dx_ccw) ? static_cast<double>(wheel_speed_dx)
-          : -1.0 * static_cast<double>(wheel_speed_dx)) + ((wheel_sx_ccw) ? static_cast<double>(wheel_speed_sx)
-          : -1.0 * static_cast<double>(wheel_speed_sx))) / 2.0;
+      _wheel_speed =
+          (((wheel_dx_ccw) ? static_cast<double>(wheel_dx_speed)
+                           : -1.0 * static_cast<double>(wheel_dx_speed)) +
+           ((wheel_sx_ccw) ? static_cast<double>(wheel_sx_speed)
+                           : -1.0 * static_cast<double>(wheel_sx_speed))) /
+          2.0;
 
       /* Arduino state */
-      switch (_message_buffer[11]) {
+      switch (arduino_state) {
       case SAFE:
         _statemachine.state = SAFE;
         break;
@@ -256,28 +274,41 @@ void ethernet_comm::PeriodicTask(void) {
         _statemachine.state = HALT;
         break;
       }
-      _statemachine.info = _message_buffer[12];
+      _statemachine.info = arduino_state_info;
+    } else {
+      switch (message_decode_err) {
+      case 1:
+        ROS_ERROR("Node %s: message with wrong checksum.",
+                  ros::this_node::getName().c_str());
+        break;
 
-      /* Time */
-      memcpy(&_time, &(_message_buffer[13]), sizeof(uint32_t));
-    } else
-      ROS_ERROR("Node %s: message with wrong checksum or too few bytes from port.", ros::this_node::getName().c_str());
+      case 2:
+        ROS_ERROR(
+            "Node %s: message with wrong number of bytes (%d instead of %d).",
+            ros::this_node::getName().c_str(), (int)_bytes_read,
+            (int)_message_size);
+        break;
+      }
+    }
     break;
 
   case SAFE:
     /* Writing message on state change */
     if (_enteringSafe) {
-      ROS_INFO("Node %s: Arduino in SAFE mode.", ros::this_node::getName().c_str());
+      ROS_INFO("Node %s: Arduino in SAFE mode.",
+               ros::this_node::getName().c_str());
       _enteringSafe = false;
     }
 
     /* Set commands to zero */
     _speed_ref = _steer_ref = _wheel_speed = 0.0;
 
-    /* Verify the message and decode it */
-    if (checksum_verify() && (bytes_read >= _message_size)) {
+    /* Decode the message */
+    if ((message_decode_err = message_decode(
+             steer_cmd, speed_cmd, wheel_sx_speed, wheel_dx_speed, wheel_sx_ccw,
+             wheel_dx_ccw, arduino_state, arduino_state_info)) == 0) {
       /* Arduino state */
-      switch (_message_buffer[11]) {
+      switch (arduino_state) {
       case SAFE:
         _statemachine.state = SAFE;
         break;
@@ -294,17 +325,15 @@ void ethernet_comm::PeriodicTask(void) {
         _statemachine.state = HALT;
         break;
       }
-      _statemachine.info = _message_buffer[12];
-
-      /* Time */
-      memcpy(&_time, &(_message_buffer[13]), sizeof(uint32_t));
+      _statemachine.info = arduino_state_info;
     }
     break;
 
   case HALT:
     /* Writing message to notify state change */
     if (_enteringHalt) {
-      ROS_INFO("Node %s: Arduino in HALT mode.", ros::this_node::getName().c_str());
+      ROS_INFO("Node %s: Arduino in HALT mode.",
+               ros::this_node::getName().c_str());
       _enteringHalt = false;
     }
 
@@ -314,6 +343,8 @@ void ethernet_comm::PeriodicTask(void) {
 
   /* Publish car data on /radio_cmd */
   car_msgs::car_cmd car_msg;
+  car_msg.header.seq = _message_number++;
+  car_msg.header.stamp = ros::Time::now();
   car_msg.speed_ref = _speed_ref;
   car_msg.steer_ref = _steer_ref;
   switch (_statemachine.state) {
@@ -336,21 +367,26 @@ void ethernet_comm::PeriodicTask(void) {
   radioCommand_publisher.publish(car_msg);
 
   /* Publish speed on /wheel_speed */
-  std_msgs::Float64 speed_msg;
-  speed_msg.data = _wheel_speed;
-  wheelSpeed_publisher.publish(speed_msg);
+  car_msgs::wheel_spd wheel_speed_msg;
+  wheel_speed_msg.header.seq = _message_number;
+  wheel_speed_msg.header.stamp = ros::Time::now();
+  wheel_speed_msg.speed_fr = wheel_speed_msg.speed_fl =
+      wheel_speed_msg.speed_rr = wheel_speed_msg.speed_rl = _wheel_speed;
+  wheelSpeed_publisher.publish(wheel_speed_msg);
 
   /* Publish a telemetry message */
   car_msgs::arduino_telemetry telemetry_msg;
   memcpy(&telemetry_msg.steer_ref, &(_message_buffer[1]), sizeof(uint16_t));
   memcpy(&telemetry_msg.speed_ref, &(_message_buffer[3]), sizeof(uint16_t));
-  memcpy(&telemetry_msg.wheel_dx_speed, &(_message_buffer[5]), sizeof(uint16_t));
-  memcpy(&telemetry_msg.wheel_sx_speed, &(_message_buffer[8]), sizeof(uint16_t));
+  memcpy(&telemetry_msg.wheel_dx_speed, &(_message_buffer[5]),
+         sizeof(uint16_t));
+  memcpy(&telemetry_msg.wheel_sx_speed, &(_message_buffer[8]),
+         sizeof(uint16_t));
   telemetry_msg.wheel_dx_ccw = _message_buffer[7];
   telemetry_msg.wheel_sx_ccw = _message_buffer[10];
-  telemetry_msg.arduino_state = _message_buffer[11];;
+  telemetry_msg.arduino_state = _message_buffer[11];
+  ;
   telemetry_msg.arduino_state_info = _message_buffer[12];
-  memcpy(&telemetry_msg.arduino_time, &(_message_buffer[13]), sizeof(uint32_t));
 
   arduinoTelemetry_publisher.publish(telemetry_msg);
 }
@@ -370,13 +406,68 @@ bool ethernet_comm::checksum_verify() {
 }
 
 void ethernet_comm::checksum_calculate() {
-  char result = 0;
   uint16_t sum = 0;
 
   for (unsigned int i = 0; i < (_message_size - 1); i++)
     sum += _message_buffer[i];
 
   _message_buffer[_message_size - 1] = sum & 0xFF;
+}
+
+int ethernet_comm::message_decode(uint16_t &steer_cmd, uint16_t &speed_cmd,
+                                  uint16_t &wheel_sx_speed,
+                                  uint16_t &wheel_dx_speed, bool &wheel_sx_ccw,
+                                  bool &wheel_dx_ccw, uint16_t &arduino_state,
+                                  uint16_t &arduino_state_info) {
+  /* Return 0 if everything is ok, 1 if there is a checksum error, 2 if the
+   * number of bytes is wrong */
+
+  if (!checksum_verify()) {
+    return 1;
+  } else if (_bytes_read != _message_size)
+    return 2;
+  else {
+    /* Steer ref */
+    memcpy(&steer_cmd, &(_message_buffer[1]), sizeof(uint16_t));
+
+    /* Speed ref */
+    memcpy(&speed_cmd, &(_message_buffer[3]), sizeof(uint16_t));
+
+    /* Wheel speed */
+    memcpy(&wheel_dx_speed, &(_message_buffer[5]), sizeof(uint16_t));
+    memcpy(&wheel_sx_speed, &(_message_buffer[8]), sizeof(uint16_t));
+    wheel_dx_ccw = (_message_buffer[7] == 0x00) ? false : true;
+    wheel_sx_ccw = (_message_buffer[10] == 0x00) ? false : true;
+
+    /* Arduino state messages */
+    arduino_state = _message_buffer[11];
+    arduino_state_info = _message_buffer[12];
+  }
+
+  return 0;
+}
+
+void ethernet_comm::message_encode(uint16_t steer_cmd, uint16_t speed_cmd,
+                                   uint16_t arduino_state,
+                                   uint16_t arduino_state_info) {
+  /* Encode a message into the output buffer */
+  memset(&(_message_buffer[0]), 0, _message_size * sizeof(uint8_t));
+
+  /* Initial code */
+  _message_buffer[0] = 0x7E;
+
+  /* Steer command */
+  memcpy(&(_message_buffer[1]), &steer_cmd, sizeof(uint16_t));
+
+  /* Speed command */
+  memcpy(&(_message_buffer[3]), &speed_cmd, sizeof(uint16_t));
+
+  /* Arduino state */
+  _message_buffer[11] = _statemachine.state;
+  _message_buffer[12] = _statemachine.info;
+
+  /* Checksum */
+  checksum_calculate();
 }
 
 bool ethernet_comm::us_to_SIunits(uint16_t value_us, double &value_SIunits,
@@ -386,8 +477,9 @@ bool ethernet_comm::us_to_SIunits(uint16_t value_us, double &value_SIunits,
     return false;
   else
     value_SIunits = static_cast<double>(value_us - us_range.at(0)) /
-      static_cast<double>(us_range.at(1) - us_range.at(0)) *
-      (SIunits_range.at(1) - SIunits_range.at(0)) + SIunits_range.at(0);
+                        static_cast<double>(us_range.at(1) - us_range.at(0)) *
+                        (SIunits_range.at(1) - SIunits_range.at(0)) +
+                    SIunits_range.at(0);
 
   return true;
 }
@@ -399,9 +491,11 @@ bool ethernet_comm::SIunits_to_us(uint16_t &value_us, double value_SIunits,
       (value_SIunits > SIunits_range.at(1)))
     return false;
   else
-    value_us = static_cast<unsigned int>((value_SIunits - SIunits_range.at(0)) /
-      (SIunits_range.at(1) - SIunits_range.at(0)) *
-      static_cast<double>(us_range.at(1) - us_range.at(0))) + us_range.at(0);
+    value_us = static_cast<unsigned int>(
+                   (value_SIunits - SIunits_range.at(0)) /
+                   (SIunits_range.at(1) - SIunits_range.at(0)) *
+                   static_cast<double>(us_range.at(1) - us_range.at(0))) +
+               us_range.at(0);
 
   return true;
 }

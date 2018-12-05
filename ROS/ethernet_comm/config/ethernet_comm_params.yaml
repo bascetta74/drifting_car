@@ -3,7 +3,7 @@
   /ethernet_comm/server_port: 1511
 
 # Communication parameters
-  /ethernet_comm/message_size: 18
+  /ethernet_comm/message_size: 14
  
 # Variable ranges
   /ethernet_comm/steer_us_range: [1240, 1740]      # Steer range in us

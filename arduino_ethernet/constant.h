@@ -12,10 +12,10 @@
 #define MAX_FIR_ORDER 			8		// Maximum order of FIR filters
 
 // Realtime loop
-#define LOOP_FREQUENCY 			500		// Main loop frequency Hz
+#define LOOP_PERIOD 			0.001	// Main loop period in seconds
 
 // Communication
-#define MESSAGE_SIZE			18		// Size in byte of the serial message
+#define MESSAGE_SIZE			14		// Size in byte of the serial message
 
 // Fault codes
 #define FAULT_COMM_BYTENUM		100		// Wrong number of bytes wrote/received
