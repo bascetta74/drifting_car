@@ -20,8 +20,9 @@ typedef struct
 	bool wheel_dx_ccw;
 	unsigned int wheel_sx_speed;
 	bool wheel_sx_ccw;
-	unsigned char arduino_state;
-	unsigned char arduino_state_info;
+	byte arduino_state;
+	byte arduino_state_info;
+	byte message_number;
 } telemetry_message;
 
 void encode_odroid_message(char encoded_message[MESSAGE_SIZE], const telemetry_message* message);
@@ -30,9 +31,9 @@ unsigned int decode_odroid_message(const char message[MESSAGE_SIZE], telemetry_m
 void initialize_odroid_message(telemetry_message* message);
 void set_odroid_message(telemetry_message* message, unsigned int steer_cmd, unsigned int speed_cmd,
 		unsigned int wheel_dx_speed, bool wheel_dx_ccw, unsigned int wheel_sx_speed, bool wheel_sx_ccw,
-		unsigned char arduino_state, unsigned char arduino_state_info);
+		unsigned char arduino_state, unsigned char arduino_state_info, unsigned char message_number);
 void get_odroid_message(const telemetry_message* message, unsigned int* steer_cmd, unsigned int* speed_cmd,
 		unsigned int* wheel_dx_speed, bool* wheel_dx_ccw, unsigned int* wheel_sx_speed, bool* wheel_sx_ccw,
-		unsigned char* arduino_state, unsigned char* arduino_state_info);
+		unsigned char* arduino_state, unsigned char* arduino_state_info, unsigned char* message_number);
 
 #endif /* TELEMETRY_H_ */

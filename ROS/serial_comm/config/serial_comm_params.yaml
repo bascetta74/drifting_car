@@ -1,10 +1,10 @@
 # Port parameters
-  /serial_comm/serial_port: "/dev/ttyACM1"
-  /serial_comm/baudrate: 115200
+  /serial_comm/serial_port: "/dev/ttyACM0"
+  /serial_comm/baudrate: 921600
 
 # Communication parameters
-  /serial_comm/timeout: 100                  # Timeout in milliseconds
-  /serial_comm/message_size: 14
+  /serial_comm/timeout: 1                  # Timeout in milliseconds
+  /serial_comm/message_size: 15
  
 # Variable ranges
   /serial_comm/steer_us_range: [1150, 1850]      # Steer range in us

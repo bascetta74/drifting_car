@@ -1,83 +1,101 @@
 #ifndef SERIAL_COMM_H_
 #define SERIAL_COMM_H_
 
-#include <serial/serial.h>
+#include <serial/serial.h> // Based on serial class http://docs.ros.org/jade/api/serial/html/index.html
 
-#include "ros/ros.h"
 #include "car_msgs/car_cmd.h"
-
+#include "car_msgs/wheel_spd.h"
+#include "ros/ros.h"
 
 #define USE_KEYBOARD_TELEOP true
-/* Used only if the actual values are not retrieved from the ROS parameter server */
+/* Used only if the actual values are not retrieved from the ROS parameter
+ * server */
 
 //#define TEST_COMM
-/* Activate this define to test data received by serial_comm (published back on test topics) */
+/* Activate this define to test data received by serial_comm (published back on
+ * test topics) */
 
 #define NAME_OF_THIS_NODE "serial_comm"
 
-
-class serial_comm
-{
+class serial_comm {
 private:
-    ros::NodeHandle Handle;
+  ros::NodeHandle Handle;
 
-    /* ROS topics */
-    ros::Subscriber controllerCommand_subscriber;
-    ros::Publisher  radioCommand_publisher;
-    ros::Publisher  wheelSpeed_publisher;
+  /* ROS topics */
+  ros::Subscriber controllerCommand_subscriber;
+  ros::Publisher radioCommand_publisher;
+  ros::Publisher wheelSpeed_publisher;
 
 #ifdef TEST_COMM
-    ros::Publisher  controllerCommand_publisher;
+  ros::Publisher controllerCommand_publisher;
 #endif
 
-    /* ROS topic callbacks */
-    void controllerCommand_MessageCallback(const car_msgs::car_cmd::ConstPtr& msg);
+  /* ROS topic callbacks */
+  void
+  controllerCommand_MessageCallback(const car_msgs::car_cmd::ConstPtr &msg);
 
-    /* Node periodic task */
-    void PeriodicTask(void);
+  /* Node periodic task */
+  void PeriodicTask(void);
 
-    /* State machine state type */
-    typedef enum States { SAFE=0, MANUAL=1, AUTOMATIC=2, HALT=3 } statemachine_state;
-    typedef struct
-    {
-       statemachine_state state;
-       unsigned char info;
-    } state_info;
+  /* State machine state type */
+  typedef enum States {
+    SAFE = 0,
+    MANUAL = 1,
+    AUTOMATIC = 2,
+    HALT = 3
+  } statemachine_state;
+  typedef struct {
+    statemachine_state state;
+    unsigned char info;
+  } state_info;
 
-    /* Checksum functions */
-    bool checksum_verify();
-    void checksum_calculate();
+  /* Communication functions */
+  int message_decode(uint16_t &steer_cmd, uint16_t &speed_cmd,
+                     uint16_t &wheel_sx_speed, uint16_t &wheel_dx_speed,
+                     bool &wheel_sx_ccw, bool &wheel_dx_ccw,
+                     uint16_t &arduino_state, uint16_t &arduino_state_info,
+                     uint16_t &message_num);
+  void message_encode(uint16_t steer_cmd, uint16_t speed_cmd,
+                      uint16_t arduino_state, uint16_t arduino_state_info,
+                      uint16_t message_num);
+  bool checksum_verify();
+  void checksum_calculate();
 
-    /* Conversion functions */
-    bool us_to_SIunits(uint16_t value_us, double& value_SIunits, std::vector<int> us_range, std::vector<double> SIunits_range);
-    bool SIunits_to_us(uint16_t& value_us, double value_SIunits, std::vector<int> us_range, std::vector<double> SIunits_range);
+  /* Conversion functions */
+  bool us_to_SIunits(uint16_t value_us, double &value_SIunits,
+                     std::vector<int> us_range,
+                     std::vector<double> SIunits_range);
+  bool SIunits_to_us(uint16_t &value_us, double value_SIunits,
+                     std::vector<int> us_range,
+                     std::vector<double> SIunits_range);
 
-    /* Node state variables */
-    double              _steer_ref;
-    double              _speed_ref;
-    double              _wheel_speed;
-    state_info          _statemachine;
-    bool                _enteringSafe, _enteringManual, _enteringAutomatic, _enteringHalt;
+  /* Node state variables */
+  double _steer_ref;
+  double _speed_ref;
+  double _wheel_speed;
+  state_info _statemachine;
+  bool _enteringSafe, _enteringManual, _enteringAutomatic, _enteringHalt;
 
-    /* Serial message */
-    serial::Serial*     _serial;
-    uint8_t*            _message_buffer;
+  /* Serial message */
+  serial::Serial *_serial;
+  size_t _bytes_read, _bytes_wrote;
+  uint8_t *_message_buffer;
+  uint16_t _message_number;
 
-    /* Node parameters */
-    std::string         _serial_port;
-    int			_baudrate;
-    int			_timeout;
-    int                 _message_size;
-    std::vector<int>    _steer_us_range, _speed_us_range;
-    std::vector<double> _steer_rad_range, _speed_mps_range;
-   
+  /* Node parameters */
+  std::string _serial_port;
+  int _baudrate;
+  int _timeout;
+  int _message_size;
+  std::vector<int> _steer_us_range, _speed_us_range;
+  std::vector<double> _steer_rad_range, _speed_mps_range;
+
 public:
- 
-    void Prepare(void);
+  void Prepare(void);
 
-    void RunPeriodically(void);
+  void RunPeriodically(void);
 
-    void Shutdown(void);
+  void Shutdown(void);
 };
 
 #endif /* SERIAL_COMM_H_ */
