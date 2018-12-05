@@ -10,4 +10,3 @@ uint16   wheel_sx_speed
 uint8    wheel_sx_ccw
 uint8    arduino_state
 uint8    arduino_state_info
-uint32   arduino_time

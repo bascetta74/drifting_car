@@ -51,6 +51,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   car_cmd.msg
+  wheel_spd.msg
   arduino_telemetry.msg
 )
 

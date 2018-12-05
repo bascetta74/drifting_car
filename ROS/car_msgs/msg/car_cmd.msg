@@ -1,6 +1,8 @@
 # car_cmd message
 # Commands from radio to car or from control system to car
 
+Header header
+
 uint8 STATE_SAFE=0
 uint8 STATE_MANUAL=1
 uint8 STATE_AUTOMATIC=2
