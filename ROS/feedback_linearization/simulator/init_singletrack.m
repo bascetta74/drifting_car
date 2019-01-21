@@ -31,6 +31,7 @@ car_param = [a, b, Cf, Cr, Iz, m];
 actuation_delay = 0.09;
 xy_noiseVar   = 1e-8;
 psi_noiseVar  = 9e-7;
+r_noiseVar    = 9e-7;
 
 % Feedback linearization parameters
 P = 0.5;
