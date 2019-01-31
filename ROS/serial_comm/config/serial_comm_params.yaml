@@ -1,5 +1,5 @@
 # Port parameters
-  /serial_comm/serial_port: "/dev/ttyACM0"
+  /serial_comm/serial_port: "/dev/ttyACM1"
   /serial_comm/baudrate: 921600
 
 # Communication parameters
