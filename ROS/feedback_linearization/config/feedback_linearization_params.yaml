@@ -1,7 +1,7 @@
 # Feedback linearization configuration parameters
   /feedback_linearization/run_period: 0.01          # Node execution period
 
-  /feedback_linearization/use_sim_sideslip: false   # Set to true to use the simulated sideslip angle or false to compute sideslip from vehicle position
+  /feedback_linearization/use_ideal_sim: true       # Set to true to use ideal simulation or false to compute sideslip from vehicle position
 
   /feedback_linearization/cog_dist_front: 0.1513    # Distance of cog from front
   /feedback_linearization/cog_dist_rear: 0.1087     # Distance of cog from rear
@@ -11,8 +11,10 @@
   /feedback_linearization/mass: 2.040               # Mass
 
   /feedback_linearization/P_dist: 0.50              # Distance of point P for feedback linearization
-  /feedback_linearization/speed_thd: 0.001          # Threshold to consider the absolute vehicle velocity equal to zero
-  /feedback_linearization/vel_filt_coeff: [1.0, -1.0]
+  /feedback_linearization/speed_thd: 0.05           # Threshold to consider the absolute vehicle velocity equal to zero
+  /feedback_linearization/lowpass_filt_coeff: [0.0144, 0.0439, 0.1202, 0.2025, 0.2380, 0.2025, 0.1202, 0.0439, 0.0144]
+                                                    # FIR low pass filter coefficients
+  /feedback_linearization/vel_filt_coeff: [0.0144, 0.0295, 0.0763, 0.0823, 0.0355, -0.0355, -0.0823, -0.0763, -0.0295, -0.0144]
                                                     # FIR velocity filter coefficients
   /feedback_linearization/theta_offset: 0.0         # Offset on optitrack theta angle
   /feedback_linearization/KPx: 1.0                  # Position loop proportional gain x

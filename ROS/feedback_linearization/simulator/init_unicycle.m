@@ -1,7 +1,7 @@
 clear all
 close all
 
-addpath ./fblin_law ./trajectory ./vehicle_model
+addpath ./fblin_law ./vehicle_model
 
 % Feedback linearization parameters
 P = 0.5;

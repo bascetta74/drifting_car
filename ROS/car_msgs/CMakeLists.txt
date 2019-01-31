@@ -53,6 +53,7 @@ add_message_files(
   car_cmd.msg
   wheel_spd.msg
   arduino_telemetry.msg
+  simulated_telemetry.msg
 )
 
 ## Generate services in the 'srv' folder

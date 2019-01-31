@@ -2,7 +2,6 @@
 
 #include <cmath>
 
-
 fblin_spaliviero::fblin_spaliviero(double P_distance, double zero_speed_threshold)
 {
  _p = P_distance;

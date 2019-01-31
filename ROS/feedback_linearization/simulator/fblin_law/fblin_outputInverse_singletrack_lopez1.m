@@ -1,4 +1,4 @@
-function out = fblin_output_singletrack_lopez1(x,y,psi,beta,v,P,car_param)
+function out = fblin_outputInverse_singletrack_lopez1(xp,yp,psi,beta,v,P,car_param)
 
 % Vehicle parameters
 a  = car_param(1);
@@ -9,7 +9,7 @@ Iz = car_param(5);
 m  = car_param(6);
 
 % Coordinate transformation
-xp = x+v*P*cos(psi+beta);
-yp = y+v*P*sin(psi+beta);
+x = xp -v*P*cos(psi+beta);
+y = yp -v*P*sin(psi+beta);
 
-out = [xp; yp];
+out = [x; y];

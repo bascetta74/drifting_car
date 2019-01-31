@@ -55,6 +55,12 @@ void feedback_linearization::Prepare(void)
  if (false == Handle.getParam(FullParamName, speed_thd))
   ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str()); 
 
+ FullParamName = ros::this_node::getName()+"/lowpass_filt_coeff";
+ if (false == Handle.getParam(FullParamName, lowpass_filt_coeff))
+  ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str()); 
+ else
+  lowpass_filt_order = (unsigned int)lowpass_filt_coeff.size();
+
  FullParamName = ros::this_node::getName()+"/vel_filt_coeff";
  if (false == Handle.getParam(FullParamName, vel_filt_coeff))
   ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str()); 
@@ -74,8 +80,8 @@ void feedback_linearization::Prepare(void)
  if (false == Handle.getParam(FullParamName, theta_offset))
   ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str()); 
 
- FullParamName = ros::this_node::getName()+"/use_sim_sideslip";
- if (false == Handle.getParam(FullParamName, use_sim_sideslip))
+ FullParamName = ros::this_node::getName()+"/use_ideal_sim";
+ if (false == Handle.getParam(FullParamName, use_ideal_sim))
   ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str()); 
 
  FullParamName = "/use_sim_time";
@@ -85,7 +91,7 @@ void feedback_linearization::Prepare(void)
  /* ROS topics */
  vehiclePose_subscriber = Handle.subscribe("/car/ground_pose", 1, &feedback_linearization::vehiclePose_MessageCallback, this);
  vehicleIMU_subscriber = Handle.subscribe("/imu/data", 1, &feedback_linearization::vehicleIMU_MessageCallback, this);
- sideslip_subscriber = Handle.subscribe("/car_simulator/sideslip", 1, &feedback_linearization::sideslip_MessageCallback, this);
+ telemetry_subscriber = Handle.subscribe("/car_simulator/telemetry", 1, &feedback_linearization::simulated_telemetry_MessageCallback, this);
 
  controllerCommand_publisher = Handle.advertise<car_msgs::car_cmd>("/controller_cmd", 1);
  vehicleState_publisher = Handle.advertise<std_msgs::Float64MultiArray>("/feedback_linearization/vehicleState", 1);
@@ -97,30 +103,24 @@ void feedback_linearization::Prepare(void)
  /* Initialize node state */
  _time = 0.0;
 
- _vehicleSideslip = 0.0;
+ _vehicleSideslip = _vehicleAngularVelocity = 0.0;
 
- _vehiclePose.push_back(0.0);
- _vehiclePose.push_back(0.0);
- _vehiclePose.push_back(0.0);
-
- _vehicleVelocity.push_back(0.0);
- _vehicleVelocity.push_back(0.0);
-
- _vehicleAngularVelocity.push_back(0.0);
- _vehicleAngularVelocity.push_back(0.0);
- _vehicleAngularVelocity.push_back(0.0);
-
- _vehicleAcceleration.push_back(0.0);
- _vehicleAcceleration.push_back(0.0);
- _vehicleAcceleration.push_back(0.0);
+ _vehiclePose.assign(3, 0.0);
+ _vehicleVelocity.assign(2, 0.0);
+ _vehicleAcceleration.assign(2, 0.0);
 
  _vehiclePositionXBuffer.set_capacity(vel_filt_order);
+ std::fill(_vehiclePositionXBuffer.begin(), _vehiclePositionXBuffer.end(), 0.0);
  _vehiclePositionYBuffer.set_capacity(vel_filt_order);
- for (int i=0; i<vel_filt_order; i++)
- {
-   _vehiclePositionXBuffer.push_back(0.0);
-   _vehiclePositionYBuffer.push_back(0.0);
- }
+ std::fill(_vehiclePositionYBuffer.begin(), _vehiclePositionYBuffer.end(), 0.0);
+ _vehicleHeadingBuffer.set_capacity(lowpass_filt_order);
+ std::fill(_vehicleHeadingBuffer.begin(), _vehicleHeadingBuffer.end(), 0.0);
+ _vehicleAccelerationXBuffer.set_capacity(lowpass_filt_order);
+ std::fill(_vehicleAccelerationXBuffer.begin(), _vehicleAccelerationXBuffer.end(), 0.0);
+ _vehicleAccelerationYBuffer.set_capacity(lowpass_filt_order);
+ std::fill(_vehicleAccelerationYBuffer.begin(), _vehicleAccelerationYBuffer.end(), 0.0);
+ _vehicleYawRateBuffer.set_capacity(lowpass_filt_order);
+ std::fill(_vehicleYawRateBuffer.begin(), _vehicleYawRateBuffer.end(), 0.0);
 
  _linearizer = NULL;
 
@@ -170,50 +170,105 @@ void feedback_linearization::Shutdown(void)
  ROS_INFO("Node %s shutting down.", ros::this_node::getName().c_str());
 }
 
-void feedback_linearization::vehiclePose_MessageCallback(const geometry_msgs::Pose2D::ConstPtr& msg)
+void feedback_linearization::vehiclePose_MessageCallback(const geometry_msgs::Pose2D::ConstPtr &msg)
 {
- /* Updating position buffer */
- _vehiclePositionXBuffer.push_back(msg->x);
- _vehiclePositionYBuffer.push_back(msg->y);
+  if (!use_ideal_sim)
+  {
+    /* Updating position and heading buffer */
+    _vehiclePositionXBuffer.push_back(msg->x);
+    _vehiclePositionYBuffer.push_back(msg->y);
+    _vehicleHeadingBuffer.push_back(msg->theta + theta_offset);
 
- /* Vehicle cog velocity */
- _vehicleVelocity.at(0) = 0.0;
- _vehicleVelocity.at(1) = 0.0;
+    /* Compute vehicle cog velocity (vx, vy) through a low-pass differentiator
+     * FIR filter */
+    _vehicleVelocity.at(0) = 0.0;
+    _vehicleVelocity.at(1) = 0.0;
 
- std::vector<double>::iterator it_coeff = vel_filt_coeff.begin();
- for(boost::circular_buffer<double>::reverse_iterator it_posX = _vehiclePositionXBuffer.rbegin(); it_posX != _vehiclePositionXBuffer.rend(); it_posX++, it_coeff++)
-  _vehicleVelocity.at(0) += (*it_coeff)*(*it_posX/RunPeriod);
+    std::vector<double>::iterator it_coeff = vel_filt_coeff.begin();
+    for (boost::circular_buffer<double>::reverse_iterator it_posX = _vehiclePositionXBuffer.rbegin(); it_posX != _vehiclePositionXBuffer.rend(); it_posX++, it_coeff++)
+      _vehicleVelocity.at(0) += (*it_coeff) * (*it_posX / RunPeriod);
 
- it_coeff = vel_filt_coeff.begin();
- for(boost::circular_buffer<double>::reverse_iterator it_posY = _vehiclePositionYBuffer.rbegin(); it_posY != _vehiclePositionYBuffer.rend(); it_posY++, it_coeff++)
-  _vehicleVelocity.at(1) += (*it_coeff)*(*it_posY/RunPeriod);
+    it_coeff = vel_filt_coeff.begin();
+    for (boost::circular_buffer<double>::reverse_iterator it_posY = _vehiclePositionYBuffer.rbegin(); it_posY != _vehiclePositionYBuffer.rend(); it_posY++, it_coeff++)
+      _vehicleVelocity.at(1) += (*it_coeff) * (*it_posY / RunPeriod);
 
- /* Vehicle 2D pose */
- _vehiclePose.at(0) = msg->x;
- _vehiclePose.at(1) = msg->y;
- _vehiclePose.at(2) = msg->theta+theta_offset;
+    /* Low-pass filtered vehicle 2D pose */
+    _vehiclePose.at(0) = 0.0;
+    _vehiclePose.at(1) = 0.0;
+    _vehiclePose.at(2) = 0.0;
 
- /* Vehicle sideslip */
- if (!use_sim_sideslip)
-  _vehicleSideslip = atan2( -_vehicleVelocity.at(0)*sin(_vehiclePose.at(2))+_vehicleVelocity.at(1)*cos(_vehiclePose.at(2)),
-                             _vehicleVelocity.at(0)*cos(_vehiclePose.at(2))+_vehicleVelocity.at(1)*sin(_vehiclePose.at(2)) );
+    it_coeff = lowpass_filt_coeff.begin();
+    for (boost::circular_buffer<double>::reverse_iterator it_posX = _vehiclePositionXBuffer.rbegin(); it_posX != _vehiclePositionXBuffer.rend(); it_posX++, it_coeff++)
+      _vehiclePose.at(0) += (*it_coeff) * (*it_posX);
+
+    it_coeff = lowpass_filt_coeff.begin();
+    for (boost::circular_buffer<double>::reverse_iterator it_posY = _vehiclePositionYBuffer.rbegin(); it_posY != _vehiclePositionYBuffer.rend(); it_posY++, it_coeff++)
+      _vehiclePose.at(1) += (*it_coeff) * (*it_posY);
+
+    it_coeff = lowpass_filt_coeff.begin();
+    for (boost::circular_buffer<double>::reverse_iterator it_heading = _vehicleHeadingBuffer.rbegin(); it_heading != _vehicleHeadingBuffer.rend(); it_heading++, it_coeff++)
+      _vehiclePose.at(2) += (*it_coeff) * (*it_heading);
+
+    /* Vehicle sideslip */
+    if (sqrt(pow(_vehicleVelocity.at(0), 2) + pow(_vehicleVelocity.at(1), 2)) > speed_thd)
+      _vehicleSideslip = atan2(-_vehicleVelocity.at(0) * sin(_vehiclePose.at(2)) + _vehicleVelocity.at(1) * cos(_vehiclePose.at(2)),
+                _vehicleVelocity.at(0) * cos(_vehiclePose.at(2)) + _vehicleVelocity.at(1) * sin(_vehiclePose.at(2)));
+    else
+      _vehicleSideslip = 0.0;
+  }
+  else
+  {
+    /* Updating position and heading */
+    _vehiclePose.at(0) = msg->x;
+    _vehiclePose.at(1) = msg->y;
+    _vehiclePose.at(2) = msg->theta;
+
+  }
 }
 
 void feedback_linearization::vehicleIMU_MessageCallback(const sensor_msgs::Imu::ConstPtr& msg)
 {
- /* Vehicle 2D pose */
- _vehicleAcceleration.at(0) = msg->linear_acceleration.x;
- _vehicleAcceleration.at(1) = msg->linear_acceleration.y;
- _vehicleAcceleration.at(2) = msg->linear_acceleration.z;
- _vehicleAngularVelocity.at(0) = msg->angular_velocity.x;
- _vehicleAngularVelocity.at(1) = msg->angular_velocity.y;
- _vehicleAngularVelocity.at(2) = msg->angular_velocity.z;
+  if (!use_ideal_sim)
+  {
+    /* Updating acceleration and yaw rate buffer */
+    _vehicleAccelerationXBuffer.push_back(msg->linear_acceleration.x);
+    _vehicleAccelerationYBuffer.push_back(msg->linear_acceleration.y);
+    _vehicleYawRateBuffer.push_back(msg->angular_velocity.z);
+    
+    /* Low-pass filtered vehicle acceleration and yaw */
+    _vehicleAcceleration.at(0) = 0.0;
+    _vehicleAcceleration.at(1) = 0.0;
+    _vehicleAngularVelocity    = 0.0;
+    
+    std::vector<double>::iterator it_coeff = lowpass_filt_coeff.begin();
+    for(boost::circular_buffer<double>::reverse_iterator it_accX = _vehicleAccelerationXBuffer.rbegin(); it_accX != _vehicleAccelerationXBuffer.rend(); it_accX++, it_coeff++)
+      _vehicleAcceleration.at(0) += (*it_coeff)*(*it_accX);
+
+    it_coeff = lowpass_filt_coeff.begin();
+    for(boost::circular_buffer<double>::reverse_iterator it_accY = _vehicleAccelerationYBuffer.rbegin(); it_accY != _vehicleAccelerationYBuffer.rend(); it_accY++, it_coeff++)
+      _vehicleAcceleration.at(1) += (*it_coeff)*(*it_accY);
+
+    it_coeff = lowpass_filt_coeff.begin();
+    for(boost::circular_buffer<double>::reverse_iterator it_yawRate = _vehicleYawRateBuffer.rbegin(); it_yawRate != _vehicleYawRateBuffer.rend(); it_yawRate++, it_coeff++)
+      _vehicleAngularVelocity += (*it_coeff)*(*it_yawRate);
+  }
+  else
+  {
+    /* Updating acceleration and yaw rate */
+    _vehicleAcceleration.at(0) = msg->linear_acceleration.x;
+    _vehicleAcceleration.at(1) = msg->linear_acceleration.y;
+    _vehicleAngularVelocity    = msg->angular_velocity.z;
+  }
 }
 
-void feedback_linearization::sideslip_MessageCallback(const std_msgs::Float64::ConstPtr& msg)
+void feedback_linearization::simulated_telemetry_MessageCallback(const car_msgs::simulated_telemetry::ConstPtr& msg)
 {
- if (use_sim_sideslip)
-  _vehicleSideslip = msg->data;
+ if (use_ideal_sim)
+ {
+  _vehicleSideslip       = msg->sideslip;
+  _vehicleVelocity.at(0) = msg->Vx;
+  _vehicleVelocity.at(1) = msg->Vy;
+ }
 }
 
 void feedback_linearization::PeriodicTask(void)
@@ -221,10 +276,10 @@ void feedback_linearization::PeriodicTask(void)
  /* Reference trajectory generation */
  double xref, yref;
  // Line
- //xref = yref = 0.5*_time;
+ xref = yref = 0.5*_time;
  // Circle
- xref = -0.5 + 1.0*cos(0.1*_time-0.5*M_PI);
- yref =  1.0 + 1.0*sin(0.1*_time-0.5*M_PI);
+ //xref = -0.5 + 1.0*cos(0.1*_time-0.5*M_PI);
+ //yref =  1.0 + 1.0*sin(0.1*_time-0.5*M_PI);
 
  double xPref, yPref;
  if (_linearizer)
@@ -235,7 +290,7 @@ void feedback_linearization::PeriodicTask(void)
  /* Actual position update */
  if (_linearizer)
  {
-  _linearizer->set_bicycleState(_vehiclePose.at(0), _vehiclePose.at(1), _vehiclePose.at(2), _vehicleSideslip, _vehicleAngularVelocity.at(2));
+  _linearizer->set_bicycleState(_vehiclePose.at(0), _vehiclePose.at(1), _vehiclePose.at(2), _vehicleSideslip, _vehicleAngularVelocity);
   _linearizer->set_bicycleAbsoluteVelocity(sqrt(pow(_vehicleVelocity.at(0),2)+pow(_vehicleVelocity.at(1),2)));
  }
  else
@@ -250,11 +305,16 @@ void feedback_linearization::PeriodicTask(void)
  /* Position controller / open loop test */
  double vPx, vPy;
  #ifdef OPEN_LOOP_TEST
- vPx = 1.0/sqrt(2.0);
- if (_time>=2.5)
-  vPy = 1.0/sqrt(2.0);
- else
-  vPy = 0.25;
+ vPx = fmin(0.8*_time, 0.4);
+ #ifdef SPALIVIERO
+ vPy = 0.2/(1.0+exp(-20.0*(_time-1.0)));
+ #endif
+ #ifdef LOPEZ_I
+ vPy = 0.15/(1.0+exp(-20.0*(_time-1.0)));
+ #endif
+ #ifdef LOPEZ_II
+ vPy = 0.5/(1.0+exp(-20.0*(_time-1.0)));
+ #endif
  #endif
  #ifdef CLOSED_LOOP_TEST
  vPx = KPx*(xPref-xP);
@@ -296,7 +356,7 @@ void feedback_linearization::PeriodicTask(void)
  vehicleStateMsg.data.push_back(_vehicleSideslip);
  vehicleStateMsg.data.push_back(_vehicleAcceleration.at(0));
  vehicleStateMsg.data.push_back(_vehicleAcceleration.at(1));
- vehicleStateMsg.data.push_back(_vehicleAngularVelocity.at(2));
+ vehicleStateMsg.data.push_back(_vehicleAngularVelocity);
  vehicleState_publisher.publish(vehicleStateMsg);
 
  geometry_msgs::PointStamped pointPact;
