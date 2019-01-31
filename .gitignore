@@ -17,6 +17,7 @@ arduino_ethernet/spec.d
 #Simulink generated ROS nodes
 ROS/state_estimator_opt_driftingcar/
 ROS/drifting_controller_stabilization_olcl/
+ROS/ampc_rc
 ROS/AMPC_RC/
 ROS/AMPC_RC2/
 ROS/AMPC_RC3/
