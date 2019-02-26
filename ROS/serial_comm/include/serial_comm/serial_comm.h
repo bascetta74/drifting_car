@@ -3,6 +3,7 @@
 
 #include <serial/serial.h> // Based on serial class http://docs.ros.org/jade/api/serial/html/index.html
 
+#include "telemetry_protocol.h"
 #include "car_msgs/car_cmd.h"
 #include "car_msgs/wheel_spd.h"
 #include "ros/ros.h"
@@ -31,8 +32,7 @@ private:
 #endif
 
   /* ROS topic callbacks */
-  void
-  controllerCommand_MessageCallback(const car_msgs::car_cmd::ConstPtr &msg);
+  void controllerCommand_MessageCallback(const car_msgs::car_cmd::ConstPtr &msg);
 
   /* Node periodic task */
   void PeriodicTask(void);
@@ -49,23 +49,11 @@ private:
     unsigned char info;
   } state_info;
 
-  /* Communication functions */
-  int message_decode(uint16_t &steer_cmd, uint16_t &speed_cmd,
-                     uint16_t &wheel_sx_speed, uint16_t &wheel_dx_speed,
-                     bool &wheel_sx_ccw, bool &wheel_dx_ccw,
-                     uint16_t &arduino_state, uint16_t &arduino_state_info,
-                     uint16_t &message_num);
-  void message_encode(uint16_t steer_cmd, uint16_t speed_cmd,
-                      uint16_t arduino_state, uint16_t arduino_state_info,
-                      uint16_t message_num);
-  bool checksum_verify();
-  void checksum_calculate();
-
   /* Conversion functions */
-  bool us_to_SIunits(uint16_t value_us, double &value_SIunits,
+  bool us_to_SIunits(unsigned int value_us, double &value_SIunits,
                      std::vector<int> us_range,
                      std::vector<double> SIunits_range);
-  bool SIunits_to_us(uint16_t &value_us, double value_SIunits,
+  bool SIunits_to_us(unsigned int &value_us, double value_SIunits,
                      std::vector<int> us_range,
                      std::vector<double> SIunits_range);
 
@@ -78,8 +66,8 @@ private:
 
   /* Serial message */
   serial::Serial *_serial;
-  size_t _bytes_read, _bytes_wrote;
-  uint8_t *_message_buffer;
+  telemetryProtocol *_telemetry;
+  telemetry_message message;
   uint16_t _message_number;
 
   /* Node parameters */

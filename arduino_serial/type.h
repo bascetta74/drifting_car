@@ -13,7 +13,7 @@ typedef enum States { SAFE=0, MANUAL=1, AUTOMATIC=2, HALT=3 } State;
 typedef struct
 {
 	State state;
-	unsigned int info;
+	byte info;
 } state_info;
 
 #endif /* TYPE_H_ */

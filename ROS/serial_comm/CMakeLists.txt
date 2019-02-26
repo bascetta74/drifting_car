@@ -120,7 +120,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(serial_comm src/serial_comm.cpp src/serial_comm_node.cpp)
+add_executable(serial_comm src/serial_comm.cpp src/serial_comm_node.cpp src/telemetry_protocol.cpp)
 add_dependencies(serial_comm car_msgs_generate_messages_cpp)
 target_link_libraries(serial_comm ${catkin_LIBRARIES} serial)
 

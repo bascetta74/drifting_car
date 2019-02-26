@@ -12,10 +12,10 @@
 #define MAX_FIR_ORDER 			8		// Maximum order of FIR filters
 
 // Realtime loop
-#define LOOP_PERIOD 			0.002	// Main loop period in seconds
+#define LOOP_PERIOD 			0.008	// Main loop period in seconds
 
 // Serial communication
-#define SERIAL_BAUDRATE 		921600  // Serial port baud rate
+#define SERIAL_BAUDRATE 		115200  // Serial port baud rate
 #define MESSAGE_SIZE			15		// Size in byte of the serial message
 
 // Fault codes
@@ -24,7 +24,7 @@
 #define FAULT_COMM_HEADER		102		// Wrong header in serial message
 
 // Car commands
-#define STEER_MIN				1200	// Minimum value for steer command (pulse width ms)
+#define STEER_MIN				1000	// Minimum value for steer command (pulse width ms)
 #define STEER_ZERO				1500	// Neutral value for steer command (pulse width ms)
 #define STEER_MAX				2000	// Maximum value for steer command (pulse width ms)
 #define SPEED_MIN				1000	// Minimum value for steer command (pulse width ms)

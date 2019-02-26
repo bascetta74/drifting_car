@@ -67,9 +67,7 @@ void serial_comm::Prepare(void) {
   _statemachine.info = 0;
   _enteringSafe = _enteringManual = _enteringAutomatic = _enteringHalt = true;
 
-  _bytes_read = _bytes_wrote = 0;
   _message_number = 0;
-  _message_buffer = new uint8_t[_message_size];
 
   /* Open the serial port */
   try {
@@ -80,6 +78,7 @@ void serial_comm::Prepare(void) {
     ROS_ERROR("Node %s: cannot open serial port %s.",
               ros::this_node::getName().c_str(), _serial_port.c_str());
   }
+  _telemetry = new telemetryProtocol(_serial, _message_size);
 
   ROS_INFO("Node %s ready to run.", ros::this_node::getName().c_str());
 }
@@ -106,7 +105,7 @@ void serial_comm::Shutdown(void) {
 
   /* Deleting serial class */
   delete _serial;
-  delete _message_buffer;
+  delete _telemetry;
 }
 
 void serial_comm::controllerCommand_MessageCallback(
@@ -123,24 +122,20 @@ void serial_comm::controllerCommand_MessageCallback(
 }
 
 void serial_comm::PeriodicTask(void) {
-  if (_serial->available() >= _message_size) {
-    /* Read a message from serial port */
-    try {
-      memset(&(_message_buffer[0]), '\0', _message_size * sizeof(uint8_t));
+  // Try to receive a message
+  _telemetry->receive();
 
-      _bytes_read =
-          _serial->read(&(_message_buffer[0]), _message_size * sizeof(uint8_t));
-    } catch (std::exception &e) {
-      ROS_ERROR("Node %s: cannot read a message from port %s.",
-                ros::this_node::getName().c_str(), _serial_port.c_str());
-    }
+  if (_telemetry->message_available()) {
+    /* If a message is available, read it from serial port */
+    _telemetry->read_message(&message);
 
     /* Run different actions depending on the system state */
-    int message_decode_err = 0;
     bool wheel_dx_ccw, wheel_sx_ccw;
-    uint16_t wheel_sx_speed, wheel_dx_speed;
-    uint16_t arduino_state, arduino_state_info;
-    uint16_t steer_cmd, speed_cmd;
+    unsigned int wheel_sx_speed, wheel_dx_speed;
+    uint8_t arduino_state, arduino_state_info, message_number;
+    unsigned int steer_cmd, speed_cmd;
+    _telemetry->get_message(&message, &steer_cmd, &speed_cmd, &wheel_dx_speed, &wheel_dx_ccw, &wheel_sx_speed, &wheel_sx_ccw,	&arduino_state, &arduino_state_info, &message_number);
+
     switch (_statemachine.state) {
     case AUTOMATIC:
       /* Writing message to notify state change */
@@ -152,56 +147,34 @@ void serial_comm::PeriodicTask(void) {
         _enteringManual = _enteringSafe = _enteringHalt = true;
       }
 
-      /* Decode the message */
-      if ((message_decode_err = message_decode(
-               steer_cmd, speed_cmd, wheel_sx_speed, wheel_dx_speed,
-               wheel_sx_ccw, wheel_dx_ccw, arduino_state, arduino_state_info,
-               _message_number)) == 0) {
+      /* Wheel speed */
+      _wheel_speed =
+          (((wheel_dx_ccw) ? static_cast<double>(wheel_dx_speed)
+                           : -1.0 * static_cast<double>(wheel_dx_speed)) +
+           ((wheel_sx_ccw) ? static_cast<double>(wheel_sx_speed)
+                           : -1.0 * static_cast<double>(wheel_sx_speed))) /
+          2.0;
 
-        /* Wheel speed */
-        _wheel_speed =
-            (((wheel_dx_ccw) ? static_cast<double>(wheel_dx_speed)
-                             : -1.0 * static_cast<double>(wheel_dx_speed)) +
-             ((wheel_sx_ccw) ? static_cast<double>(wheel_sx_speed)
-                             : -1.0 * static_cast<double>(wheel_sx_speed))) /
-            2.0;
+      /* Arduino state */
+      switch (arduino_state) {
+      case SAFE:
+        _statemachine.state = SAFE;
+        break;
 
-        /* Arduino state */
-        switch (arduino_state) {
-        case SAFE:
-          _statemachine.state = SAFE;
-          break;
+      case MANUAL:
+        _statemachine.state = MANUAL;
+        break;
 
-        case MANUAL:
-          _statemachine.state = MANUAL;
-          break;
+      case AUTOMATIC:
+        _statemachine.state = AUTOMATIC;
+        break;
 
-        case AUTOMATIC:
-          _statemachine.state = AUTOMATIC;
-          break;
-
-        case HALT:
-          _statemachine.state = HALT;
-          break;
-        }
-        _statemachine.info = arduino_state_info;
-      } else {
-        switch (message_decode_err) {
-        case 1:
-          ROS_ERROR("Node %s: message with wrong checksum from port %s.",
-                    ros::this_node::getName().c_str(), _serial_port.c_str());
-          break;
-
-        case 2:
-          ROS_ERROR(
-              "Node %s: message with wrong number of bytes (%d instead of %d)"
-              "from port %s.",
-              ros::this_node::getName().c_str(), (int)_bytes_read,
-              (int)_message_size, _serial_port.c_str());
-          break;
-        }
+      case HALT:
+        _statemachine.state = HALT;
+        break;
       }
-      break;
+      _statemachine.info = arduino_state_info;
+    break;
 
     case MANUAL:
       /* Writing message to notify state change */
@@ -213,72 +186,50 @@ void serial_comm::PeriodicTask(void) {
         _enteringAutomatic = _enteringSafe = _enteringHalt = true;
       }
 
-      /* Decode the message */
-      if ((message_decode_err = message_decode(
-               steer_cmd, speed_cmd, wheel_sx_speed, wheel_dx_speed,
-               wheel_sx_ccw, wheel_dx_ccw, arduino_state, arduino_state_info,
-               _message_number)) == 0) {
+      /* Steer ref */
+      if (!us_to_SIunits(steer_cmd, _steer_ref, _steer_us_range,
+                         _steer_rad_range))
+        ROS_ERROR(
+            "Node %s: steer ref value (%u) in reading serial message is "
+            "out of range.",
+            ros::this_node::getName().c_str(), (unsigned int)steer_cmd);
 
-        /* Steer ref */
-        if (!us_to_SIunits(steer_cmd, _steer_ref, _steer_us_range,
-                           _steer_rad_range))
-          ROS_ERROR(
-              "Node %s: steer ref value (%u) in reading serial message is "
-              "out of range.",
-              ros::this_node::getName().c_str(), (unsigned int)steer_cmd);
+      /* Speed ref */
+      if (!us_to_SIunits(speed_cmd, _speed_ref, _speed_us_range,
+                         _speed_mps_range))
+        ROS_ERROR(
+            "Node %s: speed ref value (%u) in reading serial message is "
+            "out of range.",
+            ros::this_node::getName().c_str(), (unsigned int)speed_cmd);
 
-        /* Speed ref */
-        if (!us_to_SIunits(speed_cmd, _speed_ref, _speed_us_range,
-                           _speed_mps_range))
-          ROS_ERROR(
-              "Node %s: speed ref value (%u) in reading serial message is "
-              "out of range.",
-              ros::this_node::getName().c_str(), (unsigned int)speed_cmd);
+      /* Wheel speed */
+      _wheel_speed =
+          (((wheel_dx_ccw) ? static_cast<double>(wheel_dx_speed)
+                           : -1.0 * static_cast<double>(wheel_dx_speed)) +
+           ((wheel_sx_ccw) ? static_cast<double>(wheel_sx_speed)
+                           : -1.0 * static_cast<double>(wheel_sx_speed))) /
+          2.0;
 
-        /* Wheel speed */
-        _wheel_speed =
-            (((wheel_dx_ccw) ? static_cast<double>(wheel_dx_speed)
-                             : -1.0 * static_cast<double>(wheel_dx_speed)) +
-             ((wheel_sx_ccw) ? static_cast<double>(wheel_sx_speed)
-                             : -1.0 * static_cast<double>(wheel_sx_speed))) /
-            2.0;
+      /* Arduino state */
+      switch (arduino_state) {
+      case SAFE:
+        _statemachine.state = SAFE;
+        break;
 
-        /* Arduino state */
-        switch (arduino_state) {
-        case SAFE:
-          _statemachine.state = SAFE;
-          break;
+      case MANUAL:
+        _statemachine.state = MANUAL;
+        break;
 
-        case MANUAL:
-          _statemachine.state = MANUAL;
-          break;
+      case AUTOMATIC:
+        _statemachine.state = AUTOMATIC;
+        break;
 
-        case AUTOMATIC:
-          _statemachine.state = AUTOMATIC;
-          break;
-
-        case HALT:
-          _statemachine.state = HALT;
-          break;
-        }
-        _statemachine.info = arduino_state_info;
-      } else {
-        switch (message_decode_err) {
-        case 1:
-          ROS_ERROR("Node %s: message with wrong checksum from port %s.",
-                    ros::this_node::getName().c_str(), _serial_port.c_str());
-          break;
-
-        case 2:
-          ROS_ERROR(
-              "Node %s: message with wrong number of bytes (%d instead of %d)"
-              "from port %s.",
-              ros::this_node::getName().c_str(), (int)_bytes_read,
-              (int)_message_size, _serial_port.c_str());
-          break;
-        }
+      case HALT:
+        _statemachine.state = HALT;
+        break;
       }
-      break;
+      _statemachine.info = arduino_state_info;
+    break;
 
     case SAFE:
       /* Writing message on state change */
@@ -293,48 +244,26 @@ void serial_comm::PeriodicTask(void) {
       /* Set commands to zero */
       _speed_ref = _steer_ref = _wheel_speed = 0.0;
 
-      /* Decode the message */
-      if ((message_decode_err = message_decode(
-               steer_cmd, speed_cmd, wheel_sx_speed, wheel_dx_speed,
-               wheel_sx_ccw, wheel_dx_ccw, arduino_state, arduino_state_info,
-               _message_number)) == 0) {
+      /* Arduino state */
+      switch (arduino_state) {
+      case SAFE:
+        _statemachine.state = SAFE;
+        break;
 
-        /* Arduino state */
-        switch (arduino_state) {
-        case SAFE:
-          _statemachine.state = SAFE;
-          break;
+      case MANUAL:
+        _statemachine.state = MANUAL;
+        break;
 
-        case MANUAL:
-          _statemachine.state = MANUAL;
-          break;
+      case AUTOMATIC:
+        _statemachine.state = AUTOMATIC;
+        break;
 
-        case AUTOMATIC:
-          _statemachine.state = AUTOMATIC;
-          break;
-
-        case HALT:
-          _statemachine.state = HALT;
-          break;
-        }
-        _statemachine.info = arduino_state_info;
-      } else {
-        switch (message_decode_err) {
-        case 1:
-          ROS_ERROR("Node %s: message with wrong checksum from port %s.",
-                    ros::this_node::getName().c_str(), _serial_port.c_str());
-          break;
-
-        case 2:
-          ROS_ERROR(
-              "Node %s: message with wrong number of bytes (%d instead of %d)"
-              "from port %s.",
-              ros::this_node::getName().c_str(), (int)_bytes_read,
-              (int)_message_size, _serial_port.c_str());
-          break;
-        }
+      case HALT:
+        _statemachine.state = HALT;
+        break;
       }
-      break;
+      _statemachine.info = arduino_state_info;
+    break;
 
     case HALT:
       /* Writing message to notify state change */
@@ -399,108 +328,14 @@ void serial_comm::PeriodicTask(void) {
           "Node %s: speed ref value in writing serial message is out of range.",
           ros::this_node::getName().c_str());
 
-    message_encode(steer_cmd, speed_cmd, _statemachine.state,
-                   _statemachine.info, _message_number);
-
-    size_t _bytes_wrote;
-    try {
-      _bytes_wrote = _serial->write(&(_message_buffer[0]),
-                                    _message_size * sizeof(uint8_t));
-    } catch (std::exception &e) {
+    _telemetry->set_message(&message, steer_cmd, speed_cmd,	0, false, 0, false, _statemachine.state, _statemachine.info, _message_number);
+    if (!_telemetry->send(&message))
       ROS_ERROR("Node %s: cannot write a message to port %s.",
                 ros::this_node::getName().c_str(), _serial_port.c_str());
-    }
   }
 }
 
-bool serial_comm::checksum_verify() {
-  int result = 0;
-  unsigned int sum = 0;
-
-  for (int i = 0; i < (_message_size - 1); i++)
-    sum += _message_buffer[i];
-  result = sum & 0xFF;
-
-  if (_message_buffer[_message_size - 1] != result)
-    return false;
-
-  return true;
-}
-
-void serial_comm::checksum_calculate() {
-  unsigned int sum = 0;
-
-  for (int i = 0; i < (_message_size - 1); i++)
-    sum += _message_buffer[i];
-
-  _message_buffer[_message_size - 1] = sum & 0xFF;
-}
-
-int serial_comm::message_decode(uint16_t &steer_cmd, uint16_t &speed_cmd,
-                                uint16_t &wheel_sx_speed,
-                                uint16_t &wheel_dx_speed, bool &wheel_sx_ccw,
-                                bool &wheel_dx_ccw, uint16_t &arduino_state,
-                                uint16_t &arduino_state_info,
-                                uint16_t &message_num) {
-  /* Return 0 if everything is ok, 1 if there is a checksum error, 2 if the
-   * number of bytes is wrong */
-
-  if (!checksum_verify()) {
-    return 1;
-  } else if (_bytes_read != _message_size)
-    return 2;
-  else {
-    /* Steer ref */
-    memcpy(&steer_cmd, &(_message_buffer[1]), sizeof(uint16_t));
-
-    /* Speed ref */
-    memcpy(&speed_cmd, &(_message_buffer[3]), sizeof(uint16_t));
-
-    /* Wheel speed */
-    memcpy(&wheel_dx_speed, &(_message_buffer[5]), sizeof(uint16_t));
-    memcpy(&wheel_sx_speed, &(_message_buffer[8]), sizeof(uint16_t));
-    wheel_dx_ccw = (_message_buffer[7] == 0x00) ? false : true;
-    wheel_sx_ccw = (_message_buffer[10] == 0x00) ? false : true;
-
-    /* Arduino state messages */
-    arduino_state = _message_buffer[11];
-    arduino_state_info = _message_buffer[12];
-
-    /* Message number */
-    message_num = _message_buffer[13];
-  }
-
-  return 0;
-}
-
-void serial_comm::message_encode(uint16_t steer_cmd, uint16_t speed_cmd,
-                                 uint16_t arduino_state,
-                                 uint16_t arduino_state_info,
-                                 uint16_t message_num) {
-  /* Encode a message into the ouput buffer */
-  memset(&(_message_buffer[0]), 0, _message_size * sizeof(uint8_t));
-
-  /* Initial code */
-  _message_buffer[0] = 0x7E;
-
-  /* Steer command */
-  memcpy(&(_message_buffer[1]), &steer_cmd, sizeof(uint16_t));
-
-  /* Speed command */
-  memcpy(&(_message_buffer[3]), &speed_cmd, sizeof(uint16_t));
-
-  /* Arduino state */
-  _message_buffer[11] = arduino_state;
-  _message_buffer[12] = arduino_state_info;
-
-  /* Message number */
-  _message_buffer[13] = message_num;
-
-  /* Checksum */
-  checksum_calculate();
-}
-
-bool serial_comm::us_to_SIunits(uint16_t value_us, double &value_SIunits,
+bool serial_comm::us_to_SIunits(unsigned int value_us, double &value_SIunits,
                                 std::vector<int> us_range,
                                 std::vector<double> SIunits_range) {
   if ((value_us < us_range.at(0)) || (value_us > us_range.at(1)))
@@ -514,7 +349,7 @@ bool serial_comm::us_to_SIunits(uint16_t value_us, double &value_SIunits,
   return true;
 }
 
-bool serial_comm::SIunits_to_us(uint16_t &value_us, double value_SIunits,
+bool serial_comm::SIunits_to_us(unsigned int &value_us, double value_SIunits,
                                 std::vector<int> us_range,
                                 std::vector<double> SIunits_range) {
   if ((value_SIunits < SIunits_range.at(0)) ||

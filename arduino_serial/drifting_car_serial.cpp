@@ -3,7 +3,7 @@
 
 #include "constant.h"
 #include "type.h"
-#include "telemetry.h"
+#include "telemetryProtocol.h"
 #include "receiver.h"
 #include "encoder.h"
 #include "car_commands.h"
@@ -11,7 +11,7 @@
 #include <TimerOne.h>
 
 //#define DEBUG
-#define TEST_LOOP_TIMING
+//#define TEST_LOOP_TIMING
 
 void timer_callback();
 
@@ -19,7 +19,7 @@ void timer_callback();
 // Setup/Loop global variables                                                                     //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 // Serial transmission
-char message_in[MESSAGE_SIZE], message_out[MESSAGE_SIZE];
+telemetryProtocol telemetry;
 telemetry_message from_odroid, to_odroid;
 
 // Car measures
@@ -31,9 +31,6 @@ int sx_count, dx_count;
 
 // State machine
 state_info arduino_state;
-
-// Errors
-unsigned int message_decode_error;
 
 // Test variables
 #ifdef TEST_LOOP_TIMING
@@ -61,18 +58,12 @@ void setup()
 	// Board initialization                                                                            //
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Initialize global variables
-	for (int k=0; k<MESSAGE_SIZE; k++)
-		message_in[k] = message_out[k] = 0;
-
 	curr_speed = curr_steer = 0;
 	message_counter = 0;
 
 	// Initialize state machine
 	arduino_state.state = SAFE;
 	arduino_state.info = 0;
-
-	// Initialize error messages
-	message_decode_error = 0;
 
 	// Initialize receiver
 	init_receiverIO();
@@ -87,8 +78,8 @@ void setup()
 	init_carcommandsIO();
 
 	// Initialize telemetry messages
-	initialize_odroid_message(&from_odroid);
-	initialize_odroid_message(&to_odroid);
+	telemetry.init_message(&from_odroid);
+	telemetry.init_message(&to_odroid);
 
 	// Initialize task timer
 	Timer1.initialize(LOOP_PERIOD*1000000);
@@ -103,23 +94,22 @@ void setup()
 	// Starting communication                                                                          //
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Sending an empty message to start the communication
-	encode_odroid_message(message_out, &to_odroid);
-
-	if (Serial.write(message_out, MESSAGE_SIZE) != MESSAGE_SIZE)
+	if (!telemetry.send(&to_odroid))
 	{
 		arduino_state.state = HALT;
 		arduino_state.info = FAULT_COMM_BYTENUM;
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	#ifdef DEBUG
+#ifdef DEBUG
 	Serial.println("Board initialized, loop starting...");
-	#endif
+#endif
 
-	#ifdef TEST_LOOP_TIMING
+#ifdef TEST_LOOP_TIMING
 	pinMode(4, OUTPUT);
+	digitalWrite(4, LOW);
 	output_on = false;
-	#endif
+#endif
 }
 
 // The loop function is called in an endless loop
@@ -133,19 +123,14 @@ void timer_callback()
 {
 	if (arduino_state.state != HALT)
 	{
+		// Try to receive a message
+		telemetry.receive();
+
 		// If one complete message is available read it and write one message back
-		if (Serial.available() >= MESSAGE_SIZE)
+		if (telemetry.message_available())
 		{
 			// Read a complete message
-			Serial.readBytes(message_in, MESSAGE_SIZE);
-
-			// Decode the message
-			message_decode_error = decode_odroid_message(message_in, &from_odroid);
-			if (message_decode_error > 0)
-			{
-				arduino_state.state = HALT;
-				arduino_state.info = message_decode_error;
-			}
+			telemetry.read_message(&from_odroid);
 
 			// Get current measures from the radio
 			curr_steer  = get_steer_value_us();
@@ -187,9 +172,9 @@ void timer_callback()
 				to_odroid.wheel_sx_speed     = abs(sx_count);
 				to_odroid.wheel_dx_ccw       = (dx_count < 0) ? true : false;
 				to_odroid.wheel_sx_ccw       = (sx_count < 0) ? true : false;
-				to_odroid.arduino_state      = (unsigned char) arduino_state.state;
-				to_odroid.arduino_state_info = (unsigned char) arduino_state.info;
-				to_odroid.message_number     = (unsigned char) message_counter;
+				to_odroid.arduino_state      = (byte) arduino_state.state;
+				to_odroid.arduino_state_info = (byte) arduino_state.info;
+				to_odroid.message_number     = (byte) message_counter;
 				break;
 
 			case MANUAL:
@@ -214,9 +199,9 @@ void timer_callback()
 				to_odroid.wheel_sx_speed     = abs(sx_count);
 				to_odroid.wheel_dx_ccw       = (dx_count < 0) ? true : false;
 				to_odroid.wheel_sx_ccw       = (sx_count < 0) ? true : false;
-				to_odroid.arduino_state      = (unsigned char) arduino_state.state;
-				to_odroid.arduino_state_info = (unsigned char) arduino_state.info;
-				to_odroid.message_number     = (unsigned char) message_counter;
+				to_odroid.arduino_state      = (byte)arduino_state.state;
+				to_odroid.arduino_state_info = (byte) arduino_state.info;
+				to_odroid.message_number     = (byte) message_counter;
 				break;
 
 			case AUTOMATIC:
@@ -233,9 +218,9 @@ void timer_callback()
 				to_odroid.wheel_sx_speed     = abs(sx_count);
 				to_odroid.wheel_dx_ccw       = (dx_count < 0) ? true : false;
 				to_odroid.wheel_sx_ccw       = (sx_count < 0) ? true : false;
-				to_odroid.arduino_state      = (unsigned char) arduino_state.state;
-				to_odroid.arduino_state_info = (unsigned char) arduino_state.info;
-				to_odroid.message_number     = (unsigned char) message_counter;
+				to_odroid.arduino_state      = (byte) arduino_state.state;
+				to_odroid.arduino_state_info = (byte) arduino_state.info;
+				to_odroid.message_number     = (byte) message_counter;
 				break;
 
 			case HALT:
@@ -251,29 +236,31 @@ void timer_callback()
 				to_odroid.wheel_sx_speed     = abs(sx_count);;
 				to_odroid.wheel_dx_ccw       = (dx_count < 0) ? true : false;
 				to_odroid.wheel_sx_ccw       = (sx_count < 0) ? true : false;
-				to_odroid.arduino_state      = (unsigned char) arduino_state.state;
-				to_odroid.arduino_state_info = (unsigned char) arduino_state.info;
-				to_odroid.message_number     = (unsigned char) message_counter;
+				to_odroid.arduino_state      = (byte) arduino_state.state;
+				to_odroid.arduino_state_info = (byte) arduino_state.info;
+				to_odroid.message_number     = (byte) message_counter;
 				break;
 			}
 
-			// Encode the message
-			encode_odroid_message(message_out, &to_odroid);
-
-			// Write the message back
-			if (Serial.write(message_out, MESSAGE_SIZE) != MESSAGE_SIZE)
-			{
-				arduino_state.state = HALT;
-				arduino_state.info = FAULT_COMM_BYTENUM;
-			}
-
 			// Update message counter
-			if (message_counter<254)
+			if (message_counter<250)
 				message_counter++;
 			else
 				message_counter = 0;
 
-			#ifdef TEST_LOOP_TIMING
+			if (message_counter == 125) {
+				if (arduino_state.state == SAFE)
+					arduino_state.state = MANUAL;
+				else {
+					if (arduino_state.state == MANUAL)
+						arduino_state.state = AUTOMATIC;
+					else {
+						if (arduino_state.state == AUTOMATIC)
+							arduino_state.state = SAFE;
+					}
+				}
+			}
+#ifdef TEST_LOOP_TIMING
 			if (output_on)
 			{
 				output_on = false;
@@ -284,10 +271,17 @@ void timer_callback()
 				output_on = true;
 				digitalWrite(4, HIGH);
 			}
-			#endif
+#endif
 		}
 
-		#ifdef DEBUG
+		// Write the message back
+		if (!telemetry.send(&to_odroid))
+		{
+			arduino_state.state = HALT;
+			arduino_state.info = FAULT_COMM_BYTENUM;
+		}
+
+#ifdef DEBUG
 		if (message_counter<254)
 			message_counter++;
 		else
@@ -295,7 +289,7 @@ void timer_callback()
 
 		Serial.print("message number: ");
 		Serial.println(message_counter);
-		#endif
+#endif
 	}
 
 	// In case of HALT state set speed and steer to zero and start blinking led "L"
