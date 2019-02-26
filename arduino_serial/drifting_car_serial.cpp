@@ -248,18 +248,6 @@ void timer_callback()
 			else
 				message_counter = 0;
 
-			if (message_counter == 125) {
-				if (arduino_state.state == SAFE)
-					arduino_state.state = MANUAL;
-				else {
-					if (arduino_state.state == MANUAL)
-						arduino_state.state = AUTOMATIC;
-					else {
-						if (arduino_state.state == AUTOMATIC)
-							arduino_state.state = SAFE;
-					}
-				}
-			}
 #ifdef TEST_LOOP_TIMING
 			if (output_on)
 			{
