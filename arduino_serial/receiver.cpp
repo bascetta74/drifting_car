@@ -171,10 +171,10 @@ ISR (PCINT1_vect)
 		receiver_button.pulse_state = 0;
 
 		// Update button state
-		if (receiver_button.pulse_duration < 100)	// Introduce to handle initialization
+		if (receiver_button.pulse_duration < BUTTON_DEAD_ZONE)	// Introduce to handle initialization
 			receiver_button.button_state = 0;
-		else if ((receiver_button.pulse_duration>(receiver_current_time-receiver_button.edge_time+100)) ||
-				(receiver_button.pulse_duration<(receiver_current_time-receiver_button.edge_time-100)))
+		else if ((receiver_button.pulse_duration>(receiver_current_time-receiver_button.edge_time+BUTTON_DEAD_ZONE)) ||
+				(receiver_button.pulse_duration<(receiver_current_time-receiver_button.edge_time-BUTTON_DEAD_ZONE)))
 			receiver_button.button_state = 1;
 
 		receiver_button.pulse_duration = receiver_current_time-receiver_button.edge_time;

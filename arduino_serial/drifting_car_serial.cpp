@@ -8,12 +8,9 @@
 #include "encoder.h"
 #include "car_commands.h"
 
-#include <TimerOne.h>
-
 //#define DEBUG
 //#define TEST_LOOP_TIMING
 
-void timer_callback();
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 // Setup/Loop global variables                                                                     //
@@ -36,6 +33,9 @@ state_info arduino_state;
 #ifdef TEST_LOOP_TIMING
 bool output_on;
 #endif
+
+// Loop time
+unsigned long loop_start, loop_end;
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -70,9 +70,9 @@ void setup()
 	init_receiverInterrupts();
 
 	// Initialize encoder
-	init_encoderIO();
-	init_encoderInterrupts();
-	set_encoderConfiguration(ENC_A_RISING, ENC_A_RISING);
+//	init_encoderIO();
+//	init_encoderInterrupts();
+//	set_encoderConfiguration(ENC_A_RISING, ENC_A_RISING);
 
 	// Initialize steer and speed
 	init_carcommandsIO();
@@ -81,13 +81,22 @@ void setup()
 	telemetry.init_message(&from_odroid);
 	telemetry.init_message(&to_odroid);
 
-	// Initialize task timer
-	Timer1.initialize(LOOP_PERIOD*1000000);
-	Timer1.attachInterrupt(timer_callback);
-
 	// Set led "L" to show when the system is in HALT state
 	pinMode(13, OUTPUT);
 	digitalWrite(13, HIGH);
+
+	// Initialize state pins
+	pinMode(SAFE_STATE_PIN, OUTPUT);
+	digitalWrite(SAFE_STATE_PIN, HIGH);
+	pinMode(MANUAL_STATE_PIN, OUTPUT);
+	digitalWrite(MANUAL_STATE_PIN, LOW);
+	pinMode(AUTOMATIC_STATE_PIN, OUTPUT);
+	digitalWrite(AUTOMATIC_STATE_PIN, LOW);
+	pinMode(HALT_STATE_PIN, OUTPUT);
+	digitalWrite(HALT_STATE_PIN, LOW);
+
+	// Initialize loop time
+	loop_start = micros();
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -115,14 +124,43 @@ void setup()
 // The loop function is called in an endless loop
 void loop()
 {
-	// Do nothing
-}
+	// Take initial time
+	loop_start = micros();
 
-// Timed periodic loop
-void timer_callback()
-{
 	if (arduino_state.state != HALT)
 	{
+		// Update the state machine state
+		if (is_receiver_button_pressed())
+		{
+			if (arduino_state.state == SAFE)
+			{
+				arduino_state.state = MANUAL;
+				arduino_state.info  = 0;
+
+				// Update state pins
+				digitalWrite(SAFE_STATE_PIN, LOW);
+				digitalWrite(MANUAL_STATE_PIN, HIGH);
+			}
+			else if (arduino_state.state == MANUAL)
+			{
+				arduino_state.state = AUTOMATIC;
+				arduino_state.info  = 0;
+
+				// Update state pins
+				digitalWrite(MANUAL_STATE_PIN, LOW);
+				digitalWrite(AUTOMATIC_STATE_PIN, HIGH);
+			}
+			else if (arduino_state.state == AUTOMATIC)
+			{
+				arduino_state.state = MANUAL;
+				arduino_state.info  = 0;
+
+				// Update state pins
+				digitalWrite(AUTOMATIC_STATE_PIN, LOW);
+				digitalWrite(MANUAL_STATE_PIN, HIGH);
+			}
+		}
+
 		// Try to receive a message
 		telemetry.receive();
 
@@ -135,26 +173,6 @@ void timer_callback()
 			// Get current measures from the radio
 			curr_steer  = get_steer_value_us();
 			curr_speed  = get_speed_value_us();
-
-			// Update the state machine state
-			if (is_receiver_button_pressed())
-			{
-				if (arduino_state.state == SAFE)
-				{
-					arduino_state.state = MANUAL;
-					arduino_state.info  = 0;
-				}
-				else if (arduino_state.state == MANUAL)
-				{
-					arduino_state.state = AUTOMATIC;
-					arduino_state.info  = 0;
-				}
-				else if (arduino_state.state == AUTOMATIC)
-				{
-					arduino_state.state = MANUAL;
-					arduino_state.info  = 0;
-				}
-			}
 
 			// Execute the current state task
 			switch (arduino_state.state)
@@ -199,7 +217,7 @@ void timer_callback()
 				to_odroid.wheel_sx_speed     = abs(sx_count);
 				to_odroid.wheel_dx_ccw       = (dx_count < 0) ? true : false;
 				to_odroid.wheel_sx_ccw       = (sx_count < 0) ? true : false;
-				to_odroid.arduino_state      = (byte)arduino_state.state;
+				to_odroid.arduino_state      = (byte) arduino_state.state;
 				to_odroid.arduino_state_info = (byte) arduino_state.info;
 				to_odroid.message_number     = (byte) message_counter;
 				break;
@@ -288,5 +306,19 @@ void timer_callback()
 
 		// Switch off "L" led to show the system is in HALT state
 		digitalWrite(13, LOW);
+
+		// Update state pins
+		digitalWrite(SAFE_STATE_PIN, LOW);
+		digitalWrite(MANUAL_STATE_PIN, LOW);
+		digitalWrite(AUTOMATIC_STATE_PIN, LOW);
+		digitalWrite(HALT_STATE_PIN, HIGH);
 	}
+
+	// Wait before starting again
+	loop_end = micros();
+	if (LOOP_PERIOD*1e6-(loop_end-loop_start)>0)
+		delayMicroseconds(LOOP_PERIOD*1e6-(loop_end-loop_start));
+	else
+		delayMicroseconds(1000);
 }
+
