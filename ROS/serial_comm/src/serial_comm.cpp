@@ -47,16 +47,13 @@ void serial_comm::Prepare(void) {
               ros::this_node::getName().c_str(), FullParamName.c_str());
 
   /* ROS topics */
-  controllerCommand_subscriber =
-      Handle.subscribe("/controller_cmd", 1,
-                       &serial_comm::controllerCommand_MessageCallback, this);
+  controllerCommand_subscriber = Handle.subscribe("/controller_cmd", 1, &serial_comm::controllerCommand_MessageCallback, this);
+
   radioCommand_publisher = Handle.advertise<car_msgs::car_cmd>("/radio_cmd", 1);
-  wheelSpeed_publisher =
-      Handle.advertise<car_msgs::wheel_spd>("/wheel_speed", 1);
+  wheelSpeed_publisher = Handle.advertise<car_msgs::wheel_spd>("/wheel_speed", 1);
 
 #ifdef TEST_COMM
-  controllerCommand_publisher =
-      Handle.advertise<car_msgs::car_cmd>("/test_comm_controller_cmd", 1);
+  controllerCommand_publisher = Handle.advertise<car_msgs::car_cmd>("/test_comm_controller_cmd", 1);
 #endif
 
   /* Initialize node state */
