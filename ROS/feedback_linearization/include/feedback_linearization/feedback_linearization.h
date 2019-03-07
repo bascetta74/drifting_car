@@ -4,10 +4,6 @@
 #include "ros/ros.h"
 #include <vector>
 
-//#define SPALIVIERO
-//#define LOPEZ_I
-#define LOPEZ_II
-
 #define OPEN_LOOP_TEST
 //#define CLOSED_LOOP_TEST
 
@@ -19,18 +15,11 @@
 #include <sensor_msgs/Imu.h>
 #include <geometry_msgs/Pose2D.h>
 #include "car_msgs/simulated_telemetry.h"
+#include "car_msgs/car_cmd.h"
 
 #include <boost/circular_buffer.hpp>
 
-#ifdef SPALIVIERO
-#include "fblin_spaliviero.h"
-#endif
-#ifdef LOPEZ_I
-#include "fblin_lopez_I.h"
-#endif
-#ifdef LOPEZ_II
 #include "fblin_lopez_II.h"
-#endif
 
  
 class feedback_linearization
@@ -40,7 +29,7 @@ class feedback_linearization
     
     /* ROS topics */
     ros::Subscriber vehiclePose_subscriber, telemetry_subscriber;
-    ros::Subscriber vehicleIMU_subscriber;
+    ros::Subscriber vehicleIMU_subscriber, radiocmd_subscriber;
     ros::Publisher controllerCommand_publisher;
     ros::Publisher vehicleState_publisher, pointPact_publisher, pointPref_publisher, pointPvelocity_publisher, vehicleRef_publisher;
     
@@ -56,27 +45,21 @@ class feedback_linearization
     void vehiclePose_MessageCallback(const geometry_msgs::Pose2D::ConstPtr& msg);
     void vehicleIMU_MessageCallback(const sensor_msgs::Imu::ConstPtr& msg);
     void simulated_telemetry_MessageCallback(const car_msgs::simulated_telemetry::ConstPtr& msg);
+    void radioCommand_MessageCallback(const car_msgs::car_cmd::ConstPtr& msg);
  
     /* Estimator periodic task */
     void PeriodicTask(void);
     
     /* Node state variables */
     double _time;
+    unsigned int _car_control_state;
     double _vehicleSideslip, _vehicleAngularVelocity;
     std::vector<double> _vehiclePose, _vehicleVelocity;
     std::vector<double> _vehicleAcceleration;
     boost::circular_buffer<double> _vehiclePositionXBuffer, _vehiclePositionYBuffer, _vehicleHeadingBuffer;
     boost::circular_buffer<double> _vehicleAccelerationXBuffer, _vehicleAccelerationYBuffer, _vehicleYawRateBuffer;
 
-    #ifdef SPALIVIERO
-    fblin_spaliviero* _linearizer;
-    #endif
-    #ifdef LOPEZ_I
-    fblin_lopez_I* _linearizer;
-    #endif
-    #ifdef LOPEZ_II
     fblin_lopez_II* _linearizer;
-    #endif
     
   public:
     double RunPeriod;

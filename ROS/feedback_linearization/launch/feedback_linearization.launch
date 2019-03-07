@@ -19,10 +19,9 @@
   </node>
 
   <!--- Run IMU node -->
-<!--  <node pkg="myahrs_driver" type="myahrs_driver" name="myahrs_driver">
+  <node pkg="myahrs_driver" type="myahrs_driver" name="myahrs_driver">
     <rosparam file="$(find myahrs_driver)/config/myahrs_params.yaml" command="load" />
   </node>
--->
 
   <!--- Run feedback_linearization node -->
   <node pkg="feedback_linearization" type="feedback_linearization" respawn="false" name="feedback_linearization" output="screen">
