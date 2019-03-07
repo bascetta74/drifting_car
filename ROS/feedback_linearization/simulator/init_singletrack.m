@@ -34,14 +34,12 @@ psi_noiseVar  = 9e-7;
 r_noiseVar    = 1e-10;
 
 % Feedback linearization parameters
-P = 0.5;
+P = 0.3;
 fblin_Ts = 0.01;
+fblin_car_param = car_param;
 
 % Beta estimator parameters
 vel_fir = [0.0144, 0.0295, 0.0763, 0.0823, 0.0355, -0.0355, -0.0823, -0.0763, -0.0295, -0.0144]; % 5 Hz lowpass
 psi_fir = [0.0144, 0.0439, 0.1202, 0.2025, 0.2380, 0.2025, 0.1202, 0.0439, 0.0144]; % 5 Hz lowpass
 beta_velocity_threshold = 0.05;
 
-% Trajectory parameters
-R = 0.25;
-w = 1;
