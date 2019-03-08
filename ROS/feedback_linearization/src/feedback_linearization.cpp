@@ -332,15 +332,26 @@ void feedback_linearization::PeriodicTask(void)
       
     /* Position controller / open loop test */
     #ifdef OPEN_LOOP_TEST
-      if (_vehiclePose.at(0)<=1.0)
-        vPx = 0.4;
-      else
-        vPx = 0.1;
-
-      if (_vehiclePose.at(1)<=1.0)
+      if (_time<=2.5)
+      {
+        vPx = 0.45;
         vPy = 0.0;
+      }
+      else if (_time<=4.0)
+      {
+        vPx = 0.25;
+        vPy = 0.45;
+      }
+      else if (_time<=5.5)
+      {
+        vPx = 0.0;
+        vPy = 0.0;
+      }
       else
-        vPy = 0.4;
+      {
+        vPx = 0.0;
+        vPy = 0.0;
+      }
     #endif
     #ifdef CLOSED_LOOP_TEST
       vPx = KPx*(xPref-xP);
