@@ -301,6 +301,9 @@ void feedback_linearization::PeriodicTask(void)
 
   if (_car_control_state == car_msgs::car_cmd::STATE_AUTOMATIC)
   {
+    /* Set time variable */
+    _time = (ros::Time::now()-_t0).toSec()+(ros::Time::now()-_t0).toNSec()*1.0e-9;
+
     /* Reference trajectory generation */
     // Line
     xref = yref = 0.5*_time;
@@ -329,12 +332,15 @@ void feedback_linearization::PeriodicTask(void)
       
     /* Position controller / open loop test */
     #ifdef OPEN_LOOP_TEST
-      if (_time<=5)
+      if (_vehiclePose.at(0)<=1.0)
         vPx = 0.4;
       else
         vPx = 0.1;
 
-      vPy = 0.0; //0.5/(1.0+exp(-20.0*(_time-1.0)));
+      if (_vehiclePose.at(1)<=1.0)
+        vPy = 0.0;
+      else
+        vPy = 0.4;
     #endif
     #ifdef CLOSED_LOOP_TEST
       vPx = KPx*(xPref-xP);
@@ -347,10 +353,7 @@ void feedback_linearization::PeriodicTask(void)
       _linearizer->control_transformation(vPx, vPy, speed, steer);
     else
       ROS_ERROR("Error, no feedback linearization has been activated");
-      
-    /* Updating time */
-    _time = _time+RunPeriod;
-    
+        
     /* Publishing car command values */
     car_msgs::car_cmd msg;
     if (use_sim_time)
@@ -368,6 +371,8 @@ void feedback_linearization::PeriodicTask(void)
   else
   {
     _time = 0;
+
+    _t0 = ros::Time::now();
     
     xref = yref = 0;
     xPref = yPref = 0;
