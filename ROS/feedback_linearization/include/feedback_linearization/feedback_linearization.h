@@ -56,9 +56,8 @@ class feedback_linearization
     unsigned int _car_control_state;
     double _vehicleSideslip, _vehicleAngularVelocity;
     std::vector<double> _vehiclePose, _vehicleVelocity;
-    std::vector<double> _vehicleAcceleration;
-    boost::circular_buffer<double> _vehiclePositionXBuffer, _vehiclePositionYBuffer, _vehicleHeadingBuffer;
-    boost::circular_buffer<double> _vehicleAccelerationXBuffer, _vehicleAccelerationYBuffer, _vehicleYawRateBuffer;
+    boost::circular_buffer<double> _vehiclePositionXBuffer, _vehiclePositionYBuffer;
+    boost::circular_buffer<double> _vehicleYawRateBuffer;
 
     fblin_lopez_II* _linearizer;
     

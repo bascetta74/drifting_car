@@ -108,19 +108,12 @@ void feedback_linearization::Prepare(void)
 
  _vehiclePose.assign(3, 0.0);
  _vehicleVelocity.assign(2, 0.0);
- _vehicleAcceleration.assign(2, 0.0);
 
  _vehiclePositionXBuffer.set_capacity(vel_filt_order);
  std::fill(_vehiclePositionXBuffer.begin(), _vehiclePositionXBuffer.end(), 0.0);
  _vehiclePositionYBuffer.set_capacity(vel_filt_order);
  std::fill(_vehiclePositionYBuffer.begin(), _vehiclePositionYBuffer.end(), 0.0);
- _vehicleHeadingBuffer.set_capacity(lowpass_filt_order);
- std::fill(_vehicleHeadingBuffer.begin(), _vehicleHeadingBuffer.end(), 0.0);
- _vehicleAccelerationXBuffer.set_capacity(lowpass_filt_order);
- std::fill(_vehicleAccelerationXBuffer.begin(), _vehicleAccelerationXBuffer.end(), 0.0);
- _vehicleAccelerationYBuffer.set_capacity(lowpass_filt_order);
- std::fill(_vehicleAccelerationYBuffer.begin(), _vehicleAccelerationYBuffer.end(), 0.0);
- _vehicleYawRateBuffer.set_capacity(lowpass_filt_order);
+ _vehicleYawRateBuffer.set_capacity(vel_filt_order);
  std::fill(_vehicleYawRateBuffer.begin(), _vehicleYawRateBuffer.end(), 0.0);
 
  _linearizer = NULL;
@@ -173,7 +166,6 @@ void feedback_linearization::vehiclePose_MessageCallback(const geometry_msgs::Po
       /* Updating position and heading buffer */
       _vehiclePositionXBuffer.push_back(msg->x);
       _vehiclePositionYBuffer.push_back(msg->y);
-      _vehicleHeadingBuffer.push_back(msg->theta + theta_offset);
 
       /* Compute vehicle cog velocity (vx, vy) through a low-pass differentiator FIR filter */
       _vehicleVelocity.at(0) = 0.0;
@@ -187,22 +179,10 @@ void feedback_linearization::vehiclePose_MessageCallback(const geometry_msgs::Po
       for (boost::circular_buffer<double>::reverse_iterator it_posY = _vehiclePositionYBuffer.rbegin(); it_posY != _vehiclePositionYBuffer.rend(); it_posY++, it_coeff++)
         _vehicleVelocity.at(1) += (*it_coeff) * (*it_posY / RunPeriod);
 
-      /* Low-pass filtered vehicle 2D pose */
-      _vehiclePose.at(0) = 0.0;
-      _vehiclePose.at(1) = 0.0;
-      _vehiclePose.at(2) = 0.0;
-
-      it_coeff = lowpass_filt_coeff.begin();
-      for (boost::circular_buffer<double>::reverse_iterator it_posX = _vehiclePositionXBuffer.rbegin(); it_posX != _vehiclePositionXBuffer.rend(); it_posX++, it_coeff++)
-        _vehiclePose.at(0) += (*it_coeff) * (*it_posX);
-
-      it_coeff = lowpass_filt_coeff.begin();
-      for (boost::circular_buffer<double>::reverse_iterator it_posY = _vehiclePositionYBuffer.rbegin(); it_posY != _vehiclePositionYBuffer.rend(); it_posY++, it_coeff++)
-        _vehiclePose.at(1) += (*it_coeff) * (*it_posY);
-
-      it_coeff = lowpass_filt_coeff.begin();
-      for (boost::circular_buffer<double>::reverse_iterator it_heading = _vehicleHeadingBuffer.rbegin(); it_heading != _vehicleHeadingBuffer.rend(); it_heading++, it_coeff++)
-        _vehiclePose.at(2) += (*it_coeff) * (*it_heading);
+      /* Vehicle 2D pose */
+      _vehiclePose.at(0) = msg->x;
+      _vehiclePose.at(1) = msg->y;
+      _vehiclePose.at(2) = msg->theta + theta_offset;
 
       /* Vehicle sideslip */
       if (sqrt(pow(_vehicleVelocity.at(0), 2) + pow(_vehicleVelocity.at(1), 2)) > speed_thd)
@@ -213,11 +193,13 @@ void feedback_linearization::vehiclePose_MessageCallback(const geometry_msgs::Po
     }
     else
     {
-       std::fill(_vehiclePositionXBuffer.begin(), _vehiclePositionXBuffer.end(), 0.0);
-       std::fill(_vehiclePositionYBuffer.begin(), _vehiclePositionYBuffer.end(), 0.0);
-       std::fill(_vehicleHeadingBuffer.begin(), _vehicleHeadingBuffer.end(), 0.0);
+       std::fill(_vehiclePositionXBuffer.begin(), _vehiclePositionXBuffer.end(), msg->x);
+       std::fill(_vehiclePositionYBuffer.begin(), _vehiclePositionYBuffer.end(), msg->y);
        
-       _vehiclePose.at(0) = _vehiclePose.at(1) = _vehiclePose.at(2) = 0.0;
+       _vehiclePose.at(0) = msg->x;
+       _vehiclePose.at(1) = msg->y;
+       _vehiclePose.at(2) = msg->theta;
+
        _vehicleVelocity.at(0) = _vehicleVelocity.at(1) = 0.0;
 
        _vehicleSideslip = 0.0;
@@ -239,43 +221,26 @@ void feedback_linearization::vehicleIMU_MessageCallback(const sensor_msgs::Imu::
   {
     if (_car_control_state == car_msgs::car_cmd::STATE_AUTOMATIC)
     {
-      /* Updating acceleration and yaw rate buffer */
-      _vehicleAccelerationXBuffer.push_back(msg->linear_acceleration.x);
-      _vehicleAccelerationYBuffer.push_back(msg->linear_acceleration.y);
-      _vehicleYawRateBuffer.push_back(msg->angular_velocity.z);
+      /* Updating yaw rate buffer */
+//      _vehicleYawRateBuffer.push_back(msg->angular_velocity.z);
     
-      /* Low-pass filtered vehicle acceleration and yaw */
-      _vehicleAcceleration.at(0) = 0.0;
-      _vehicleAcceleration.at(1) = 0.0;
-      _vehicleAngularVelocity    = 0.0;
+      /* Low-pass filtered vehicle yaw rate */
+      _vehicleAngularVelocity = msg->angular_velocity.z; //0.0;
     
-      std::vector<double>::iterator it_coeff = lowpass_filt_coeff.begin();
-      for(boost::circular_buffer<double>::reverse_iterator it_accX = _vehicleAccelerationXBuffer.rbegin(); it_accX != _vehicleAccelerationXBuffer.rend(); it_accX++, it_coeff++)
-        _vehicleAcceleration.at(0) += (*it_coeff)*(*it_accX);
-
-      it_coeff = lowpass_filt_coeff.begin();
-      for(boost::circular_buffer<double>::reverse_iterator it_accY = _vehicleAccelerationYBuffer.rbegin(); it_accY != _vehicleAccelerationYBuffer.rend(); it_accY++, it_coeff++)
-        _vehicleAcceleration.at(1) += (*it_coeff)*(*it_accY);
-
-      it_coeff = lowpass_filt_coeff.begin();
-      for(boost::circular_buffer<double>::reverse_iterator it_yawRate = _vehicleYawRateBuffer.rbegin(); it_yawRate != _vehicleYawRateBuffer.rend(); it_yawRate++, it_coeff++)
-        _vehicleAngularVelocity += (*it_coeff)*(*it_yawRate);
+//      std::vector<double>::iterator it_coeff = lowpass_filt_coeff.begin();
+//      for(boost::circular_buffer<double>::reverse_iterator it_yawRate = _vehicleYawRateBuffer.rbegin(); it_yawRate != _vehicleYawRateBuffer.rend(); it_yawRate++, it_coeff++)
+//        _vehicleAngularVelocity += (*it_coeff)*(*it_yawRate);
     }
     else
     {
-      std::fill(_vehicleAccelerationXBuffer.begin(), _vehicleAccelerationXBuffer.end(), 0.0);
-      std::fill(_vehicleAccelerationYBuffer.begin(), _vehicleAccelerationYBuffer.end(), 0.0);
-      std::fill(_vehicleYawRateBuffer.begin(), _vehicleYawRateBuffer.end(), 0.0);
+//      std::fill(_vehicleYawRateBuffer.begin(), _vehicleYawRateBuffer.end(), 0.0);
 
-      _vehicleAcceleration.at(0) = _vehicleAcceleration.at(1) = 0.0;
       _vehicleAngularVelocity = 0.0;
     }
   }
   else
   {
-    /* Updating acceleration and yaw rate */
-    _vehicleAcceleration.at(0) = msg->linear_acceleration.x;
-    _vehicleAcceleration.at(1) = msg->linear_acceleration.y;
+    /* Updating yaw rate */
     _vehicleAngularVelocity    = msg->angular_velocity.z;
   }
 }
@@ -400,8 +365,8 @@ void feedback_linearization::PeriodicTask(void)
   vehicleStateMsg.data.push_back(_vehicleVelocity.at(0));
   vehicleStateMsg.data.push_back(_vehicleVelocity.at(1));
   vehicleStateMsg.data.push_back(_vehicleSideslip);
-  vehicleStateMsg.data.push_back(_vehicleAcceleration.at(0));
-  vehicleStateMsg.data.push_back(_vehicleAcceleration.at(1));
+  vehicleStateMsg.data.push_back(0);
+  vehicleStateMsg.data.push_back(0);
   vehicleStateMsg.data.push_back(_vehicleAngularVelocity);
   vehicleState_publisher.publish(vehicleStateMsg);
   
