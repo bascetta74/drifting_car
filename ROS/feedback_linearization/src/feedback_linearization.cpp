@@ -55,12 +55,6 @@ void feedback_linearization::Prepare(void)
  if (false == Handle.getParam(FullParamName, speed_thd))
   ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str()); 
 
- FullParamName = ros::this_node::getName()+"/lowpass_filt_coeff";
- if (false == Handle.getParam(FullParamName, lowpass_filt_coeff))
-  ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str()); 
- else
-  lowpass_filt_order = (unsigned int)lowpass_filt_coeff.size();
-
  FullParamName = ros::this_node::getName()+"/vel_filt_coeff";
  if (false == Handle.getParam(FullParamName, vel_filt_coeff))
   ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str()); 
@@ -113,8 +107,6 @@ void feedback_linearization::Prepare(void)
  std::fill(_vehiclePositionXBuffer.begin(), _vehiclePositionXBuffer.end(), 0.0);
  _vehiclePositionYBuffer.set_capacity(vel_filt_order);
  std::fill(_vehiclePositionYBuffer.begin(), _vehiclePositionYBuffer.end(), 0.0);
- _vehicleYawRateBuffer.set_capacity(vel_filt_order);
- std::fill(_vehicleYawRateBuffer.begin(), _vehicleYawRateBuffer.end(), 0.0);
 
  _linearizer = NULL;
  _linearizer = new fblin_lopez_II(P_dist,RunPeriod);
@@ -161,11 +153,17 @@ void feedback_linearization::vehiclePose_MessageCallback(const geometry_msgs::Po
 {
   if (!use_ideal_sim)
   {
+    /* Updating position buffer */
+    _vehiclePositionXBuffer.push_back(msg->x);
+    _vehiclePositionYBuffer.push_back(msg->y);
+
+    /* Updating 2D pose */
+    _vehiclePose.at(0) = msg->x;
+    _vehiclePose.at(1) = msg->y;
+    _vehiclePose.at(2) = msg->theta + theta_offset;
+
     if (_car_control_state == car_msgs::car_cmd::STATE_AUTOMATIC)
     {
-      /* Updating position and heading buffer */
-      _vehiclePositionXBuffer.push_back(msg->x);
-      _vehiclePositionYBuffer.push_back(msg->y);
 
       /* Compute vehicle cog velocity (vx, vy) through a low-pass differentiator FIR filter */
       _vehicleVelocity.at(0) = 0.0;
@@ -179,11 +177,6 @@ void feedback_linearization::vehiclePose_MessageCallback(const geometry_msgs::Po
       for (boost::circular_buffer<double>::reverse_iterator it_posY = _vehiclePositionYBuffer.rbegin(); it_posY != _vehiclePositionYBuffer.rend(); it_posY++, it_coeff++)
         _vehicleVelocity.at(1) += (*it_coeff) * (*it_posY / RunPeriod);
 
-      /* Vehicle 2D pose */
-      _vehiclePose.at(0) = msg->x;
-      _vehiclePose.at(1) = msg->y;
-      _vehiclePose.at(2) = msg->theta + theta_offset;
-
       /* Vehicle sideslip */
       if (sqrt(pow(_vehicleVelocity.at(0), 2) + pow(_vehicleVelocity.at(1), 2)) > speed_thd)
         _vehicleSideslip = atan2(-_vehicleVelocity.at(0) * sin(_vehiclePose.at(2)) + _vehicleVelocity.at(1) * cos(_vehiclePose.at(2)),
@@ -193,16 +186,9 @@ void feedback_linearization::vehiclePose_MessageCallback(const geometry_msgs::Po
     }
     else
     {
-       std::fill(_vehiclePositionXBuffer.begin(), _vehiclePositionXBuffer.end(), msg->x);
-       std::fill(_vehiclePositionYBuffer.begin(), _vehiclePositionYBuffer.end(), msg->y);
-       
-       _vehiclePose.at(0) = msg->x;
-       _vehiclePose.at(1) = msg->y;
-       _vehiclePose.at(2) = msg->theta;
-
-       _vehicleVelocity.at(0) = _vehicleVelocity.at(1) = 0.0;
-
-       _vehicleSideslip = 0.0;
+      // Reset vehicle velocity and sideslip
+      _vehicleVelocity.at(0) = _vehicleVelocity.at(1) = 0.0;
+      _vehicleSideslip = 0.0;
     }
   }
   else
@@ -217,32 +203,8 @@ void feedback_linearization::vehiclePose_MessageCallback(const geometry_msgs::Po
 
 void feedback_linearization::vehicleIMU_MessageCallback(const sensor_msgs::Imu::ConstPtr& msg)
 {
-  if (!use_ideal_sim)
-  {
-    if (_car_control_state == car_msgs::car_cmd::STATE_AUTOMATIC)
-    {
-      /* Updating yaw rate buffer */
-//      _vehicleYawRateBuffer.push_back(msg->angular_velocity.z);
-    
-      /* Low-pass filtered vehicle yaw rate */
-      _vehicleAngularVelocity = msg->angular_velocity.z; //0.0;
-    
-//      std::vector<double>::iterator it_coeff = lowpass_filt_coeff.begin();
-//      for(boost::circular_buffer<double>::reverse_iterator it_yawRate = _vehicleYawRateBuffer.rbegin(); it_yawRate != _vehicleYawRateBuffer.rend(); it_yawRate++, it_coeff++)
-//        _vehicleAngularVelocity += (*it_coeff)*(*it_yawRate);
-    }
-    else
-    {
-//      std::fill(_vehicleYawRateBuffer.begin(), _vehicleYawRateBuffer.end(), 0.0);
-
-      _vehicleAngularVelocity = 0.0;
-    }
-  }
-  else
-  {
-    /* Updating yaw rate */
-    _vehicleAngularVelocity    = msg->angular_velocity.z;
-  }
+  /* Updating yaw rate */
+  _vehicleAngularVelocity    = msg->angular_velocity.z;
 }
 
 void feedback_linearization::simulated_telemetry_MessageCallback(const car_msgs::simulated_telemetry::ConstPtr& msg)
@@ -359,14 +321,13 @@ void feedback_linearization::PeriodicTask(void)
   /* Publishing for data logging */
   std_msgs::Float64MultiArray vehicleStateMsg;
   vehicleStateMsg.data.clear();
+  vehicleStateMsg.data.push_back(_time);
   vehicleStateMsg.data.push_back(_vehiclePose.at(0));
   vehicleStateMsg.data.push_back(_vehiclePose.at(1));
   vehicleStateMsg.data.push_back(_vehiclePose.at(2));
   vehicleStateMsg.data.push_back(_vehicleVelocity.at(0));
   vehicleStateMsg.data.push_back(_vehicleVelocity.at(1));
   vehicleStateMsg.data.push_back(_vehicleSideslip);
-  vehicleStateMsg.data.push_back(0);
-  vehicleStateMsg.data.push_back(0);
   vehicleStateMsg.data.push_back(_vehicleAngularVelocity);
   vehicleState_publisher.publish(vehicleStateMsg);
   

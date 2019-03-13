@@ -38,8 +38,8 @@ class feedback_linearization
     double P_dist, speed_thd, KPx, KPy;
     double theta_offset;
     bool use_ideal_sim, use_sim_time;
-    unsigned int vel_filt_order, lowpass_filt_order;
-    std::vector<double> vel_filt_coeff, lowpass_filt_coeff;
+    unsigned int vel_filt_order;
+    std::vector<double> vel_filt_coeff;
 
     /* ROS topic callbacks */
     void vehiclePose_MessageCallback(const geometry_msgs::Pose2D::ConstPtr& msg);
@@ -57,7 +57,6 @@ class feedback_linearization
     double _vehicleSideslip, _vehicleAngularVelocity;
     std::vector<double> _vehiclePose, _vehicleVelocity;
     boost::circular_buffer<double> _vehiclePositionXBuffer, _vehiclePositionYBuffer;
-    boost::circular_buffer<double> _vehicleYawRateBuffer;
 
     fblin_lopez_II* _linearizer;
     
