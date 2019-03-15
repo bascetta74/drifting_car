@@ -229,7 +229,7 @@ void feedback_linearization::PeriodicTask(void)
   if (_car_control_state == car_msgs::car_cmd::STATE_AUTOMATIC)
   {
     /* Set time variable */
-    _time = (ros::Time::now()-_t0).toSec()+(ros::Time::now()-_t0).toNSec()*1.0e-9;
+    _time = (ros::Time::now()-_t0).toNSec()*1.0e-9;
 
     /* Reference trajectory generation */
     // Line
