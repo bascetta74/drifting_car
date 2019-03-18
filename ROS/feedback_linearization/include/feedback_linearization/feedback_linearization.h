@@ -4,8 +4,8 @@
 #include "ros/ros.h"
 #include <vector>
 
-#define OPEN_LOOP_TEST
-//#define CLOSED_LOOP_TEST
+//#define OPEN_LOOP_TEST
+#define CLOSED_LOOP_TEST
 
 #define RUN_PERIOD_DEFAULT 0.1
 /* Used only if the actual value of the period is not retrieved from the ROS parameter server */

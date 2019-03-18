@@ -237,10 +237,17 @@ void feedback_linearization::PeriodicTask(void)
 
     /* Reference trajectory generation */
     // Line
-    xref = yref = 0.5*_time;
+    //xref = fmax(0.9-0.4*_time, -1.8); 
+    //yref = fmax(2.1-0.4*_time, -0.5);
     // Circle
-    //xref = -0.5 + 1.0*cos(0.1*_time-0.5*M_PI);
-    //yref =  1.0 + 1.0*sin(0.1*_time-0.5*M_PI);
+    double omega;
+    if (_time<=5.0)
+      omega = 1.0;
+    else
+      omega = fmin(1.0+0.05*(_time-5.0),2.0);
+
+    xref = -0.62 + 1.0*cos(omega*_time+0.5*M_PI);
+    yref =  0.35 + 1.0*sin(omega*_time+0.5*M_PI);
     
     if (_linearizer)
       _linearizer->reference_transformation(xref, yref, xPref, yPref);
@@ -263,20 +270,20 @@ void feedback_linearization::PeriodicTask(void)
       
     /* Position controller / open loop test */
     #ifdef OPEN_LOOP_TEST
-      if (_time<=2.5)
+      if (_time<=0.25)
       {
-        vPx = 0.45;
+        vPx = -1.0;
         vPy = 0.0;
       }
-      else if (_time<=4.0)
+      else if (_time<=2.0)
       {
-        vPx = 0.25;
-        vPy = 0.45;
-      }
-      else if (_time<=5.5)
-      {
-        vPx = 0.0;
+        vPx = -0.6;
         vPy = 0.0;
+      }
+      else if (_time<=5.0)
+      {
+        vPx = -0.4;
+        vPy = -0.4;
       }
       else
       {
