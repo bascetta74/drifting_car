@@ -37,6 +37,7 @@ class feedback_linearization
     double Cf, Cr, a, b, m, Jz;
     double P_dist, speed_thd, KPx, KPy;
     double theta_offset;
+    double car2motor_conversion;
     bool use_ideal_sim, use_sim_time;
     unsigned int vel_filt_order;
     std::vector<double> vel_filt_coeff;

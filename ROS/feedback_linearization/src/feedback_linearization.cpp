@@ -69,6 +69,10 @@ void feedback_linearization::Prepare(void)
  if (false == Handle.getParam(FullParamName, KPy))
   ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str()); 
 
+ FullParamName = ros::this_node::getName()+"/car2motor_velocity";
+ if (false == Handle.getParam(FullParamName, car2motor_conversion))
+  ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str()); 
+
  // Other parameters
  FullParamName = ros::this_node::getName()+"/theta_offset";
  if (false == Handle.getParam(FullParamName, theta_offset))
@@ -301,7 +305,7 @@ void feedback_linearization::PeriodicTask(void)
     }
     else
     {
-      msg.speed_ref = speed*cos(_vehicleSideslip);
+      msg.speed_ref = speed*cos(_vehicleSideslip)*car2motor_conversion;
       msg.steer_ref = steer;
     }
     controllerCommand_publisher.publish(msg);
