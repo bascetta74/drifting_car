@@ -17,5 +17,8 @@
   /feedback_linearization/vel_filt_coeff: [0.0144, 0.0295, 0.0763, 0.0823, 0.0355, -0.0355, -0.0823, -0.0763, -0.0295, -0.0144]
                                                     # FIR velocity filter coefficients
   /feedback_linearization/theta_offset: 0.0         # Offset on optitrack theta angle
-  /feedback_linearization/KPx: 1.0                  # Position loop proportional gain x
-  /feedback_linearization/KPy: 1.0                  # Position loop proportional gain y
+  
+  /feedback_linearization/Kp: 1.0                   # Position loop proportional gain
+  /feedback_linearization/Ti: 0.0                   # Position loop integral time
+  /Feedback_linearization/vp_min: -10.0             # Position loop low saturation
+  /Feedback_linearization/vp_max:  10.0             # Position loop up saturation

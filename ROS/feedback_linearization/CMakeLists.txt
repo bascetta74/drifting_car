@@ -122,7 +122,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(feedback_linearization src/feedback_linearization.cpp src/feedback_linearization_node.cpp src/fblin_spaliviero.cpp src/fblin_lopez_I.cpp src/fblin_lopez_II.cpp)
+add_executable(feedback_linearization src/feedback_linearization.cpp src/feedback_linearization_node.cpp src/fblin_lopez.cpp src/PIDcontrol.cpp)
 target_link_libraries(feedback_linearization ${catkin_LIBRARIES})
 add_dependencies(feedback_linearization car_msgs_generate_messages_cpp)
 

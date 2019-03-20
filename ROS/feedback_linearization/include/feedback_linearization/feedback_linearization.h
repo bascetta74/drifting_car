@@ -19,7 +19,8 @@
 
 #include <boost/circular_buffer.hpp>
 
-#include "fblin_lopez_II.h"
+#include "PIDcontrol.h"
+#include "fblin_lopez.h"
 
  
 class feedback_linearization
@@ -35,7 +36,7 @@ class feedback_linearization
     
     /* Parameters from ROS parameter server */
     double Cf, Cr, a, b, m, Jz;
-    double P_dist, speed_thd, KPx, KPy;
+    double P_dist, speed_thd, Kp, Ti, vp_min, vp_max;
     double theta_offset;
     double car2motor_conversion;
     bool use_ideal_sim, use_sim_time;
@@ -59,7 +60,9 @@ class feedback_linearization
     std::vector<double> _vehiclePose, _vehicleVelocity;
     boost::circular_buffer<double> _vehiclePositionXBuffer, _vehiclePositionYBuffer;
 
-    fblin_lopez_II* _linearizer;
+    fblin_lopez* _linearizer;
+    PIDcontrol* _PIx;
+    PIDcontrol* _PIy;
     
   public:
     double RunPeriod;
