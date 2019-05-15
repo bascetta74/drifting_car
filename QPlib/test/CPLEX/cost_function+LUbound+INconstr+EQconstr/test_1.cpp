@@ -68,7 +68,7 @@ int main(int argc, char **argv)
     }
 
     /** Generate Matlab script */
-    writeMatlabScript("test_1_script.m", true, lB, uB, H, f, Ain, Bin, Aeq, Beq, result_CPLEX, optimizerStatus);
+    QP_writeMatlabScript("test_1_script.m", true, lB, uB, H, f, Ain, Bin, Aeq, Beq, result_CPLEX, optimizerStatus);
 
     cout << "Matlab file generated" << endl << endl;
 
