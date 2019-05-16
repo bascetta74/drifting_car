@@ -36,6 +36,11 @@ void serial_comm::Prepare(void) {
     ROS_ERROR("Node %s: unable to retrieve parameter %s.",
               ros::this_node::getName().c_str(), FullParamName.c_str());
 
+  FullParamName = ros::this_node::getName() + "/steer_invert_command";
+  if (false == Handle.getParam(FullParamName, _steer_invert_command))
+    ROS_ERROR("Node %s: unable to retrieve parameter %s.",
+              ros::this_node::getName().c_str(), FullParamName.c_str());
+
   FullParamName = ros::this_node::getName() + "/speed_us_range";
   if (false == Handle.getParam(FullParamName, _speed_us_range))
     ROS_ERROR("Node %s: unable to retrieve parameter %s.",
@@ -186,17 +191,18 @@ void serial_comm::PeriodicTask(void) {
       /* Steer ref */
       if (!us_to_SIunits(steer_cmd, _steer_ref, _steer_us_range,
                          _steer_rad_range))
-        ROS_ERROR(
-            "Node %s: steer ref value (%u) in reading serial message is "
-            "out of range.",
+        ROS_ERROR("Node %s: steer ref value (%u) in reading serial message is out of range.",
             ros::this_node::getName().c_str(), (unsigned int)steer_cmd);
+      else
+      {
+        if (_steer_invert_command)
+          _steer_ref = -_steer_ref;
+      }
 
       /* Speed ref */
       if (!us_to_SIunits(speed_cmd, _speed_ref, _speed_us_range,
                          _speed_mps_range))
-        ROS_ERROR(
-            "Node %s: speed ref value (%u) in reading serial message is "
-            "out of range.",
+        ROS_ERROR("Node %s: speed ref value (%u) in reading serial message is out of range.",
             ros::this_node::getName().c_str(), (unsigned int)speed_cmd);
 
       /* Wheel speed */
@@ -312,11 +318,20 @@ void serial_comm::PeriodicTask(void) {
     /* Write a message to the serial port */
 
     /* Steer ref */
-    if (!SIunits_to_us(steer_cmd, _steer_ref, _steer_us_range,
-                       _steer_rad_range))
-      ROS_ERROR(
-          "Node %s: steer ref value in writing serial message is out of range.",
+    if (_steer_invert_command)
+    {
+      if (!SIunits_to_us(steer_cmd, -_steer_ref, _steer_us_range,
+                         _steer_rad_range))
+        ROS_ERROR("Node %s: steer ref value in writing serial message is out of range.",
           ros::this_node::getName().c_str());
+    }
+    else
+    {
+      if (!SIunits_to_us(steer_cmd, _steer_ref, _steer_us_range,
+                         _steer_rad_range))
+        ROS_ERROR("Node %s: steer ref value in writing serial message is out of range.",
+          ros::this_node::getName().c_str());
+    }
 
     /* Speed ref */
     if (!SIunits_to_us(speed_cmd, _speed_ref, _speed_us_range,
@@ -341,7 +356,7 @@ bool serial_comm::us_to_SIunits(unsigned int value_us, double &value_SIunits,
     value_SIunits = static_cast<double>(value_us - us_range.at(0)) /
                         static_cast<double>(us_range.at(1) - us_range.at(0)) *
                         (SIunits_range.at(1) - SIunits_range.at(0)) +
-                    SIunits_range.at(0);
+                         SIunits_range.at(0);
 
   return true;
 }
@@ -357,7 +372,7 @@ bool serial_comm::SIunits_to_us(unsigned int &value_us, double value_SIunits,
                    (value_SIunits - SIunits_range.at(0)) /
                    (SIunits_range.at(1) - SIunits_range.at(0)) *
                    static_cast<double>(us_range.at(1) - us_range.at(0))) +
-               us_range.at(0);
+                   us_range.at(0);
 
   return true;
 }

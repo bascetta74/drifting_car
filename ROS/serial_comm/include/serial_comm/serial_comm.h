@@ -75,6 +75,7 @@ private:
   int _baudrate;
   int _timeout;
   int _message_size;
+  bool _steer_invert_command;
   std::vector<int> _steer_us_range, _speed_us_range;
   std::vector<double> _steer_rad_range, _speed_mps_range;
 
