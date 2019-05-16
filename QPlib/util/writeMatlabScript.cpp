@@ -1,7 +1,7 @@
 #include "writeMatlabScript.h"
 
 
-void writeMatlabScript(std::string name, bool clearStatements, const Ref<const MatrixXd> H, const Ref<const MatrixXd> f, const Ref<const VectorXd> solution, int exitFlag)
+void QP_writeMatlabScript(std::string name, bool clearStatements, const Ref<const MatrixXd> H, const Ref<const MatrixXd> f, const Ref<const VectorXd> solution, int exitFlag)
 {
     std::ofstream matlab_script;
     matlab_script.open(name.c_str());
@@ -44,8 +44,8 @@ void writeMatlabScript(std::string name, bool clearStatements, const Ref<const M
     matlab_script.close();
 }
 
-void writeMatlabScript(std::string name, bool clearStatements, const Ref<const MatrixXd> H, const Ref<const VectorXd> f, const Ref<const MatrixXd> Ain, const Ref<const VectorXd> Bin,
-                        const Ref<const VectorXd> solution, int exitFlag)
+void QP_writeMatlabScript(std::string name, bool clearStatements, const Ref<const MatrixXd> H, const Ref<const VectorXd> f, const Ref<const MatrixXd> Ain, const Ref<const VectorXd> Bin,
+                          const Ref<const VectorXd> solution, int exitFlag)
 {
     std::ofstream matlab_script;
     matlab_script.open(name.c_str());
@@ -94,8 +94,8 @@ void writeMatlabScript(std::string name, bool clearStatements, const Ref<const M
     matlab_script.close();
 }
 
-void writeMatlabScript(std::string name, bool clearStatements, const Ref<const MatrixXd> H, const Ref<const VectorXd> f, const Ref<const MatrixXd> Ain, const Ref<const VectorXd> Bin,
-                        const std::vector<VectorXd>& l, const std::vector<MatrixXd> Q, const std::vector<double>& r, const Ref<const VectorXd> solution, int exitFlag)
+void QCP_writeMatlabScript(std::string name, bool clearStatements, const Ref<const MatrixXd> H, const Ref<const VectorXd> f, const Ref<const MatrixXd> Ain, const Ref<const VectorXd> Bin,
+                           const std::vector<VectorXd>& l, const std::vector<MatrixXd> Q, const std::vector<double>& r, const Ref<const VectorXd> solution, int exitFlag)
 {
     std::ofstream matlab_script;
     matlab_script.open(name.c_str());
@@ -192,8 +192,8 @@ void writeMatlabScript(std::string name, bool clearStatements, const Ref<const M
     matlab_script.close();
 }
 
-void writeMatlabScript(std::string name, bool clearStatements, const std::vector<double>& lB, const std::vector<double>& uB, const Ref<const MatrixXd> H, const Ref<const VectorXd> f,
-                        const Ref<const VectorXd> solution, int exitFlag)
+void QP_writeMatlabScript(std::string name, bool clearStatements, const std::vector<double>& lB, const std::vector<double>& uB, const Ref<const MatrixXd> H, const Ref<const VectorXd> f,
+                          const Ref<const VectorXd> solution, int exitFlag)
 {
     std::ofstream matlab_script;
     matlab_script.open(name.c_str());
@@ -242,8 +242,8 @@ void writeMatlabScript(std::string name, bool clearStatements, const std::vector
     matlab_script.close();
 }
 
-void writeMatlabScript(std::string name, bool clearStatements, const std::vector<double>& lB, const std::vector<double>& uB, const Ref<const MatrixXd> H, const Ref<const VectorXd> f,
-                        const std::vector<VectorXd>& l, const std::vector<MatrixXd> Q, const std::vector<double>& r, const Ref<const VectorXd> solution, int exitFlag)
+void QCP_writeMatlabScript(std::string name, bool clearStatements, const std::vector<double>& lB, const std::vector<double>& uB, const Ref<const MatrixXd> H, const Ref<const VectorXd> f,
+                           const std::vector<VectorXd>& l, const std::vector<MatrixXd> Q, const std::vector<double>& r, const Ref<const VectorXd> solution, int exitFlag)
 {
     std::ofstream matlab_script;
     matlab_script.open(name.c_str());
@@ -340,8 +340,8 @@ void writeMatlabScript(std::string name, bool clearStatements, const std::vector
     matlab_script.close();
 }
 
-void writeMatlabScript(std::string name, bool clearStatements, const std::vector<double>& lB, const std::vector<double>& uB, const Ref<const MatrixXd> H, const Ref<const VectorXd> f,
-                        const Ref<const MatrixXd> Ain, const Ref<const VectorXd> Bin, const Ref<const VectorXd> solution, int exitFlag)
+void QP_writeMatlabScript(std::string name, bool clearStatements, const std::vector<double>& lB, const std::vector<double>& uB, const Ref<const MatrixXd> H, const Ref<const VectorXd> f,
+                          const Ref<const MatrixXd> Ain, const Ref<const VectorXd> Bin, const Ref<const VectorXd> solution, int exitFlag)
 {
     std::ofstream matlab_script;
     matlab_script.open(name.c_str());
@@ -396,9 +396,9 @@ void writeMatlabScript(std::string name, bool clearStatements, const std::vector
     matlab_script.close();
 }
 
-void writeMatlabScript(std::string name, bool clearStatements, const std::vector<double>& lB, const std::vector<double>& uB, const Ref<const MatrixXd> H, const Ref<const VectorXd> f,
-                        const Ref<const MatrixXd> Ain, const Ref<const VectorXd> Bin, const std::vector<VectorXd>& l, const std::vector<MatrixXd> Q, const std::vector<double>& r,
-                        const Ref<const VectorXd> solution, int exitFlag)
+void QCP_writeMatlabScript(std::string name, bool clearStatements, const std::vector<double>& lB, const std::vector<double>& uB, const Ref<const MatrixXd> H, const Ref<const VectorXd> f,
+                           const Ref<const MatrixXd> Ain, const Ref<const VectorXd> Bin, const std::vector<VectorXd>& l, const std::vector<MatrixXd> Q, const std::vector<double>& r,
+                           const Ref<const VectorXd> solution, int exitFlag)
 {
     std::ofstream matlab_script;
     matlab_script.open(name.c_str());
@@ -501,8 +501,8 @@ void writeMatlabScript(std::string name, bool clearStatements, const std::vector
     matlab_script.close();
 }
 
-void writeMatlabScript(std::string name, bool clearStatements, const std::vector<double>& lB, const std::vector<double>& uB, const Ref<const MatrixXd> H, const Ref<const VectorXd> f,
-                        const Ref<const MatrixXd> Ain, const Ref<const VectorXd> Bin, const Ref<const MatrixXd> Aeq, const Ref<const VectorXd> Beq, const Ref<const VectorXd> solution, int exitFlag)
+void QP_writeMatlabScript(std::string name, bool clearStatements, const std::vector<double>& lB, const std::vector<double>& uB, const Ref<const MatrixXd> H, const Ref<const VectorXd> f,
+                          const Ref<const MatrixXd> Ain, const Ref<const VectorXd> Bin, const Ref<const MatrixXd> Aeq, const Ref<const VectorXd> Beq, const Ref<const VectorXd> solution, int exitFlag)
 {
     std::ofstream matlab_script;
     matlab_script.open(name.c_str());
@@ -563,9 +563,9 @@ void writeMatlabScript(std::string name, bool clearStatements, const std::vector
     matlab_script.close();
 }
 
-void writeMatlabScript(std::string name, bool clearStatements, const std::vector<double>& lB, const std::vector<double>& uB, const Ref<const MatrixXd> H, const Ref<const VectorXd> f,
-                        const Ref<const MatrixXd> Ain, const Ref<const VectorXd> Bin, const Ref<const MatrixXd> Aeq, const Ref<const VectorXd> Beq, 
-                        const std::vector<VectorXd>& l, const std::vector<MatrixXd> Q, const std::vector<double>& r, const Ref<const VectorXd> solution, int exitFlag)
+void QCP_writeMatlabScript(std::string name, bool clearStatements, const std::vector<double>& lB, const std::vector<double>& uB, const Ref<const MatrixXd> H, const Ref<const VectorXd> f,
+                           const Ref<const MatrixXd> Ain, const Ref<const VectorXd> Bin, const Ref<const MatrixXd> Aeq, const Ref<const VectorXd> Beq, 
+                           const std::vector<VectorXd>& l, const std::vector<MatrixXd> Q, const std::vector<double>& r, const Ref<const VectorXd> solution, int exitFlag)
 {
     std::ofstream matlab_script;
     matlab_script.open(name.c_str());

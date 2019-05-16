@@ -71,12 +71,6 @@ bool CPLEXsolver::initProblem()
         _IloModel.add(_IloObj);
         objExpr.end();
 
-        // Create a dummy set of inequality constraints
-        for (int i=0; i<(_numIneqConstraint+_numQIneqConstraint); i++)
-            _IloConstrIneq.add(_IloVar[0] <= 1.0);
-        if ((_numIneqConstraint+_numQIneqConstraint)>0)
-            _IloModel.add(_IloConstrIneq);
-
         // Create a dummy set of equality constraints
         for (int i=0; i<_numEqConstraint; i++)
             _IloConstrEq.add(-1.0 <= _IloVar[0] <= 1.0);
@@ -315,7 +309,7 @@ bool CPLEXsolver::setProblem(const Ref<const MatrixXd> hessian, const Ref<const 
 
         objExpr.end();
 
-    	// Update and modify the inequality constraints
+    	// Add the inequality constraints
     	if (_numIneqConstraint!=A.rows())
     	{
             // Remove previous constraints
@@ -323,11 +317,6 @@ bool CPLEXsolver::setProblem(const Ref<const MatrixXd> hessian, const Ref<const 
             _IloConstrIneq.endElements();
 
             _numIneqConstraint = A.rows();
-
-            // Create a dummy set of inequality constraint
-            for (int i=0; i<_numIneqConstraint; i++)
-                _IloConstrIneq.add(_IloVar[0] <= 1.0);
-            _IloModel.add(_IloConstrIneq);
     	}
 
         for (int i=0; i<_numIneqConstraint; i++)
@@ -337,11 +326,12 @@ bool CPLEXsolver::setProblem(const Ref<const MatrixXd> hessian, const Ref<const 
       		for (int j=0; j<_numVariable; j++)
       			conExpr += A(i,j)*_IloVar[j];
 
-      		_IloConstrIneq[i].setExpr(conExpr);
-      		_IloConstrIneq[i].setUB(B(i));
+            _IloConstrIneq.add(IloRange(_IloEnv, conExpr, B(i)));
 
         	conExpr.end();
         }
+
+       _IloModel.add(_IloConstrIneq);
     }
     catch (IloException& e)
 	{
@@ -460,7 +450,7 @@ bool CPLEXsolver::setProblem(const Ref<const MatrixXd> hessian, const Ref<const 
 
         objExpr.end();
 
-    	// Update and modify the inequality constraints
+    	// Add the inequality constraints
     	if ((_numIneqConstraint+_numQIneqConstraint)!=(A.rows()+r.size()))
     	{
             // Remove previous constraints
@@ -469,14 +459,7 @@ bool CPLEXsolver::setProblem(const Ref<const MatrixXd> hessian, const Ref<const 
 
             _numIneqConstraint  = A.rows();
             _numQIneqConstraint = r.size();
-
-            // Create a dummy set of inequality constraint
-            for (int i=0; i<(_numIneqConstraint+_numQIneqConstraint); i++)
-                _IloConstrIneq.add(_IloVar[0] <= 1.0);
-            _IloModel.add(_IloConstrIneq);
     	}
-
-        int constr_idx = 0;
 
         for (int i=0; i<_numIneqConstraint; i++)
         {
@@ -485,9 +468,7 @@ bool CPLEXsolver::setProblem(const Ref<const MatrixXd> hessian, const Ref<const 
       		for (int j=0; j<_numVariable; j++)
       			conExpr += A(i,j)*_IloVar[j];
 
-      		_IloConstrIneq[constr_idx].setExpr(conExpr);
-      		_IloConstrIneq[constr_idx].setUB(B(i));
-            constr_idx++;
+            _IloConstrIneq.add(IloRange(_IloEnv, conExpr, B(i)));
 
         	conExpr.end();
         }
@@ -505,12 +486,12 @@ bool CPLEXsolver::setProblem(const Ref<const MatrixXd> hessian, const Ref<const 
         	    for (int k=0; k<_numVariable; k++)
                     conExpr += Q.at(i)(j,k)*_IloVar[j]*_IloVar[k];
 
-      		_IloConstrIneq[constr_idx].setExpr(conExpr);
-      		_IloConstrIneq[constr_idx].setUB(r.at(i));
-            constr_idx++;
+            _IloConstrIneq.add(IloRange(_IloEnv, conExpr, r.at(i)));
 
         	conExpr.end();
         }
+
+        _IloModel.add(_IloConstrIneq);
     }
     catch (IloException& e)
 	{
@@ -733,11 +714,6 @@ bool CPLEXsolver::setProblem(const std::vector<double>& lowerBound, const std::v
             _IloConstrIneq.endElements();
 
             _numQIneqConstraint = r.size();
-
-            // Create a dummy set of inequality constraint
-            for (int i=0; i<_numQIneqConstraint; i++)
-                _IloConstrIneq.add(_IloVar[0] <= 1.0);
-            _IloModel.add(_IloConstrIneq);
     	}
 
         for (int i=0; i<_numQIneqConstraint; i++)
@@ -753,11 +729,12 @@ bool CPLEXsolver::setProblem(const std::vector<double>& lowerBound, const std::v
         	    for (int k=0; k<_numVariable; k++)
                     conExpr += Q.at(i)(j,k)*_IloVar[j]*_IloVar[k];
 
-      		_IloConstrIneq[i].setExpr(conExpr);
-      		_IloConstrIneq[i].setUB(r.at(i));
+            _IloConstrIneq.add(IloRange(_IloEnv, conExpr, r.at(i)));
 
         	conExpr.end();
         }
+
+        _IloModel.add(_IloConstrIneq);
     }
     catch (IloException& e)
 	{
@@ -862,7 +839,7 @@ bool CPLEXsolver::setProblem(const std::vector<double>& lowerBound, const std::v
 
         objExpr.end();
 
-    	// Update and modify the inequality constraints
+    	// Add the inequality constraints
     	if (_numIneqConstraint!=A.rows())
     	{
             // Remove previous constraints
@@ -870,11 +847,6 @@ bool CPLEXsolver::setProblem(const std::vector<double>& lowerBound, const std::v
             _IloConstrIneq.endElements();
 
             _numIneqConstraint = A.rows();
-
-            // Create a dummy set of inequality constraint
-            for (int i=0; i<_numIneqConstraint; i++)
-                _IloConstrIneq.add(_IloVar[0] <= 1.0);
-            _IloModel.add(_IloConstrIneq);
     	}
 
         for (int i=0; i<_numIneqConstraint; i++)
@@ -884,11 +856,12 @@ bool CPLEXsolver::setProblem(const std::vector<double>& lowerBound, const std::v
       		for (int j=0; j<_numVariable; j++)
       			conExpr += A(i,j)*_IloVar[j];
 
-      		_IloConstrIneq[i].setExpr(conExpr);
-      		_IloConstrIneq[i].setUB(B(i));
+            _IloConstrIneq.add(IloRange(_IloEnv, conExpr, B(i)));
 
         	conExpr.end();
         }
+
+        _IloModel.add(_IloConstrIneq);
     }
     catch (IloException& e)
 	{
@@ -1013,7 +986,7 @@ bool CPLEXsolver::setProblem(const std::vector<double>& lowerBound, const std::v
 
         objExpr.end();
 
-    	// Update and modify the inequality constraints
+    	// Add the inequality constraints
     	if ((_numIneqConstraint+_numQIneqConstraint)!=(A.rows()+r.size()))
     	{
             // Remove previous constraints
@@ -1022,14 +995,7 @@ bool CPLEXsolver::setProblem(const std::vector<double>& lowerBound, const std::v
 
             _numIneqConstraint  = A.rows();
             _numQIneqConstraint = r.size();
-
-            // Create a dummy set of inequality constraint
-            for (int i=0; i<(_numIneqConstraint+_numQIneqConstraint); i++)
-                _IloConstrIneq.add(_IloVar[0] <= 1.0);
-            _IloModel.add(_IloConstrIneq);
     	}
-
-        int constr_idx = 0;
 
         for (int i=0; i<_numIneqConstraint; i++)
         {
@@ -1038,9 +1004,7 @@ bool CPLEXsolver::setProblem(const std::vector<double>& lowerBound, const std::v
       		for (int j=0; j<_numVariable; j++)
       			conExpr += A(i,j)*_IloVar[j];
 
-      		_IloConstrIneq[constr_idx].setExpr(conExpr);
-      		_IloConstrIneq[constr_idx].setUB(B(i));
-            constr_idx++;
+            _IloConstrIneq.add(IloRange(_IloEnv, conExpr, B(i)));
 
         	conExpr.end();
         }
@@ -1058,12 +1022,12 @@ bool CPLEXsolver::setProblem(const std::vector<double>& lowerBound, const std::v
         	    for (int k=0; k<_numVariable; k++)
                     conExpr += Q.at(i)(j,k)*_IloVar[j]*_IloVar[k];
 
-      		_IloConstrIneq[constr_idx].setExpr(conExpr);
-      		_IloConstrIneq[constr_idx].setUB(r.at(i));
-            constr_idx++;
+            _IloConstrIneq.add(IloRange(_IloEnv, conExpr, r.at(i)));
 
         	conExpr.end();
         }
+
+        _IloModel.add(_IloConstrIneq);
     }
     catch (IloException& e)
 	{
@@ -1171,7 +1135,7 @@ bool CPLEXsolver::setProblem(const std::vector<double>& lowerBound, const std::v
 
         objExpr.end();
 
-    	// Update and modify the inequality constraints
+    	// Add the inequality constraints
     	if (_numIneqConstraint!=A.rows())
     	{
             // Remove previous constraints
@@ -1179,11 +1143,6 @@ bool CPLEXsolver::setProblem(const std::vector<double>& lowerBound, const std::v
             _IloConstrIneq.endElements();
 
             _numIneqConstraint = A.rows();
-
-            // Create a dummy set of inequality constraint
-            for (int i=0; i<_numIneqConstraint; i++)
-                _IloConstrIneq.add(_IloVar[0] <= 1.0);
-            _IloModel.add(_IloConstrIneq);
     	}
 
         for (int i=0; i<_numIneqConstraint; i++)
@@ -1193,13 +1152,14 @@ bool CPLEXsolver::setProblem(const std::vector<double>& lowerBound, const std::v
       		for (int j=0; j<_numVariable; j++)
       			conExpr += A(i,j)*_IloVar[j];
 
-      		_IloConstrIneq[i].setExpr(conExpr);
-      		_IloConstrIneq[i].setUB(B(i));
+            _IloConstrIneq.add(IloRange(_IloEnv, conExpr, B(i)));
 
         	conExpr.end();
         }
 
-    	// Update and modify the equality constraints
+        _IloModel.add(_IloConstrIneq);
+
+    	// Add the equality constraints
     	if (_numEqConstraint!=Aeq.rows())
     	{
             // Remove previous constraints
@@ -1207,11 +1167,6 @@ bool CPLEXsolver::setProblem(const std::vector<double>& lowerBound, const std::v
             _IloConstrEq.endElements();
 
             _numEqConstraint = Aeq.rows();
-
-            // Create a dummy set of equality constraint
-            for (int i=0; i<_numEqConstraint; i++)
-                _IloConstrEq.add(-1.0 <= _IloVar[0] <= 1.0);
-            _IloModel.add(_IloConstrEq);
     	}
 
         for (int i=0; i<_numEqConstraint; i++)
@@ -1221,11 +1176,12 @@ bool CPLEXsolver::setProblem(const std::vector<double>& lowerBound, const std::v
       		for (int j=0; j<_numVariable; j++)
       			conExpr += Aeq(i,j)*_IloVar[j];
 
-      		_IloConstrEq[i].setExpr(conExpr);
-      		_IloConstrEq[i].setBounds(Beq(i), Beq(i));
+            _IloConstrEq.add(IloRange(_IloEnv, Beq(i), conExpr, Beq(i)));
 
         	conExpr.end();
         }
+
+        _IloModel.add(_IloConstrEq);
     }
     catch (IloException& e)
 	{
@@ -1352,7 +1308,7 @@ bool CPLEXsolver::setProblem(const std::vector<double>& lowerBound, const std::v
 
         objExpr.end();
 
-    	// Update and modify the inequality constraints
+    	// Add the inequality constraints
     	if ((_numIneqConstraint+_numQIneqConstraint)!=(A.rows()+r.size()))
     	{
             // Remove previous constraints
@@ -1361,14 +1317,7 @@ bool CPLEXsolver::setProblem(const std::vector<double>& lowerBound, const std::v
 
             _numIneqConstraint  = A.rows();
             _numQIneqConstraint = r.size();
-
-            // Create a dummy set of inequality constraint
-            for (int i=0; i<(_numIneqConstraint+_numQIneqConstraint); i++)
-                _IloConstrIneq.add(_IloVar[0] <= 1.0);
-            _IloModel.add(_IloConstrIneq);
     	}
-
-        int constr_idx = 0;
 
         for (int i=0; i<_numIneqConstraint; i++)
         {
@@ -1377,9 +1326,7 @@ bool CPLEXsolver::setProblem(const std::vector<double>& lowerBound, const std::v
       		for (int j=0; j<_numVariable; j++)
       			conExpr += A(i,j)*_IloVar[j];
 
-      		_IloConstrIneq[constr_idx].setExpr(conExpr);
-      		_IloConstrIneq[constr_idx].setUB(B(i));
-            constr_idx++;
+            _IloConstrIneq.add(IloRange(_IloEnv, conExpr, B(i)));
 
         	conExpr.end();
         }
@@ -1397,14 +1344,14 @@ bool CPLEXsolver::setProblem(const std::vector<double>& lowerBound, const std::v
         	    for (int k=0; k<_numVariable; k++)
                     conExpr += Q.at(i)(j,k)*_IloVar[j]*_IloVar[k];
 
-      		_IloConstrIneq[constr_idx].setExpr(conExpr);
-      		_IloConstrIneq[constr_idx].setUB(r.at(i));
-            constr_idx++;
+            _IloConstrIneq.add(IloRange(_IloEnv, conExpr, r.at(i)));
 
         	conExpr.end();
         }
 
-    	// Update and modify the equality constraints
+        _IloModel.add(_IloConstrIneq);
+
+    	// Add the equality constraints
     	if (_numEqConstraint!=Aeq.rows())
     	{
             // Remove previous constraints
@@ -1412,11 +1359,6 @@ bool CPLEXsolver::setProblem(const std::vector<double>& lowerBound, const std::v
             _IloConstrEq.endElements();
 
             _numEqConstraint = Aeq.rows();
-
-            // Create a dummy set of equality constraint
-            for (int i=0; i<_numEqConstraint; i++)
-                _IloConstrEq.add(-1.0 <= _IloVar[0] <= 1.0);
-            _IloModel.add(_IloConstrEq);
     	}
 
         for (int i=0; i<_numEqConstraint; i++)
@@ -1426,11 +1368,12 @@ bool CPLEXsolver::setProblem(const std::vector<double>& lowerBound, const std::v
       		for (int j=0; j<_numVariable; j++)
       			conExpr += Aeq(i,j)*_IloVar[j];
 
-      		_IloConstrEq[i].setExpr(conExpr);
-      		_IloConstrEq[i].setBounds(Beq(i), Beq(i));
+            _IloConstrEq.add(IloRange(_IloEnv, Beq(i), conExpr, Beq(i)));
 
         	conExpr.end();
         }
+
+        _IloModel.add(_IloConstrEq);
     }
     catch (IloException& e)
 	{

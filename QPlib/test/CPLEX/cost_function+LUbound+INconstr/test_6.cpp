@@ -29,18 +29,6 @@ int main(int argc, char **argv)
                                            2.0, -2.0, 0.5, 1.0, -1.5;
     VectorXd Bin(numConstr);        Bin << 1.0, 0.0;
 
-    vector<VectorXd> l;
-    vector<MatrixXd> Q;
-    vector<double> r;
-
-    VectorXd l1(numVar);            l1 << 0.0, 0.0, 0.0, 0.0, 0.0;         l.push_back(l1);
-    MatrixXd Q1(numVar,numVar);     Q1 << 1.0, 0.0, 0.5, 0.0, 0.3,
-                                          0.0, 4.0, 0.0, 0.4, 0.0,
-                                          0.5, 0.0, 2.0, 0.0, 0.1,
-                                          0.0, 0.4, 0.1, 3.0, 0.0,
-                                          0.3, 0.0, 0.0, 0.1, 5.0;         Q.push_back(Q1);
-    double                          r1 = 1.0;                              r.push_back(r1);
-
     /** CPLEX solver example */
     solver = new CPLEXsolver(numVar, numConstr, numEqConstraint, numQConstr, CPLEXsolver::AUTO);
     cout << "CPLEX solver created" << endl;
@@ -51,7 +39,7 @@ int main(int argc, char **argv)
         cout << "Cannot initialize CPLEX solver" << endl;
     solver->set_printLevel(MPCsolver::NONE);
 
-    if (solver->setProblem(lB, uB, H, f, Ain, Bin, l, Q, r))
+    if (solver->setProblem(lB, uB, H, f, Ain, Bin))
         cout << "CPLEX solver problem setted" << endl;
     else
         cout << "Cannot set CPLEX problem" << endl;
@@ -79,7 +67,7 @@ int main(int argc, char **argv)
     }
 
     /** Generate Matlab script */
-    writeMatlabScript("test_6_script.m", true, lB, uB, H, f, Ain, Bin, l, Q, r, result_CPLEX, optimizerStatus);
+    QP_writeMatlabScript("test_6_script.m", true, lB, uB, H, f, Ain, Bin, result_CPLEX, optimizerStatus);
 
     cout << "Matlab file generated" << endl << endl;
 

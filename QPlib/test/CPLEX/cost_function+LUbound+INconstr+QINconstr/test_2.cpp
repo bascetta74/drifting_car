@@ -11,7 +11,7 @@ int main(int argc, char **argv)
 {
     const int numVar          = 3;
     const int numConstr       = 3;
-    const int numQConstr      = 0;
+    const int numQConstr      = 2;
     const int numEqConstraint = 0;
 
     std::vector<double> lB(numVar); lB.at(0) = -1.0; lB.at(1) = -1.0; lB.at(2) = -1.0;
@@ -28,7 +28,21 @@ int main(int argc, char **argv)
                                           -1.0,  0.0, 1.0;
     VectorXd Bin(numConstr);        Bin << 1.0, 0.0,-1.0;
 
+    vector<VectorXd> l;
+    vector<MatrixXd> Q;
+    vector<double> r;
 
+    VectorXd l1(numVar);            l1 << 0.5, -0.5, 1.5;     l.push_back(l1);
+    MatrixXd Q1(numVar,numVar);     Q1 << 5.1, 1.0, 0.5,
+                                          1.0, 5.1, 1.5,
+                                          0.5, 1.5, 10.1;     Q.push_back(Q1);
+    double                          r1 = 50.0;                r.push_back(r1);
+
+    VectorXd l2(numVar);            l2 << -1.5, 0.5, 1.0;     l.push_back(l2);
+    MatrixXd Q2(numVar,numVar);     Q2 << 2.0, 1.5, 3.0,
+                                          1.5, 5.1, 0.5,
+                                          3.0, 0.5, 7.2;      Q.push_back(Q2);
+    double                          r2 = 35.0;                r.push_back(r2);
 
     /** CPLEX solver example */
     solver = new CPLEXsolver(numVar, numConstr, numEqConstraint, numQConstr, CPLEXsolver::AUTO);
@@ -40,7 +54,7 @@ int main(int argc, char **argv)
         cout << "Cannot initialize CPLEX solver" << endl;
     solver->set_printLevel(MPCsolver::NONE);
 
-    if (solver->setProblem(lB, uB, H, f, Ain, Bin))
+    if (solver->setProblem(lB, uB, H, f, Ain, Bin, l, Q, r))
         cout << "CPLEX solver problem setted" << endl;
     else
         cout << "Cannot set CPLEX problem" << endl;
@@ -68,7 +82,7 @@ int main(int argc, char **argv)
     }
 
     /** Generate Matlab script */
-    QP_writeMatlabScript("test_2_script.m", true, lB, uB, H, f, Ain, Bin, result_CPLEX, optimizerStatus);
+    QCP_writeMatlabScript("test_2_script.m", true, lB, uB, H, f, Ain, Bin, l, Q, r, result_CPLEX, optimizerStatus);
 
     cout << "Matlab file generated" << endl << endl;
 

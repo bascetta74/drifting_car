@@ -8,6 +8,7 @@
 #define NUM_TEST            1000
 #define MAX_NUM_VAR         100
 #define MAX_NUM_CONSTRAINT  50
+#define MAX_NUM_QCONSTRAINT 10
 
 using namespace std;
 
@@ -30,6 +31,7 @@ int main(int argc, char **argv)
         /** Generate problem data */
         int numVar          = rand() % MAX_NUM_VAR + 1;
         int numConstraint   = rand() % MAX_NUM_CONSTRAINT + 1;
+        int numQConstraint  = rand() % MAX_NUM_QCONSTRAINT + 1;
         int numEqConstraint = rand() % std::max(numVar / 2, 1) + 1;
 
         VectorXd lBvect = VectorXd::Random(numVar)*100.0 - VectorXd::Constant(numVar,100.0);
@@ -37,10 +39,10 @@ int main(int argc, char **argv)
         std::vector<double> lB(lBvect.data(), lBvect.data() + lBvect.rows() * lBvect.cols());
         std::vector<double> uB(uBvect.data(), uBvect.data() + uBvect.rows() * uBvect.cols());
 
-        MatrixXd Q = MatrixXd::Random(numVar,numVar) + MatrixXd::Constant(numVar,numVar,1.0);
+        MatrixXd T = MatrixXd::Random(numVar,numVar) + MatrixXd::Constant(numVar,numVar,1.0);
         VectorXd eigen = VectorXd::Random(numVar)*100.0 + VectorXd::Constant(numVar,100.0);
         MatrixXd H(numVar,numVar);
-        H = Q*eigen.asDiagonal()*Q.transpose();
+        H = T*eigen.asDiagonal()*T.transpose();
 
         VectorXd f = VectorXd::Random(numVar)*50.0;
 
@@ -49,9 +51,28 @@ int main(int argc, char **argv)
 
         MatrixXd Aeq = MatrixXd::Random(numEqConstraint,numVar)*10.0;
         VectorXd Beq = VectorXd::Random(numEqConstraint)*10.0;
+        
+        vector<VectorXd> l;
+        vector<MatrixXd> Q;
+        vector<double> r;
+
+        for (int j=0; j<numQConstraint; j++)
+        {
+            VectorXd lj = VectorXd::Random(numVar)*50.0;
+            double   rj = (rand()+1.0)*50.0;
+            
+            MatrixXd T = MatrixXd::Random(numVar,numVar) + MatrixXd::Constant(numVar,numVar,1.0);
+            VectorXd eigen = VectorXd::Random(numVar)*100.0 + VectorXd::Constant(numVar,100.0);
+            MatrixXd Qj(numVar, numVar);
+            Qj = T*eigen.asDiagonal()*T.transpose();
+
+            l.push_back(lj);
+            Q.push_back(Qj);
+            r.push_back(rj);
+        }
 
         /** CPLEX solve problem */
-        solver = new CPLEXsolver(numVar, numConstraint, numEqConstraint, CPLEXsolver::AUTO);
+        solver = new CPLEXsolver(numVar, numConstraint, numEqConstraint, numQConstraint, CPLEXsolver::AUTO);
 
         if (!solver->initProblem())
         {
@@ -64,7 +85,7 @@ int main(int argc, char **argv)
         }
         solver->set_printLevel(MPCsolver::NONE);
 
-        if (!solver->setProblem(lB, uB, H, f, Ain, Bin, Aeq, Beq))
+        if (!solver->setProblem(lB, uB, H, f, Ain, Bin, Aeq, Beq, l, Q, r))
         {
             num_problem_notsetted++;
 
@@ -90,7 +111,7 @@ int main(int argc, char **argv)
         /** Generate Matlab script */
         char fileName[255];
         sprintf(fileName, "%s%d%s", "./script/test_", k+1, "_script.m");
-        writeMatlabScript(fileName, false, lB, uB, H, f, Ain, Bin, Aeq, Beq, result_CPLEX, optimizerStatus);
+        QCP_writeMatlabScript(fileName, false, lB, uB, H, f, Ain, Bin, Aeq, Beq, l, Q, r, result_CPLEX, optimizerStatus);
 
         cout << "Problem " << k+1 << "/" << NUM_TEST << " completed" << endl;
     }
