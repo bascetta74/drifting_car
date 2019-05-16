@@ -7,8 +7,8 @@
   /serial_comm/message_size: 15
  
 # Variable ranges
-  /serial_comm/steer_us_range: [1150, 1850]      # Steer range in us
-  /serial_comm/steer_rad_range: [-0.9091, 0.899]  # Steer range in rad
-  /serial_comm/speed_us_range: [950, 1950]      # Speed range in us
-  /serial_comm/speed_mps_range: [-1.0, 1.0]      # Speed range in m/s
+  /serial_comm/steer_us_range: [1000, 2000]      #steer range in us
+  /serial_comm/steer_rad_range: [1.577, -1.423]  #steer range in rad
+  /serial_comm/speed_us_range: [950, 2010]       # Speed range in us
+  /serial_comm/speed_mps_range: [-1.0, 1.0256]   # Speed range in m/s
 
