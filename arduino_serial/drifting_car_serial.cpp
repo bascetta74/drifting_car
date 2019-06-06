@@ -9,7 +9,7 @@
 #include "car_commands.h"
 
 //#define DEBUG
-//#define TEST_LOOP_TIMING
+#define TEST_LOOP_TIMING
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -279,6 +279,27 @@ void loop()
 			}
 #endif
 		}
+		else // In case I lost the communication, I execute at least the task for MANUAL, SAFE and HALT
+		{
+			// Get current measures from the radio
+			curr_steer  = get_steer_value_us();
+			curr_speed  = get_speed_value_us();
+
+			// Execute the current state task
+			switch (arduino_state.state)
+			{
+			case SAFE:
+			case HALT:
+				set_steer(STEER_ZERO);
+				set_speed(SPEED_ZERO);
+				break;
+
+			case MANUAL:
+				set_steer(curr_steer);
+				set_speed(curr_speed);
+				break;
+			}
+		}
 
 		// Write the message back
 		if (!telemetry.send(&to_odroid))
@@ -321,4 +342,3 @@ void loop()
 	else
 		delayMicroseconds(1000);
 }
-

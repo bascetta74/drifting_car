@@ -12,7 +12,7 @@
 #define MAX_FIR_ORDER 			8		// Maximum order of FIR filters
 
 // Realtime loop
-#define LOOP_PERIOD 			0.0045	// Main loop period in seconds
+#define LOOP_PERIOD 			0.01	// Main loop period in seconds (max 0.0045)
 
 // Serial communication
 #define SERIAL_BAUDRATE 		115200  // Serial port baud rate
