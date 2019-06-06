@@ -336,8 +336,7 @@ void serial_comm::PeriodicTask(void) {
     /* Speed ref */
     if (!SIunits_to_us(speed_cmd, _speed_ref, _speed_us_range,
                        _speed_mps_range))
-      ROS_ERROR(
-          "Node %s: speed ref value in writing serial message is out of range.",
+      ROS_ERROR("Node %s: speed ref value in writing serial message is out of range.",
           ros::this_node::getName().c_str());
 
     _telemetry->set_message(&message, steer_cmd, speed_cmd,	0, false, 0, false, _statemachine.state, _statemachine.info, _message_number);

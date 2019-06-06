@@ -1,8 +1,8 @@
 # Feedback linearization configuration parameters
   /mpc_feedback_linearization/run_period: 0.01          # Node execution period
 
-  /mpc_feedback_linearization/cog_dist_front: 0.1513    # Distance of cog from front
-  /mpc_feedback_linearization/cog_dist_rear: 0.1087     # Distance of cog from rear
+  /mpc_feedback_linearization/cog_dist_front: 0.1368    # Distance of cog from front
+  /mpc_feedback_linearization/cog_dist_rear: 0.1232     # Distance of cog from rear
     # Cornering stiffness front wheels
        # Threshold to consider the absolute vehicle velocity equal to zero
 

@@ -3,14 +3,14 @@
 
   /feedback_linearization/use_ideal_sim: false      # Set to true to use ideal simulation or false to compute sideslip from vehicle position
 
-  /feedback_linearization/cog_dist_front: 0.1513    # Distance of cog from front
-  /feedback_linearization/cog_dist_rear: 0.1087     # Distance of cog from rear
+  /feedback_linearization/cog_dist_front: 0.1368    # Distance of cog from front (0.1513)
+  /feedback_linearization/cog_dist_rear: 0.1232     # Distance of cog from rear (0.1087)
   /feedback_linearization/cornering_front: 47.3     # Cornering stiffness front wheels
   /feedback_linearization/cornering_rear: 369.0     # Cornering stiffness rear wheels
   /feedback_linearization/yaw_inertia: 0.030        # Yaw inertia
   /feedback_linearization/mass: 2.040               # Mass
 
-  /feedback_linearization/car2motor_velocity: 0.265 # Conversion factor from car speed in m/s to normalized motor speed ([-1,1])
+  /feedback_linearization/car2motor_velocity: 0.195 # Conversion factor from car speed in m/s to normalized motor speed ([-1,1])
   
   /feedback_linearization/P_dist: 0.35              # Distance of point P for feedback linearization
   /feedback_linearization/speed_thd: 0.05           # Threshold to consider the absolute vehicle velocity equal to zero
@@ -18,7 +18,7 @@
                                                     # FIR velocity filter coefficients
   /feedback_linearization/theta_offset: 0.0         # Offset on optitrack theta angle
   
-  /feedback_linearization/Kp: 1.0                   # Position loop proportional gain
-  /feedback_linearization/Ti: 0.0                   # Position loop integral time
-  /Feedback_linearization/vp_min: -10.0             # Position loop low saturation
-  /Feedback_linearization/vp_max:  10.0             # Position loop up saturation
+  /feedback_linearization/Kp: 2.5                   # Position loop proportional gain
+  /feedback_linearization/Ti: 4.0                   # Position loop integral time
+  /feedback_linearization/vp_min: -10.0             # Position loop low saturation
+  /feedback_linearization/vp_max:  10.0             # Position loop up saturation
