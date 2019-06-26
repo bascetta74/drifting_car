@@ -109,6 +109,7 @@ void feedback_linearization::Prepare(void)
 
  /* Initialize node state */
  _time = 0.0;
+ _x0 = _y0 = _theta0 = 0.0;
 
  _vehicleSideslip = _vehicleAngularVelocity = 0.0;
 
@@ -261,24 +262,26 @@ void feedback_linearization::PeriodicTask(void)
 
     /* Reference trajectory generation */
     // Circle
-    // double omega;
-    // if (_time<=5.0)
-    //   omega = 1.0;
-    // else
-    //   omega = fmin(1.0+0.05*(_time-5.0),2.0);
-
-    // xref = -0.62 + 1.0*cos(omega*_time+0.5*M_PI);
-    // yref =  0.35 + 1.0*sin(omega*_time+0.5*M_PI);
-    
-    // Squircle
     double omega;
     if (_time<=5.0)
       omega = 1.0;
     else
-      omega = fmin(1.0+0.05*(_time-5.0),2.0);
+      omega = 1.0; //fmin(0.5+0.05*(_time-5.0),2.0);
 
-    xref = -0.62 + 1.0*cos(omega*_time+0.5*M_PI)/pow(pow(cos(omega*_time+0.5*M_PI),8.0)+pow(sin(omega*_time+0.5*M_PI),8.0),0.125);
-    yref =  0.35 + 1.0*sin(omega*_time+0.5*M_PI)/pow(pow(cos(omega*_time+0.5*M_PI),8.0)+pow(sin(omega*_time+0.5*M_PI),8.0),0.125);
+    const double radius = 1.0;
+ 
+    xref = _x0 + radius*cos(omega*_time+0.5*M_PI);
+    yref = (_y0-radius) + radius*sin(omega*_time+0.5*M_PI);
+    
+    // Squircle
+    // double omega;
+    // if (_time<=5.0)
+    //   omega = 1.0;
+    // else
+    //   omega = 1.0; //fmin(1.0+0.05*(_time-5.0),2.0);
+
+    // xref = -0.62 + 1.0*cos(omega*_time+0.5*M_PI)/pow(pow(cos(omega*_time+0.5*M_PI),8.0)+pow(sin(omega*_time+0.5*M_PI),8.0),0.125);
+    // yref =  0.35 + 1.0*sin(omega*_time+0.5*M_PI)/pow(pow(cos(omega*_time+0.5*M_PI),8.0)+pow(sin(omega*_time+0.5*M_PI),8.0),0.125);
 
 
     if (_linearizer)
@@ -302,26 +305,47 @@ void feedback_linearization::PeriodicTask(void)
       
     /* Position controller / open loop test */
     #ifdef OPEN_LOOP_TEST
-      if (_time<=0.25)
-      {
-        vPx = -1.0;
-        vPy = 0.0;
-      }
-      else if (_time<=2.0)
-      {
-        vPx = -0.6;
-        vPy = 0.0;
-      }
-      else if (_time<=5.0)
-      {
-        vPx = -0.4;
-        vPy = -0.4;
-      }
-      else
-      {
-        vPx = 0.0;
-        vPy = 0.0;
-      }
+    const double vel = 0.7;
+    if (_time<=2.0)
+    {
+      vPx = -vel;
+      vPy = 0.0;
+    }
+    else if (_time<=3.0)
+    {
+      vPx = -vel;
+      vPy = -vel;
+    }
+    else if (_time<=4.0)
+    {
+      vPx = 0.0;
+      vPy = -vel;
+    }
+    else if (_time<=5.0)
+    {
+      vPx = vel;
+      vPy = -vel;
+    }
+    else if (_time<=6.0)
+    {
+      vPx = vel;
+      vPy = 0.0;
+    }
+    else if (_time<=7.0)
+    {
+      vPx = vel;
+      vPy = vel;
+    }
+    else if (_time<=10.0)
+    {
+      vPx = 0.0;
+      vPy = vel;
+    }
+    else
+    {
+      vPx = 0.0;
+      vPy = 0.0;
+    }
     #endif
     #ifdef CLOSED_LOOP_TEST
       _PIx->execute(xP, xPref, vPx);
@@ -352,6 +376,10 @@ void feedback_linearization::PeriodicTask(void)
   else
   {
     _time = 0;
+
+    _x0 = _vehiclePose.at(0);
+    _y0 = _vehiclePose.at(1);
+    _theta0 = _vehiclePose.at(2);
 
     _t0 = ros::Time::now();
     

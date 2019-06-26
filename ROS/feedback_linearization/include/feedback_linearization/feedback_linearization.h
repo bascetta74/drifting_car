@@ -4,8 +4,8 @@
 #include "ros/ros.h"
 #include <vector>
 
-#define OPEN_LOOP_TEST
-//#define CLOSED_LOOP_TEST
+//#define OPEN_LOOP_TEST
+#define CLOSED_LOOP_TEST
 
 #define RUN_PERIOD_DEFAULT 0.1
 /* Used only if the actual value of the period is not retrieved from the ROS parameter server */
@@ -53,7 +53,7 @@ class feedback_linearization
     void PeriodicTask(void);
     
     /* Node state variables */
-    double _time;
+    double _time, _x0, _y0, _theta0;
     ros::Time _t0;
     unsigned int _car_control_state;
     double _vehicleSideslip, _vehicleAngularVelocity;
