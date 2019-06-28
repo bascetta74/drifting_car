@@ -54,6 +54,7 @@ class feedback_linearization
     
     /* Node state variables */
     double _time, _x0, _y0, _theta0;
+    double _radius, _xcenter, _ycenter, _omega;
     ros::Time _t0;
     unsigned int _car_control_state;
     double _vehicleSideslip, _vehicleAngularVelocity;
