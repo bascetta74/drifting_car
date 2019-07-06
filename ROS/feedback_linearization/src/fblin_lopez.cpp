@@ -12,7 +12,7 @@ fblin_lopez::fblin_lopez(double P_distance, double sampling_time)
  if (sampling_time==0.0)
         throw std::invalid_argument("Feedback linearization sampling time cannot be zero");
 
- _p = P_distance;
+ _p  = P_distance;
  _Ts = sampling_time;
 
  _delta = 0.0;

@@ -1,7 +1,0 @@
-<launch>
-  <!-- load parameter files -->
-  <rosparam file="$(find feedback_linearization)/config/feedback_linearization_params.yaml" command="load"/>
-  <rosparam param="use_sim_time">true</rosparam>
-
-  <node pkg="feedback_linearization" type="feedback_linearization" name="feedback_linearization" output="screen"/>
-</launch>

@@ -1,0 +1,8 @@
+<launch>
+  <!-- load parameter files -->
+  <rosparam file="$(find feedback_linearization)/config/feedback_linearization_driftcar_params.yaml" command="load"/>
+  <rosparam param="use_sim_time">true</rosparam>
+  <rosparam param="/test_feedback_linearization/use_ideal_sim">true</rosparam>
+
+  <node pkg="feedback_linearization" type="test_feedback_linearization_driftcar" name="test_feedback_linearization" output="screen"/>
+</launch>

@@ -24,7 +24,8 @@
   </node>
 
   <!--- Run feedback_linearization node -->
-  <node pkg="feedback_linearization" type="feedback_linearization" respawn="false" name="feedback_linearization" output="screen">
-    <rosparam file="$(find feedback_linearization)/config/feedback_linearization_params.yaml" command="load" />
+  <node pkg="feedback_linearization" type="test_feedback_linearization_driftcar" respawn="false" name="test_feedback_linearization" output="screen">
+    <rosparam file="$(find feedback_linearization)/config/feedback_linearization_driftcar_params.yaml" command="load" />
+    <rosparam param="/test_feedback_linearization/use_ideal_sim">false</rosparam>
   </node>
 </launch>

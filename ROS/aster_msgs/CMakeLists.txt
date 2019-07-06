@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(feedback_linearization)
+project(aster_msgs)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -11,9 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
-  sensor_msgs
-  car_msgs
-  aster_msgs
+  genmsg
 )
 
 ## System dependencies are found with CMake's conventions
@@ -50,11 +48,10 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+  Crio.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -71,10 +68,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -87,7 +84,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## * In this file (CMakeLists.txt):
 ##   * add "dynamic_reconfigure" to
 ##     find_package(catkin REQUIRED COMPONENTS ...)
-##   * uncomment the "gvehicleSideslipenerate_dynamic_reconfigure_options" section below
+##   * uncomment the "generate_dynamic_reconfigure_options" section below
 ##     and list every .cfg file to be processed
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
@@ -99,16 +96,16 @@ find_package(catkin REQUIRED COMPONENTS
 ###################################
 ## catkin specific configuration ##
 ###################################
-## The catkin_pavehicleSideslipckage macro generates cmake config files for your package
+## The catkin_package macro generates cmake config files for your package
 ## Declare things to be passed to dependent projects
 ## INCLUDE_DIRS: uncomment this if you package contains header files
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES feedback_linearization
-  CATKIN_DEPENDS roscpp rospy std_msgs sensor_msgs car_msgs aster_msgs
+#  INCLUDE_DIRS include
+#  LIBRARIES car_msgs
+#  CATKIN_DEPENDS roscpp rospy std_msgs
 #  DEPENDS system_lib
 )
 
@@ -119,21 +116,13 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-  include
+# include
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(test_feedback_linearization_driftcar src/test_feedback_linearization_driftcar.cpp src/test_feedback_linearization_driftcar_node.cpp src/fblin_lopez.cpp src/PIDcontrol.cpp src/trajectory.cpp)
-target_link_libraries(test_feedback_linearization_driftcar ${catkin_LIBRARIES})
-add_dependencies(test_feedback_linearization_driftcar car_msgs_generate_messages_cpp)
-
-add_executable(test_feedback_linearization_aster src/test_feedback_linearization_aster.cpp src/test_feedback_linearization_aster_node.cpp src/fblin_lopez.cpp src/PIDcontrol.cpp src/trajectory.cpp)
-target_link_libraries(test_feedback_linearization_aster ${catkin_LIBRARIES})
-add_dependencies(test_feedback_linearization_aster aster_msgs_generate_messages_cpp)
-
-## Declare a C++vehicleSideslip library
+## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/beta_estimator.cpp
+#   src/${PROJECT_NAME}/car_msgs.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -144,7 +133,7 @@ add_dependencies(test_feedback_linearization_aster aster_msgs_generate_messages_
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/beta_estimator_node.cpp)
+# add_executable(${PROJECT_NAME}_node src/car_msgs_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -174,6 +163,7 @@ add_dependencies(test_feedback_linearization_aster aster_msgs_generate_messages_
 #   scripts/my_python_script
 #   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
+
 ## Mark executables and/or libraries for installation
 # install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
@@ -185,7 +175,7 @@ add_dependencies(test_feedback_linearization_aster aster_msgs_generate_messages_
 # install(DIRECTORY include/${PROJECT_NAME}/
 #   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
 #   FILES_MATCHING PATTERN "*.h"
-#   PATTERN ".svn" EXCLUDEvehicleIMU_MessageCallback(const sensor_msgs::Imu::ConstPtr& msg)
+#   PATTERN ".svn" EXCLUDE
 # )
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
@@ -200,7 +190,7 @@ add_dependencies(test_feedback_linearization_aster aster_msgs_generate_messages_
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_beta_estimator.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_car_msgs.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

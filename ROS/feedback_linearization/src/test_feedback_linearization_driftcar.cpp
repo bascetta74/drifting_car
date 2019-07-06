@@ -1,14 +1,14 @@
-#include "feedback_linearization/feedback_linearization.h"
+#include "feedback_linearization/test_feedback_linearization_driftcar.h"
 
 #include <tf/transform_datatypes.h>
 #include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <std_msgs/Float64MultiArray.h>
 
+#include "trajectory.h"
 #include "car_msgs/car_cmd.h"
 
-
-void feedback_linearization::Prepare(void)
+void test_feedback_linearization_driftcar::Prepare(void)
 {
  RunPeriod = RUN_PERIOD_DEFAULT;
 
@@ -28,22 +28,6 @@ void feedback_linearization::Prepare(void)
 
  FullParamName = ros::this_node::getName()+"/cog_dist_rear";
  if (false == Handle.getParam(FullParamName, b))
-  ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
-
- FullParamName = ros::this_node::getName()+"/cornering_front";
- if (false == Handle.getParam(FullParamName, Cf))
-  ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
-
- FullParamName = ros::this_node::getName()+"/cornering_rear";
- if (false == Handle.getParam(FullParamName, Cr))
-  ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
-
- FullParamName = ros::this_node::getName()+"/yaw_inertia";
- if (false == Handle.getParam(FullParamName, Jz))
-  ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
-
- FullParamName = ros::this_node::getName()+"/mass";
- if (false == Handle.getParam(FullParamName, m))
   ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
 
  // Controller parameters
@@ -81,6 +65,27 @@ void feedback_linearization::Prepare(void)
  if (false == Handle.getParam(FullParamName, car2motor_conversion))
   ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str()); 
 
+ // Trajectory parameters
+ FullParamName = ros::this_node::getName()+"/radius";
+ if (false == Handle.getParam(FullParamName, _radius))
+  ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str()); 
+
+ FullParamName = ros::this_node::getName()+"/xcenter";
+ if (false == Handle.getParam(FullParamName, _xcenter))
+  ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str()); 
+
+ FullParamName = ros::this_node::getName()+"/ycenter";
+ if (false == Handle.getParam(FullParamName, _ycenter))
+  ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str()); 
+
+ FullParamName = ros::this_node::getName()+"/omega";
+ if (false == Handle.getParam(FullParamName, _omega))
+  ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str()); 
+
+ FullParamName = ros::this_node::getName()+"/const_speed";
+ if (false == Handle.getParam(FullParamName, _const_speed))
+  ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str()); 
+
  // Other parameters
  FullParamName = ros::this_node::getName()+"/theta_offset";
  if (false == Handle.getParam(FullParamName, theta_offset))
@@ -95,10 +100,10 @@ void feedback_linearization::Prepare(void)
   use_sim_time = false;
 
  /* ROS topics */
- vehiclePose_subscriber = Handle.subscribe("/car/ground_pose", 1, &feedback_linearization::vehiclePose_MessageCallback, this);
- vehicleIMU_subscriber = Handle.subscribe("/imu/data", 1, &feedback_linearization::vehicleIMU_MessageCallback, this);
- telemetry_subscriber = Handle.subscribe("/car_simulator/telemetry", 1, &feedback_linearization::simulated_telemetry_MessageCallback, this);
- radiocmd_subscriber = Handle.subscribe("/radio_cmd", 1, &feedback_linearization::radioCommand_MessageCallback, this);
+ vehiclePose_subscriber = Handle.subscribe("/car/ground_pose", 1, &test_feedback_linearization_driftcar::vehiclePose_MessageCallback, this);
+ vehicleIMU_subscriber = Handle.subscribe("/imu/data", 1, &test_feedback_linearization_driftcar::vehicleIMU_MessageCallback, this);
+ telemetry_subscriber = Handle.subscribe("/car_simulator/telemetry", 1, &test_feedback_linearization_driftcar::simulated_telemetry_MessageCallback, this);
+ radiocmd_subscriber = Handle.subscribe("/radio_cmd", 1, &test_feedback_linearization_driftcar::radioCommand_MessageCallback, this);
 
  controllerCommand_publisher = Handle.advertise<car_msgs::car_cmd>("/controller_cmd", 1);
  vehicleState_publisher = Handle.advertise<std_msgs::Float64MultiArray>("/feedback_linearization/vehicleState", 1);
@@ -110,11 +115,6 @@ void feedback_linearization::Prepare(void)
  /* Initialize node state */
  _time = 0.0;
  _x0 = _y0 = _theta0 = 0.0;
-
- _radius = 1.0;
- _xcenter = -0.32;
- _ycenter = 1.20;
- _omega = 0.5;
 
  _vehicleSideslip = _vehicleAngularVelocity = 0.0;
 
@@ -134,7 +134,7 @@ void feedback_linearization::Prepare(void)
  _PIy = new PIDcontrol(Kp, Ti, RunPeriod, vp_min, vp_max);
 
  if (_linearizer)
-  _linearizer->set_bicycleParam(m, Jz, Cf, Cr, a, b);
+  _linearizer->set_bicycleParam(a, b);
 
  _car_control_state = car_msgs::car_cmd::STATE_SAFE;
 
@@ -144,7 +144,7 @@ void feedback_linearization::Prepare(void)
    ROS_INFO("Node %s ready to run.", ros::this_node::getName().c_str());
 }
 
-void feedback_linearization::RunPeriodically(float Period)
+void test_feedback_linearization_driftcar::RunPeriodically(float Period)
 {
  ros::Rate LoopRate(1.0/Period);
 
@@ -160,7 +160,7 @@ void feedback_linearization::RunPeriodically(float Period)
  }
 }
 
-void feedback_linearization::Shutdown(void)
+void test_feedback_linearization_driftcar::Shutdown(void)
 {
  if (_linearizer)
  {
@@ -183,7 +183,7 @@ void feedback_linearization::Shutdown(void)
  ROS_INFO("Node %s shutting down.", ros::this_node::getName().c_str());
 }
 
-void feedback_linearization::vehiclePose_MessageCallback(const geometry_msgs::Pose2D::ConstPtr &msg)
+void test_feedback_linearization_driftcar::vehiclePose_MessageCallback(const geometry_msgs::Pose2D::ConstPtr &msg)
 {
   if (!use_ideal_sim)
   {
@@ -235,13 +235,13 @@ void feedback_linearization::vehiclePose_MessageCallback(const geometry_msgs::Po
   }
 }
 
-void feedback_linearization::vehicleIMU_MessageCallback(const sensor_msgs::Imu::ConstPtr& msg)
+void test_feedback_linearization_driftcar::vehicleIMU_MessageCallback(const sensor_msgs::Imu::ConstPtr& msg)
 {
   /* Updating yaw rate */
-  _vehicleAngularVelocity    = msg->angular_velocity.z;
+  _vehicleAngularVelocity = msg->angular_velocity.z;
 }
 
-void feedback_linearization::simulated_telemetry_MessageCallback(const car_msgs::simulated_telemetry::ConstPtr& msg)
+void test_feedback_linearization_driftcar::simulated_telemetry_MessageCallback(const car_msgs::simulated_telemetry::ConstPtr& msg)
 {
  if (use_ideal_sim)
  {
@@ -251,12 +251,12 @@ void feedback_linearization::simulated_telemetry_MessageCallback(const car_msgs:
  }
 }
 
-void feedback_linearization::radioCommand_MessageCallback(const car_msgs::car_cmd::ConstPtr& msg)
+void test_feedback_linearization_driftcar::radioCommand_MessageCallback(const car_msgs::car_cmd::ConstPtr& msg)
 {
   _car_control_state = msg->state;
 }
 
-void feedback_linearization::PeriodicTask(void)
+void test_feedback_linearization_driftcar::PeriodicTask(void)
 {
   double xref, yref, xPref, yPref, xP, yP, vPx, vPy;
 
@@ -267,12 +267,10 @@ void feedback_linearization::PeriodicTask(void)
 
     /* Reference trajectory generation */
     // Circle
-    xref = _xcenter + _radius*cos(_omega*_time+0.5*M_PI);
-    yref = _ycenter + _radius*sin(_omega*_time+0.5*M_PI);
+    circle_position(xref, yref, _time, _xcenter, _ycenter, _radius, _omega, 0.5*M_PI);
     
     // Squircle
-    // xref = _xcenter + _radius*cos(_omega*_time+0.5*M_PI)/pow(pow(cos(_omega*_time+0.5*M_PI),8.0)+pow(sin(_omega*_time+0.5*M_PI),8.0),0.125);
-    // yref = _ycenter + _radius*sin(_omega*_time+0.5*M_PI)/pow(pow(cos(_omega*_time+0.5*M_PI),8.0)+pow(sin(_omega*_time+0.5*M_PI),8.0),0.125);
+    //squircle_position(xref, yref, _time, _xcenter, _ycenter, _radius, _omega, 0.5*M_PI);
 
     if (_linearizer)
       _linearizer->reference_transformation(xref, yref, xPref, yPref);
@@ -283,7 +281,6 @@ void feedback_linearization::PeriodicTask(void)
     if (_linearizer)
     {
       _linearizer->set_bicycleState(_vehiclePose.at(0), _vehiclePose.at(1), _vehiclePose.at(2), _vehicleSideslip, _vehicleAngularVelocity);
-      _linearizer->set_bicycleAbsoluteVelocity(sqrt(pow(_vehicleVelocity.at(0),2)+pow(_vehicleVelocity.at(1),2)));
     }
     else
       ROS_ERROR("Error, no feedback linearization has been activated");
@@ -295,32 +292,8 @@ void feedback_linearization::PeriodicTask(void)
       
     /* Position controller / open loop test */
     #ifdef OPEN_LOOP_TEST
-      const double vel = 0.7;
-      if (_time<=2.0)
-      {
-        vPx = 0.0; //-0.5;
-        vPy = 0.5; //0.0;
-      }
-      else if (_time<=3.0)
-      {
-        vPx = 0.0; //-vel;
-        vPy = vel; //0.0;
-      }
-      else if (_time<=4.5)
-      {
-        vPx = -vel; //-vel;
-        vPy =  vel; //-vel;
-      }
-      else if (_time<=7.0)
-      {
-        vPx = -vel; //0.0;
-        vPy =  0.0; //-vel;
-      }
-      else
-      {
-        vPx = 0.0;
-        vPy = 0.0;
-      }
+      stepSeq1_velocity(vPx, vPy, _time, _const_speed);
+      //stepSeq2_velocity(vPx, vPy, _time, _const_speed);
     #endif
     #ifdef CLOSED_LOOP_TEST
       if (_time<=1.0)
