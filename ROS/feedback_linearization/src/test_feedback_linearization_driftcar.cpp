@@ -125,6 +125,8 @@ void test_feedback_linearization_driftcar::Prepare(void)
  std::fill(_vehiclePositionXBuffer.begin(), _vehiclePositionXBuffer.end(), 0.0);
  _vehiclePositionYBuffer.set_capacity(vel_filt_order);
  std::fill(_vehiclePositionYBuffer.begin(), _vehiclePositionYBuffer.end(), 0.0);
+ _vehiclePositionTimeBuffer.set_capacity(vel_filt_order);
+ std::fill(_vehiclePositionTimeBuffer.begin(), _vehiclePositionTimeBuffer.end(), 0.0);
 
  _linearizer = NULL;
  _linearizer = new fblin_lopez(P_dist,RunPeriod);
@@ -191,6 +193,9 @@ void test_feedback_linearization_driftcar::vehiclePose_MessageCallback(const geo
     _vehiclePositionXBuffer.push_back(msg->x);
     _vehiclePositionYBuffer.push_back(msg->y);
 
+    /* Updating time buffer */
+    _vehiclePositionTimeBuffer.push_back((ros::Time::now()).toNSec()*1.0e-9);
+
     /* Updating 2D pose */
     _vehiclePose.at(0) = msg->x;
     _vehiclePose.at(1) = msg->y;
@@ -198,6 +203,8 @@ void test_feedback_linearization_driftcar::vehiclePose_MessageCallback(const geo
 
     if (_car_control_state == car_msgs::car_cmd::STATE_AUTOMATIC)
     {
+      /* Compute average position sampling time in the last N samples */
+      double averagePeriod = (_vehiclePositionTimeBuffer.end()-_vehiclePositionTimeBuffer.begin())/_vehiclePositionTimeBuffer.size();
 
       /* Compute vehicle cog velocity (vx, vy) through a low-pass differentiator FIR filter */
       _vehicleVelocity.at(0) = 0.0;
@@ -205,11 +212,11 @@ void test_feedback_linearization_driftcar::vehiclePose_MessageCallback(const geo
 
       std::vector<double>::iterator it_coeff = vel_filt_coeff.begin();
       for (boost::circular_buffer<double>::reverse_iterator it_posX = _vehiclePositionXBuffer.rbegin(); it_posX != _vehiclePositionXBuffer.rend(); it_posX++, it_coeff++)
-        _vehicleVelocity.at(0) += (*it_coeff) * (*it_posX / RunPeriod);
+        _vehicleVelocity.at(0) += (*it_coeff) * (*it_posX / averagePeriod);
 
       it_coeff = vel_filt_coeff.begin();
       for (boost::circular_buffer<double>::reverse_iterator it_posY = _vehiclePositionYBuffer.rbegin(); it_posY != _vehiclePositionYBuffer.rend(); it_posY++, it_coeff++)
-        _vehicleVelocity.at(1) += (*it_coeff) * (*it_posY / RunPeriod);
+        _vehicleVelocity.at(1) += (*it_coeff) * (*it_posY / averagePeriod);
 
       /* Vehicle sideslip */
       if (sqrt(pow(_vehicleVelocity.at(0), 2) + pow(_vehicleVelocity.at(1), 2)) > speed_thd)

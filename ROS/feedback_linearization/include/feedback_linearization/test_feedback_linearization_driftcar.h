@@ -60,7 +60,7 @@ class test_feedback_linearization_driftcar
     unsigned int _car_control_state;
     double _vehicleSideslip, _vehicleAngularVelocity;
     std::vector<double> _vehiclePose, _vehicleVelocity;
-    boost::circular_buffer<double> _vehiclePositionXBuffer, _vehiclePositionYBuffer;
+    boost::circular_buffer<double> _vehiclePositionXBuffer, _vehiclePositionYBuffer, _vehiclePositionTimeBuffer;
 
     fblin_lopez* _linearizer;
     PIDcontrol* _PIx;

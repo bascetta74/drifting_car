@@ -13,7 +13,6 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   sensor_msgs
   car_msgs
-  aster_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -108,7 +107,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES feedback_linearization
-  CATKIN_DEPENDS roscpp rospy std_msgs sensor_msgs car_msgs aster_msgs
+  CATKIN_DEPENDS roscpp rospy std_msgs sensor_msgs car_msgs
 #  DEPENDS system_lib
 )
 
@@ -126,10 +125,6 @@ include_directories(
 add_executable(test_feedback_linearization_driftcar src/test_feedback_linearization_driftcar.cpp src/test_feedback_linearization_driftcar_node.cpp src/fblin_lopez.cpp src/PIDcontrol.cpp src/trajectory.cpp)
 target_link_libraries(test_feedback_linearization_driftcar ${catkin_LIBRARIES})
 add_dependencies(test_feedback_linearization_driftcar car_msgs_generate_messages_cpp)
-
-add_executable(test_feedback_linearization_aster src/test_feedback_linearization_aster.cpp src/test_feedback_linearization_aster_node.cpp src/fblin_lopez.cpp src/PIDcontrol.cpp src/trajectory.cpp)
-target_link_libraries(test_feedback_linearization_aster ${catkin_LIBRARIES})
-add_dependencies(test_feedback_linearization_aster aster_msgs_generate_messages_cpp)
 
 ## Declare a C++vehicleSideslip library
 # add_library(${PROJECT_NAME}
