@@ -28,8 +28,8 @@ int main(int argc, char **argv)
     vector<double> r;
 
     VectorXd l1(numVar);            l1 << 0.5, -1.0;        l.push_back(l1);
-    MatrixXd Q1(numVar,numVar);     Q1 << 1.0, 0.0,
-                                          0.0, 1.0;         Q.push_back(Q1);
+    MatrixXd Q1(numVar,numVar);     Q1 << 1.0, 0.5,
+                                          0.5, 4.0;         Q.push_back(Q1);
     double                          r1 = 1.0;               r.push_back(r1);
 
     /** CPLEX solver example */

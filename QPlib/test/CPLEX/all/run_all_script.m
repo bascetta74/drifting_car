@@ -12,6 +12,8 @@ for k=1:numScript
     save(outputName);
 end
 
+clearvars -EXCEPT numScript
+
 solution_error = -ones(1,numScript);
 for k=1:numScript
     outputName = ['./output/test_', mat2str(k), '_script.mat'];

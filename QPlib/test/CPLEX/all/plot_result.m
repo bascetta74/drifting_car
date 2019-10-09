@@ -18,8 +18,6 @@ disp(['Total feasible problems (CPP): ', mat2str(length(feasible_cpp))]);
 disp(['Total unfeasible problems (CPP): ', mat2str(length(unfeasible_cpp))]);
 disp(['Total feasible problems (matlab): ', mat2str(length(feasible_matlab))]);
 disp(['Total unfeasible problems (matlab): ', mat2str(length(unfeasible_matlab))]);
-if (length(unfeasible_cpp)==length(unfeasible_matlab))
-    disp(['Problems feasible in CPP/unfeasible in matlab (and vicevers): ', mat2str(sum(unfeasible_cpp-unfeasible_matlab))]);
-end
 
-figure,plot(solution_error(find(solution_error>0)),'x'),grid
+solution_index = 1:1:length(solution_error);
+figure,plot(solution_index(find(solution_error>0)),solution_error(find(solution_error>0)),'x'),grid

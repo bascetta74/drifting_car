@@ -24,14 +24,14 @@ int main(int argc, char **argv)
     VectorXd Bin(numConstr);        Bin << 1.0, 0.0;
 
     VectorXd l1(numVar);            l1 << 2.0, 1.0;
-    MatrixXd q1(numVar,numVar);     q1 << 2.0, 0.0,
-                                          0.0, 1.0;
-    double r1 = 15.0;
+    MatrixXd q1(numVar,numVar);     q1 << 2.0, 0.5,
+                                          0.5, 1.0;
+    double r1 = 4.0;
     
-    VectorXd l2(numVar);            l2 << 1.0, 1.5;
-    MatrixXd q2(numVar,numVar);     q2 << 1.0, 0.0,
-                                          0.0, 2.0;
-    double r2 = 100.0;
+    VectorXd l2(numVar);            l2 << 1.0, -1.5;
+    MatrixXd q2(numVar,numVar);     q2 << 1.0, 0.1,
+                                          0.1, 4.0;
+    double r2 = 2.0;
 
     std::vector<VectorXd> l = { l1, l2 };
     std::vector<MatrixXd> Q = { q1, q2 };
