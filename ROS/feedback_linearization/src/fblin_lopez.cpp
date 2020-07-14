@@ -30,7 +30,7 @@ void fblin_lopez::control_transformation(double vPx, double vPy, double& speed, 
  
  steer = _delta;
 
- speed = (vPx*cos(_delta+_psi)+vPy*sin(_delta+_psi)+_lf*_r*sin(_delta))/cos(_beta-_delta);
+ speed = (vPx*cos(_delta+_psi)+vPy*sin(_delta+_psi)-_lf*_r*sin(_delta))/cos(_beta-_delta);
 }
 
 void fblin_lopez::ouput_transformation(double& xP, double& yP)
