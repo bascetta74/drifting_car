@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(ags_controller)
+project(single_track_sim)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -14,8 +14,6 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   car_msgs
 )
-
-find_package(Eigen3 REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -108,7 +106,7 @@ find_package(Eigen3 REQUIRED)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES ags_controller
+  LIBRARIES single_track_sim
   CATKIN_DEPENDS roscpp rospy std_msgs sensor_msgs car_msgs
 #  DEPENDS system_lib
 )
@@ -121,17 +119,20 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
   include
-  ${EIGEN3_INCLUDE_DIR}
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(test_matio src/test_matio.cpp)
-target_link_libraries(test_matio ${catkin_LIBRARIES} matio)
-add_dependencies(test_matio car_msgs_generate_messages_cpp)
+add_executable(single_track_sim src/single_track_sim.cpp src/single_track_sim_node.cpp src/single_track_ode.cpp)
+target_link_libraries(single_track_sim ${catkin_LIBRARIES})
+add_dependencies(single_track_sim car_msgs_generate_messages_cpp)
+
+add_executable(test_single_track_ode src/test_single_track_ode.cpp src/single_track_ode.cpp)
+target_link_libraries(test_single_track_ode ${catkin_LIBRARIES})
+add_dependencies(test_single_track_ode car_msgs_generate_messages_cpp)
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/ags_controller.cpp
+#   src/${PROJECT_NAME}/single_track_sim.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -142,7 +143,7 @@ add_dependencies(test_matio car_msgs_generate_messages_cpp)
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/ags_controller_node.cpp)
+# add_executable(${PROJECT_NAME}_node src/single_track_sim_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -206,7 +207,7 @@ add_dependencies(test_matio car_msgs_generate_messages_cpp)
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_ags_controller.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_single_track_sim.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
