@@ -1,9 +1,9 @@
-#include "single_track_sim/single_track_ode.h"
+#include "single_track_ode.h"
 
 #include <boost/math/special_functions/sign.hpp>
 
 single_track_ode::single_track_ode(double deltaT, tyreModel tyre_model, actuatorModel actuator_model) : dt(deltaT),
-    t(0.0), state(7), Vx(0.0), delta_ref(0.0), delta(0.0), alphaf(0.0), alphar(0.0), Fyf(0.0), Fyr(0.0),
+    t(0.0), state(7), Vx_ref(0.0), Vx(0.0), delta_ref(0.0), delta(0.0), alphaf(0.0), alphar(0.0), Fyf(0.0), Fyr(0.0),
     vehicleParams_set(false), steeringActuatorParams_set(false)
 {
     // state = [ r, Vy, x, y, psi, steer_pos, steer_vel ]
@@ -64,9 +64,15 @@ void single_track_ode::setSteeringActuatorParams(double gain, double frequency, 
     }
 }
 
+void single_track_ode::setVelocityActuatorParams(double gain)
+{
+    // Initialize velocity actuator parameters
+    mu_speed = gain;
+}
+
 void single_track_ode::setReferenceCommands(double velocity, double steer)
 {
-    Vx = velocity;
+    Vx_ref = velocity;
 
     switch (steeringActuator_model)
     {
@@ -121,7 +127,7 @@ void single_track_ode::vehicle_ode(const state_type &state, state_type &dstate, 
     const double steer_pos = state[5];
     const double steer_vel = state[6];
 
-    // Actuator model
+    // Steering actuator model
     switch (steeringActuator_model)
     {
         case IDEAL:
@@ -150,6 +156,9 @@ void single_track_ode::vehicle_ode(const state_type &state, state_type &dstate, 
             throw std::invalid_argument( "Uknown steering actuator model!" );
             break;
     }
+
+    // Velocity actuator model
+    Vx = mu_speed*Vx_ref;
 
     // Slip angles
     if (std::abs(Vx)<=0.01) {

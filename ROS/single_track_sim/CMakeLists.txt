@@ -130,6 +130,10 @@ add_executable(test_single_track_ode src/test_single_track_ode.cpp src/single_tr
 target_link_libraries(test_single_track_ode ${catkin_LIBRARIES})
 add_dependencies(test_single_track_ode car_msgs_generate_messages_cpp)
 
+add_executable(test_single_track_sim src/test_single_track_sim.cpp src/test_single_track_sim_node.cpp src/single_track_ode.cpp)
+target_link_libraries(test_single_track_sim ${catkin_LIBRARIES})
+add_dependencies(test_single_track_sim car_msgs_generate_messages_cpp)
+
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
 #   src/${PROJECT_NAME}/single_track_sim.cpp

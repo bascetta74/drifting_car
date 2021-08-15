@@ -14,7 +14,7 @@ void single_track_sim::Prepare(void)
  std::string FullParamName;
 
  // Simulator parameters
- FullParamName = ros::this_node::getName()+"/actuator_model";
+ FullParamName = ros::this_node::getName()+"/steering_actuator_model";
  if (false == Handle.getParam(FullParamName, actuator_model))
   ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
 
@@ -55,7 +55,7 @@ void single_track_sim::Prepare(void)
  if (false == Handle.getParam(FullParamName, Iz))
   ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
 
- // Actuator model parameters
+ // Steering actuator model parameters
  FullParamName = ros::this_node::getName()+"/mu_steer";
  if (false == Handle.getParam(FullParamName, mu_steer))
   ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
@@ -70,6 +70,11 @@ void single_track_sim::Prepare(void)
 
  FullParamName = ros::this_node::getName()+"/tau_steer";
  if (false == Handle.getParam(FullParamName, tau_steer))
+  ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
+
+ // Velocity actuator model parameters
+ FullParamName = ros::this_node::getName()+"/mu_speed";
+ if (false == Handle.getParam(FullParamName, mu_speed))
   ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
 
  // Vehicle initial state
@@ -93,12 +98,22 @@ void single_track_sim::Prepare(void)
  if (false == Handle.getParam(FullParamName, psi0))
   ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
 
+ // Measurement publishing
+ FullParamName = ros::this_node::getName()+"/pose_decimation";
+ if (false == Handle.getParam(FullParamName, pose_decimation))
+  ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
+
+ FullParamName = ros::this_node::getName()+"/imu_decimation";
+ if (false == Handle.getParam(FullParamName, imu_decimation))
+  ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
+
  /* ROS topics */
  vehicleCommand_subscriber = Handle.subscribe("/controller_cmd", 1, &single_track_sim::vehicleCommand_MessageCallback, this);
  vehiclePose_publisher = Handle.advertise<geometry_msgs::Pose2D>("/car/ground_pose", 1);
  vehicleIMU_publisher = Handle.advertise<sensor_msgs::Imu>("/imu/data", 1);
  vehicleState_publisher = Handle.advertise<std_msgs::Float64MultiArray>("/car/state", 1);
  clock_publisher = Handle.advertise<rosgraph_msgs::Clock>("/clock", 1);
+ radioCommand_publisher = Handle.advertise<car_msgs::car_cmd>("/radio_cmd", 1);
 
  /* Create simulator class */
  if (actuator_model == 0) {         // ideal
@@ -136,7 +151,11 @@ void single_track_sim::Prepare(void)
  /* Initialize simulator class */
  sim->setInitialState(r0, Vy0, x0, y0, psi0);
  sim->setSteeringActuatorParams(mu_steer, wn_steer, csi_steer, tau_steer);
+ sim->setVelocityActuatorParams(mu_speed);
  sim->setVehicleParams(m, a, b, Cf, Cr, mu, Iz);
+
+ /* Initialize node state */
+ pose_pub_idx = imu_pub_idx = 0;
 
  ROS_INFO("Node %s ready to run.", ros::this_node::getName().c_str());
 }
@@ -144,6 +163,16 @@ void single_track_sim::Prepare(void)
 void single_track_sim::RunPeriodically(void)
 {
  ROS_INFO("Node %s running.", ros::this_node::getName().c_str());
+
+ // Wait other nodes start
+ sleep(1.0);
+
+ // Publish a message to set auto mode
+ car_msgs::car_cmd msg;
+ msg.state = car_msgs::car_cmd::STATE_AUTOMATIC;
+ msg.speed_ref = 0.0;
+ msg.steer_ref = 0.0;
+ radioCommand_publisher.publish(msg);
 
  while (ros::ok())
  {
@@ -190,26 +219,51 @@ void single_track_sim::PeriodicTask(void)
  double time;
  sim->getTime(time);
 
+ /*  Print simulation time every 5 sec */
+ if (std::fabs(std::fmod(time,5.0)) < 1.0e-3)
+ {
+     ROS_INFO("Simulator time: %d seconds", (int) time);
+ }
+
  /*  Publish vehicle pose */
- geometry_msgs::Pose2D vehiclePoseMsg;
- vehiclePoseMsg.x = x;
- vehiclePoseMsg.y = y;
- vehiclePoseMsg.theta = theta;
- vehiclePose_publisher.publish(vehiclePoseMsg);
+ if (pose_pub_idx < pose_decimation-1)
+ {
+     pose_pub_idx++;
+ }
+ else
+ {
+     geometry_msgs::Pose2D vehiclePoseMsg;
+     vehiclePoseMsg.x = x;
+     vehiclePoseMsg.y = y;
+     vehiclePoseMsg.theta = theta;
+     vehiclePose_publisher.publish(vehiclePoseMsg);
+
+     pose_pub_idx = 0;
+ }
 
  /*  Publish IMU data */
- sensor_msgs::Imu imuDataMsg;
- imuDataMsg.header.stamp = ros::Time(time);
- imuDataMsg.angular_velocity.x = 0.0;
- imuDataMsg.angular_velocity.y = 0.0;
- imuDataMsg.angular_velocity.z = yawrate;
- imuDataMsg.linear_acceleration.x = 0.0;  // This is not considered in the model (yet)
- imuDataMsg.linear_acceleration.y = ay;
- imuDataMsg.linear_acceleration.z = 0.0;
- vehicleIMU_publisher.publish(imuDataMsg);
+ if (imu_pub_idx < imu_decimation-1)
+ {
+     imu_pub_idx++;
+ }
+ else
+ {
+     sensor_msgs::Imu imuDataMsg;
+     imuDataMsg.header.stamp = ros::Time(time);
+     imuDataMsg.angular_velocity.x = 0.0;
+     imuDataMsg.angular_velocity.y = 0.0;
+     imuDataMsg.angular_velocity.z = yawrate;
+     imuDataMsg.linear_acceleration.x = 0.0;  // This is not considered in the model (yet)
+     imuDataMsg.linear_acceleration.y = ay;
+     imuDataMsg.linear_acceleration.z = 0.0;
+     vehicleIMU_publisher.publish(imuDataMsg);
+
+     imu_pub_idx = 0;
+ }
 
  /*  Publish vehicle state */
  std_msgs::Float64MultiArray vehicleStateMsg;
+ vehicleStateMsg.data.push_back(time);
  vehicleStateMsg.data.push_back(x);
  vehicleStateMsg.data.push_back(y);
  vehicleStateMsg.data.push_back(theta);

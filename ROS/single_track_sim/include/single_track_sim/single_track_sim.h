@@ -20,13 +20,15 @@ class single_track_sim
     ros::Publisher vehicleIMU_publisher;
     ros::Publisher vehicleState_publisher;
     ros::Publisher clock_publisher;
+    ros::Publisher radioCommand_publisher;
     
     /* Parameters from ROS parameter server */
     double dt;
     int actuator_model, tyre_model;
     double r0, Vy0, x0, y0, psi0;
-    double mu_steer, wn_steer, csi_steer, tau_steer;
+    double mu_steer, wn_steer, csi_steer, tau_steer, mu_speed;
     double m, a, b, Cf, Cr, mu, Iz;
+    int pose_decimation, imu_decimation;
 
     /* ROS topic callbacks */
     void vehicleCommand_MessageCallback(const car_msgs::car_cmd::ConstPtr& msg);
@@ -36,6 +38,7 @@ class single_track_sim
     
     /* Node state variables */
     single_track_ode* sim;
+    int pose_pub_idx, imu_pub_idx;
 
   public:
 

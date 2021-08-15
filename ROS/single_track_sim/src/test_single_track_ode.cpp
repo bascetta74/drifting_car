@@ -1,4 +1,4 @@
-#include "single_track_sim/single_track_ode.h"
+#include "single_track_ode.h"
 
 #include <iostream>
 #include <fstream>
@@ -28,6 +28,10 @@ int main() {
     const double csi_steer = 0.75;
     const int tau_steer    = 55;
     sim.setSteeringActuatorParams(mu_steer, wn_steer, csi_steer, tau_steer);
+
+    // Set velocity actuator parameters
+    const double mu_speed  = 1.0;
+    sim.setVelocityActuatorParams(mu_speed);
 
     const double a  = 0.1513;
     const double b  = 0.1087;
