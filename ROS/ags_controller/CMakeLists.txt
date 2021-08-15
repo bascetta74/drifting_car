@@ -125,6 +125,10 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
+add_executable(AFI_controller src/AFI_controller.cpp src/AFI_controller_node.cpp)
+target_link_libraries(AFI_controller ${catkin_LIBRARIES})
+add_dependencies(AFI_controller car_msgs_generate_messages_cpp)
+
 add_executable(test_matio src/test_matio.cpp)
 target_link_libraries(test_matio ${catkin_LIBRARIES} matio)
 add_dependencies(test_matio car_msgs_generate_messages_cpp)

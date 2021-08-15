@@ -1,0 +1,12 @@
+<launch>
+  <!--- Run single track simulator node -->
+  <node pkg="single_track_sim" type="single_track_sim" respawn="false" name="single_track_sim" output="screen">
+    <rosparam file="$(find single_track_sim)/config/single_track_sim.yaml" command="load" />
+    <rosparam param="/use_sim_time">true</rosparam>
+  </node> 
+
+  <!--- Run AFI controller node -->
+  <node pkg="ags_controller" type="AFI_controller" respawn="false" name="AFI_controller" output="screen">
+    <rosparam file="$(find ags_controller)/config/AFI_controller.yaml" command="load" />
+  </node> 
+</launch>
