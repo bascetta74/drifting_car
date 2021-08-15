@@ -204,7 +204,7 @@ void test_feedback_linearization_driftcar::vehiclePose_MessageCallback(const geo
     if (_car_control_state == car_msgs::car_cmd::STATE_AUTOMATIC)
     {
       /* Compute average position sampling time in the last N samples */
-      double averagePeriod = (_vehiclePositionTimeBuffer.end()-_vehiclePositionTimeBuffer.begin())/_vehiclePositionTimeBuffer.size();
+      double averagePeriod = (_vehiclePositionTimeBuffer.back()-_vehiclePositionTimeBuffer.front())/_vehiclePositionTimeBuffer.size();
 
       /* Compute vehicle cog velocity (vx, vy) through a low-pass differentiator FIR filter */
       _vehicleVelocity.at(0) = 0.0;
