@@ -2,6 +2,10 @@
   <!--- Run single track simulator node -->
   <node pkg="single_track_sim" type="single_track_sim" respawn="false" name="single_track_sim" output="screen">
     <rosparam file="$(find single_track_sim)/config/single_track_sim.yaml" command="load" />
+
+    <rosparam param="/single_track_sim//tyre_model">1</rosparam>
+    <rosparam param="/single_track_sim/steering_actuator_model">0</rosparam>
+
     <rosparam param="/use_sim_time">true</rosparam>
   </node> 
 

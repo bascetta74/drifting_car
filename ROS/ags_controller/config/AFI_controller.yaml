@@ -1,4 +1,4 @@
-# AFI controller parameters
+# Node parameters
   /AFI_controller/run_period: 0.01                  # Node execution period
 
 # Vehicle parameters
