@@ -3,7 +3,7 @@ clear;
 clc
 
 % Load cpp simulation results
-res = load('test_single_track_fialawos_real.txt');
+res = load('test_single_track_velocity_linear_ideal.txt');
 ode_res.t         = res(:,1);
 ode_res.speed_ref = res(:,2);
 ode_res.steer_ref = res(:,3);
@@ -56,22 +56,22 @@ speed_ref = timeseries(ode_res.speed_ref,ode_res.t);    % input vx timeseries
 steer_ref = timeseries(ode_res.steer_ref,ode_res.t);    % input delta timeseries
 
 % Set the flag that will choose the model describing the behavior of lateral forces
-tyre_model = 2; % 0='Linear Model'  1='Fiala model'  2='Fiala without saturation'
+tyre_model = 0; % 0='Linear Model'  1='Fiala model'  2='Fiala without saturation'
 
 % Set the flag that will choose the model describing the behavior of actuators
-actuator_model = 1; % 0='Ideal actuators'  1='Second order actuator model'
+actuator_model = 0; % 0='Ideal actuators'  1='Second order actuator model'
 
 % Run the system simulation
 Ts = ode_res.t(2)-ode_res.t(1);
 if (actuator_model==0)
-    load_system('car_simulator');
-    set_param('car_simulator/Actuator models','Commented','through');
+    load_system('car_simulator_velocity');
+    set_param('car_simulator_velocity/Actuator models','Commented','through');
 else
-    load_system('car_simulator');
-    set_param('car_simulator/Actuator models','Commented','off');
+    load_system('car_simulator_velocity');
+    set_param('car_simulator_velocity/Actuator models','Commented','off');
 end
 
-sim_res = sim('car_simulator.slx','StartTime','speed_ref.Time(1)','StopTime',...
+sim_res = sim('car_simulator_velocity.slx','StartTime','speed_ref.Time(1)','StopTime',...
     'speed_ref.Time(end)','SrcWorkspace' ,'current');
 
 % Plot the input signals
@@ -84,17 +84,10 @@ subplot(2,1,2),...
 
 figure,
 subplot(2,1,1),...
-    plot(sim_res.time,sim_res.steer_ref, ode_res.t,ode_res.steer_ref,'--'),ylabel('Delta ref [rad]'),xlabel('Time (s)'),...
+    plot(sim_res.time,sim_res.steer_ref, ode_res.t,ode_res.steer_ref,'--'),ylabel('Delta [rad]'),xlabel('Time (s)'),...
     grid,legend('Simulink','ODEINT')
 subplot(2,1,2),...
-    plot(ode_res.t,abs(sim_res.steer_ref-ode_res.steer_ref)),ylabel('Delta ref abs error [rad]'),xlabel('Time (s)'),grid
-
-figure,
-subplot(2,1,1),...
-    plot(sim_res.time,sim_res.steer_cmd, ode_res.t,ode_res.steer_cmd,'--'),ylabel('Delta cmd [rad]'),xlabel('Time (s)'),...
-    grid,legend('Simulink','ODEINT')
-subplot(2,1,2),...
-    plot(ode_res.t,abs(sim_res.steer_cmd-ode_res.steer_cmd)),ylabel('Delta cmd abs error [m/s]'),xlabel('Time (s)'),grid
+    plot(ode_res.t,abs(sim_res.steer_ref-ode_res.steer_ref)),ylabel('Delta abs error [rad]'),xlabel('Time (s)'),grid
 
 % Plot lateral dynamics measured outputs
 figure,

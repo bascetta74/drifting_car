@@ -1,4 +1,4 @@
-#include "single_track_ode.h"
+#include "single_track_velocity_ode.h"
 
 #include <iostream>
 #include <fstream>
@@ -7,12 +7,12 @@
 int main() {
     // Create simulator class
     const double dT = 0.001;
-    single_track_ode sim = single_track_ode(dT, single_track_ode::LINEAR, single_track_ode::IDEAL);
-//    single_track_ode sim = single_track_ode(dT, single_track_ode::LINEAR, single_track_ode::REAL);
-//    single_track_ode sim = single_track_ode(dT, single_track_ode::FIALA_WITH_SATURATION, single_track_ode::IDEAL);
-//    single_track_ode sim = single_track_ode(dT, single_track_ode::FIALA_WITH_SATURATION, single_track_ode::REAL);
-//    single_track_ode sim = single_track_ode(dT, single_track_ode::FIALA_WITHOUT_SATURATION, single_track_ode::IDEAL);
-//    single_track_ode sim = single_track_ode(dT, single_track_ode::FIALA_WITHOUT_SATURATION, single_track_ode::REAL);
+    single_track_velocity_ode sim = single_track_velocity_ode(dT, single_track_velocity_ode::LINEAR, single_track_velocity_ode::IDEAL);
+//    single_track_velocity_ode sim = single_track_velocity_ode(dT, single_track_velocity_ode::LINEAR, single_track_velocity_ode::REAL);
+//    single_track_velocity_ode sim = single_track_velocity_ode(dT, single_track_velocity_ode::FIALA_WITH_SATURATION, single_track_velocity_ode::IDEAL);
+//    single_track_velocity_ode sim = single_track_velocity_ode(dT, single_track_velocity_ode::FIALA_WITH_SATURATION, single_track_velocity_ode::REAL);
+//    single_track_velocity_ode sim = single_track_velocity_ode(dT, single_track_velocity_ode::FIALA_WITHOUT_SATURATION, single_track_velocity_ode::IDEAL);
+//    single_track_velocity_ode sim = single_track_velocity_ode(dT, single_track_velocity_ode::FIALA_WITHOUT_SATURATION, single_track_velocity_ode::REAL);
 
     // Set initial state and vehicle parameters
     const double r0   = 0.0;
@@ -33,6 +33,7 @@ int main() {
     const double mu_speed  = 1.0;
     sim.setVelocityActuatorParams(mu_speed);
 
+    // Set vehicle parameters
     const double a  = 0.1513;
     const double b  = 0.1087;
     const double m  = 2.04;
@@ -44,7 +45,7 @@ int main() {
 
     // Open file to store simulation results
     std::ofstream result_file;
-    result_file.open ("test_single_track_results.txt");
+    result_file.open ("test_single_track_velocity_results.txt");
 
     // Simulate vehicle motion
     double time = 0.0;

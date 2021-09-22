@@ -5,7 +5,10 @@ using namespace boost::numeric::odeint;
 
 typedef std::vector<double> state_type;
 
-class single_track_ode
+// Simulation of a single-track dynamic model, rear-wheel drive, with different tyre models and steer actuator model
+// Control inputs: longitudinal velocity, steer
+
+class single_track_velocity_ode
 {
 public:
     typedef enum e_tyreModel {
@@ -19,7 +22,7 @@ public:
       REAL = 1
     } actuatorModel;
 
-    single_track_ode(double deltaT, tyreModel tyre_model, actuatorModel actuator_model);
+    single_track_velocity_ode(double deltaT, tyreModel tyre_model, actuatorModel actuator_model);
 
     void setInitialState(double r0, double Vy0, double x0, double y0, double psi0);
     void setVehicleParams(double m, double a, double b, double Cf, double Cr, double mu, double Iz);

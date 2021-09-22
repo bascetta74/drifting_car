@@ -10,6 +10,7 @@ vehicleState_time = []
 vehicleState_x = []
 vehicleState_y = []
 vehicleState_theta = []
+vehicleState_vx = []
 vehicleState_vy = []
 vehicleState_ay = []
 vehicleState_sideslip = []
@@ -47,15 +48,16 @@ for topic, msg, t in bag.read_messages():
             vehicleState_y.append(msg.data[2])
             vehicleState_theta.append(msg.data[3])
             vehicleState_yawrate.append(msg.data[4])
-            vehicleState_vy.append(msg.data[5])
-            vehicleState_ay.append(msg.data[6])
-            vehicleState_sideslip.append(msg.data[7])
-            vehicleState_slipFront.append(msg.data[8])
-            vehicleState_slipRear.append(msg.data[9])
-            vehicleState_forceFront.append(msg.data[10])
-            vehicleState_forceRear.append(msg.data[11])
-            vehicleState_speed.append(msg.data[12])
-            vehicleState_steer.append(msg.data[13])
+            vehicleState_vx.append(msg.data[5])
+            vehicleState_vy.append(msg.data[6])
+            vehicleState_ay.append(msg.data[7])
+            vehicleState_sideslip.append(msg.data[8])
+            vehicleState_slipFront.append(msg.data[9])
+            vehicleState_slipRear.append(msg.data[10])
+            vehicleState_forceFront.append(msg.data[11])
+            vehicleState_forceRear.append(msg.data[12])
+            vehicleState_speed.append(msg.data[13])
+            vehicleState_steer.append(msg.data[14])
         if topic == "/car/ground_pose":
             carpose_x.append(msg.x)
             carpose_y.append(msg.y)

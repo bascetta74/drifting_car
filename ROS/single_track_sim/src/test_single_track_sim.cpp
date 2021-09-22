@@ -40,6 +40,7 @@ void test_single_track_sim::Shutdown(void)
 void test_single_track_sim::PeriodicTask(void)
 {
  /* Vehicle commands */
+#ifdef SPEED
  const double car2motor_conversion = 0.195;
  double speed = 5.0*car2motor_conversion;
  double steer = 0.1;
@@ -49,4 +50,16 @@ void test_single_track_sim::PeriodicTask(void)
  msg.speed_ref = speed;
  msg.steer_ref = steer;
  vehicleCommand_publisher.publish(msg);
+#endif
+
+#ifdef FORCE
+ double force = 5.0;
+ double steer = 0.1;
+
+ /* Publishing vehicle commands */
+ car_msgs::car_cmd msg;
+ msg.speed_ref = force;
+ msg.steer_ref = steer;
+ vehicleCommand_publisher.publish(msg);
+#endif
 }

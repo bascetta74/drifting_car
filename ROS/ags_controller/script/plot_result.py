@@ -114,7 +114,7 @@ plt.ylabel("Speed ref [m/s]")
 plt.legend()
 
 plt.figure(3)
-plt.plot(controllerState_time,controllerState_yawrate)
+plt.plot(carState_time,carState_yawrate)
 plt.xlabel("Time [s]")
 plt.ylabel("Yaw rate [rad/s]")
 

@@ -1,6 +1,7 @@
 # Simulator configuration parameters
   /single_track_sim/steering_actuator_model: 0      # Actuator model (0, ideal; 1, real)
   /single_track_sim/tyre_model: 1                   # Tyre model (0, linear; 1, fiala with saturation; 2, fiala without saturation)
+  /single_track_sim/input_cmd: 0                    # Input commands (0, speed/steer; 1, Fxr/steer)
 
   /single_track_sim/dt: 0.001                       # Integration step
 
@@ -24,6 +25,7 @@
 
 # Vehicle initial state
   /single_track_sim/r0: 0.0                         # Initial yaw rate
+  /single_track_sim/Vx0: 0.0                        # Initial longitudinal velocity
   /single_track_sim/Vy0: 0.0                        # Initial lateral velocity
   /single_track_sim/x0: 0.0                         # Initial position x
   /single_track_sim/y0: 0.0                         # Initial position y

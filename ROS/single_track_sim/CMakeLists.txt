@@ -122,15 +122,19 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(single_track_sim src/single_track_sim.cpp src/single_track_sim_node.cpp src/single_track_ode.cpp)
+add_executable(single_track_sim src/single_track_sim.cpp src/single_track_sim_node.cpp src/single_track_velocity_ode.cpp src/single_track_force_ode.cpp)
 target_link_libraries(single_track_sim ${catkin_LIBRARIES})
 add_dependencies(single_track_sim car_msgs_generate_messages_cpp)
 
-add_executable(test_single_track_ode src/test_single_track_ode.cpp src/single_track_ode.cpp)
-target_link_libraries(test_single_track_ode ${catkin_LIBRARIES})
-add_dependencies(test_single_track_ode car_msgs_generate_messages_cpp)
+add_executable(test_single_track_velocity_ode src/test_single_track_velocity_ode.cpp src/single_track_velocity_ode.cpp)
+target_link_libraries(test_single_track_velocity_ode ${catkin_LIBRARIES})
+add_dependencies(test_single_track_velocity_ode car_msgs_generate_messages_cpp)
 
-add_executable(test_single_track_sim src/test_single_track_sim.cpp src/test_single_track_sim_node.cpp src/single_track_ode.cpp)
+add_executable(test_single_track_force_ode src/test_single_track_force_ode.cpp src/single_track_force_ode.cpp)
+target_link_libraries(test_single_track_force_ode ${catkin_LIBRARIES})
+add_dependencies(test_single_track_force_ode car_msgs_generate_messages_cpp)
+
+add_executable(test_single_track_sim src/test_single_track_sim.cpp src/test_single_track_sim_node.cpp)
 target_link_libraries(test_single_track_sim ${catkin_LIBRARIES})
 add_dependencies(test_single_track_sim car_msgs_generate_messages_cpp)
 

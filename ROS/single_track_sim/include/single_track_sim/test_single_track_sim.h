@@ -8,6 +8,9 @@
 
 #define NAME_OF_THIS_NODE "test_single_track_sim"
 
+//#define SPEED
+#define FORCE
+
 
 class test_single_track_sim
 {

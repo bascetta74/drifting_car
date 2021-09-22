@@ -22,6 +22,10 @@ void single_track_sim::Prepare(void)
  if (false == Handle.getParam(FullParamName, tyre_model))
   ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
 
+ FullParamName = ros::this_node::getName()+"/input_cmd";
+ if (false == Handle.getParam(FullParamName, input_cmd))
+  ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
+
  FullParamName = ros::this_node::getName()+"/dt";
  if (false == Handle.getParam(FullParamName, dt))
   ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
@@ -82,6 +86,10 @@ void single_track_sim::Prepare(void)
  if (false == Handle.getParam(FullParamName, r0))
   ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
 
+ FullParamName = ros::this_node::getName()+"/Vx0";
+ if (false == Handle.getParam(FullParamName, Vx0))
+  ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
+
  FullParamName = ros::this_node::getName()+"/Vy0";
  if (false == Handle.getParam(FullParamName, Vy0))
   ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
@@ -118,13 +126,28 @@ void single_track_sim::Prepare(void)
  /* Create simulator class */
  if (actuator_model == 0) {         // ideal
   if (tyre_model == 0) {                // linear
-   sim = new single_track_ode(dt, single_track_ode::LINEAR, single_track_ode::IDEAL);
+      if (input_cmd == 0) {                 // velocity
+          sim_velocity = new single_track_velocity_ode(dt, single_track_velocity_ode::LINEAR, single_track_velocity_ode::IDEAL);
+      }
+      else {                                // force
+          sim_force = new single_track_force_ode(dt, single_track_force_ode::LINEAR, single_track_force_ode::IDEAL);
+      }
   }
   else if (tyre_model == 1) {           // fiala with saturation
-   sim = new single_track_ode(dt, single_track_ode::FIALA_WITH_SATURATION, single_track_ode::IDEAL);
+      if (input_cmd == 0) {                 // velocity
+          sim_velocity = new single_track_velocity_ode(dt, single_track_velocity_ode::FIALA_WITH_SATURATION, single_track_velocity_ode::IDEAL);
+      }
+      else {                                // force
+          sim_force = new single_track_force_ode(dt, single_track_force_ode::FIALA_WITH_SATURATION, single_track_force_ode::IDEAL);
+      }
   }
   else if (tyre_model == 2) {           // fiala witout saturation
-   sim = new single_track_ode(dt, single_track_ode::FIALA_WITHOUT_SATURATION, single_track_ode::IDEAL);
+      if (input_cmd == 0) {                 // velocity
+          sim_velocity = new single_track_velocity_ode(dt, single_track_velocity_ode::FIALA_WITHOUT_SATURATION, single_track_velocity_ode::IDEAL);
+      }
+      else {                                // force
+          sim_force = new single_track_force_ode(dt, single_track_force_ode::FIALA_WITHOUT_SATURATION, single_track_force_ode::IDEAL);
+      }
   }
   else {                                // error
    ROS_ERROR("Node %s: unknown tyre model.", ros::this_node::getName().c_str());
@@ -132,13 +155,28 @@ void single_track_sim::Prepare(void)
  }
  else if (actuator_model == 1) {    // real
   if (tyre_model == 0) {                // linear
-   sim = new single_track_ode(dt, single_track_ode::LINEAR, single_track_ode::REAL);
+      if (input_cmd == 0) {                 // velocity
+          sim_velocity = new single_track_velocity_ode(dt, single_track_velocity_ode::LINEAR, single_track_velocity_ode::REAL);
+      }
+      else {                                // force
+          sim_force = new single_track_force_ode(dt, single_track_force_ode::LINEAR, single_track_force_ode::REAL);
+      }
   }
   else if (tyre_model == 1) {           // fiala with saturation
-   sim = new single_track_ode(dt, single_track_ode::FIALA_WITH_SATURATION, single_track_ode::REAL);
+      if (input_cmd == 0) {                 // velocity
+          sim_velocity = new single_track_velocity_ode(dt, single_track_velocity_ode::FIALA_WITH_SATURATION, single_track_velocity_ode::REAL);
+      }
+      else {                                // force
+          sim_force = new single_track_force_ode(dt, single_track_force_ode::FIALA_WITH_SATURATION, single_track_force_ode::REAL);
+      }
   }
   else if (tyre_model == 2) {           // fiala witout saturation
-   sim = new single_track_ode(dt, single_track_ode::FIALA_WITHOUT_SATURATION, single_track_ode::REAL);
+      if (input_cmd == 0) {                 // velocity
+          sim_velocity = new single_track_velocity_ode(dt, single_track_velocity_ode::FIALA_WITHOUT_SATURATION, single_track_velocity_ode::REAL);
+      }
+      else {                                // force
+          sim_force = new single_track_force_ode(dt, single_track_force_ode::FIALA_WITHOUT_SATURATION, single_track_force_ode::REAL);
+      }
   }
   else {                                // error
    ROS_ERROR("Node %s: unknown tyre model.", ros::this_node::getName().c_str());
@@ -149,10 +187,17 @@ void single_track_sim::Prepare(void)
  }
 
  /* Initialize simulator class */
- sim->setInitialState(r0, Vy0, x0, y0, psi0);
- sim->setSteeringActuatorParams(mu_steer, wn_steer, csi_steer, tau_steer);
- sim->setVelocityActuatorParams(mu_speed);
- sim->setVehicleParams(m, a, b, Cf, Cr, mu, Iz);
+ if (input_cmd == 0) {
+     sim_velocity->setInitialState(r0, Vy0, x0, y0, psi0);
+     sim_velocity->setSteeringActuatorParams(mu_steer, wn_steer, csi_steer, tau_steer);
+     sim_velocity->setVelocityActuatorParams(mu_speed);
+     sim_velocity->setVehicleParams(m, a, b, Cf, Cr, mu, Iz);
+ }
+ else {
+     sim_force->setInitialState(r0, Vx0, Vy0, x0, y0, psi0);
+     sim_force->setSteeringActuatorParams(mu_steer, wn_steer, csi_steer, tau_steer);
+     sim_force->setVehicleParams(m, a, b, Cf, Cr, mu, Iz);
+ }
 
  /* Initialize node state */
  pose_pub_idx = imu_pub_idx = 0;
@@ -187,7 +232,12 @@ void single_track_sim::RunPeriodically(void)
 void single_track_sim::Shutdown(void)
 {
  // Delete ode object
- delete sim;
+ if (input_cmd == 0) {
+     delete sim_velocity;
+ }
+ else {
+     delete sim_force;
+ }
 
  ROS_INFO("Node %s shutting down.", ros::this_node::getName().c_str());
 }
@@ -195,29 +245,85 @@ void single_track_sim::Shutdown(void)
 void single_track_sim::vehicleCommand_MessageCallback(const car_msgs::car_cmd::ConstPtr& msg)
 {
  /*  Set vehicle commands */
- sim->setReferenceCommands(msg->speed_ref, msg->steer_ref);
+ if (input_cmd == 0) {
+     sim_velocity->setReferenceCommands(msg->speed_ref, msg->steer_ref);
+ }
+ else {
+     sim_force->setReferenceCommands(msg->speed_ref, msg->steer_ref);
+ }
 }
 
 void single_track_sim::PeriodicTask(void)
 {
  /*  Integrate the model */
- sim->integrate();
+ if (input_cmd == 0) {
+     sim_velocity->integrate();
+ }
+ else {
+     sim_force->integrate();
+ }
 
  /*  Extract measurement from simulator */
  double x, y, theta;
- sim->getPose(x, y, theta);
+ if (input_cmd == 0) {
+     sim_velocity->getPose(x, y, theta);
+ }
+ else {
+     sim_force->getPose(x, y, theta);
+ }
+
  double ay, yawrate, vy;
- sim->getLateralDynamics(ay, yawrate, vy);
+ if (input_cmd == 0) {
+     sim_velocity->getLateralDynamics(ay, yawrate, vy);
+ }
+ else {
+     sim_force->getLateralDynamics(ay, yawrate, vy);
+ }
+
+ double vx;
+ if (input_cmd == 1) {
+     sim_force->getLongitudinalDynamics(vx);
+ }
+
  double sideslip;
- sim->getSideslip(sideslip);
+ if (input_cmd == 0) {
+     sim_velocity->getSideslip(sideslip);
+ }
+ else {
+     sim_force->getSideslip(sideslip);
+ }
+
  double slip_front, slip_rear;
- sim->getSlip(slip_front, slip_rear);
+ if (input_cmd == 0) {
+     sim_velocity->getSlip(slip_front, slip_rear);
+ }
+ else {
+     sim_force->getSlip(slip_front, slip_rear);
+ }
+
  double force_front, force_rear;
- sim->getLateralForce(force_front, force_rear);
- double velocity_act, steer_act;
- sim->getCommands(velocity_act, steer_act);
+ if (input_cmd == 0) {
+     sim_velocity->getLateralForce(force_front, force_rear);
+ }
+ else {
+     sim_force->getLateralForce(force_front, force_rear);
+ }
+
+ double velocity_act, force_act, steer_act;
+ if (input_cmd == 0) {
+     sim_velocity->getCommands(velocity_act, steer_act);
+ }
+ else {
+     sim_force->getCommands(force_act, steer_act);
+ }
+
  double time;
- sim->getTime(time);
+ if (input_cmd == 0) {
+     sim_velocity->getTime(time);
+ }
+ else {
+     sim_force->getTime(time);
+ }
 
  /*  Print simulation time every 5 sec */
  if (std::fabs(std::fmod(time,5.0)) < 1.0e-3)
@@ -263,21 +369,42 @@ void single_track_sim::PeriodicTask(void)
 
  /*  Publish vehicle state */
  std_msgs::Float64MultiArray vehicleStateMsg;
- vehicleStateMsg.data.push_back(time);
- vehicleStateMsg.data.push_back(x);
- vehicleStateMsg.data.push_back(y);
- vehicleStateMsg.data.push_back(theta);
- vehicleStateMsg.data.push_back(yawrate);
- vehicleStateMsg.data.push_back(vy);
- vehicleStateMsg.data.push_back(ay);
- vehicleStateMsg.data.push_back(sideslip);
- vehicleStateMsg.data.push_back(slip_front);
- vehicleStateMsg.data.push_back(slip_rear);
- vehicleStateMsg.data.push_back(force_front);
- vehicleStateMsg.data.push_back(force_rear);
- vehicleStateMsg.data.push_back(velocity_act);
- vehicleStateMsg.data.push_back(steer_act);
- vehicleState_publisher.publish(vehicleStateMsg);
+ if (input_cmd == 0) {
+     vehicleStateMsg.data.push_back(time);
+     vehicleStateMsg.data.push_back(x);
+     vehicleStateMsg.data.push_back(y);
+     vehicleStateMsg.data.push_back(theta);
+     vehicleStateMsg.data.push_back(yawrate);
+     vehicleStateMsg.data.push_back(velocity_act);
+     vehicleStateMsg.data.push_back(vy);
+     vehicleStateMsg.data.push_back(ay);
+     vehicleStateMsg.data.push_back(sideslip);
+     vehicleStateMsg.data.push_back(slip_front);
+     vehicleStateMsg.data.push_back(slip_rear);
+     vehicleStateMsg.data.push_back(force_front);
+     vehicleStateMsg.data.push_back(force_rear);
+     vehicleStateMsg.data.push_back(velocity_act);
+     vehicleStateMsg.data.push_back(steer_act);
+     vehicleState_publisher.publish(vehicleStateMsg);
+ }
+ else {
+     vehicleStateMsg.data.push_back(time);
+     vehicleStateMsg.data.push_back(x);
+     vehicleStateMsg.data.push_back(y);
+     vehicleStateMsg.data.push_back(theta);
+     vehicleStateMsg.data.push_back(yawrate);
+     vehicleStateMsg.data.push_back(vx);
+     vehicleStateMsg.data.push_back(vy);
+     vehicleStateMsg.data.push_back(ay);
+     vehicleStateMsg.data.push_back(sideslip);
+     vehicleStateMsg.data.push_back(slip_front);
+     vehicleStateMsg.data.push_back(slip_rear);
+     vehicleStateMsg.data.push_back(force_front);
+     vehicleStateMsg.data.push_back(force_rear);
+     vehicleStateMsg.data.push_back(force_act);
+     vehicleStateMsg.data.push_back(steer_act);
+     vehicleState_publisher.publish(vehicleStateMsg);
+ }
 
  /*  Publish clock */
  rosgraph_msgs::Clock clockMsg;

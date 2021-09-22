@@ -1,12 +1,12 @@
-#include "single_track_ode.h"
+#include "single_track_force_ode.h"
 
 #include <boost/math/special_functions/sign.hpp>
 
-single_track_ode::single_track_ode(double deltaT, tyreModel tyre_model, actuatorModel actuator_model) : dt(deltaT),
-    t(0.0), state(7), Vx_ref(0.0), Vx(0.0), delta_ref(0.0), delta(0.0), alphaf(0.0), alphar(0.0), Fyf(0.0), Fyr(0.0),
+single_track_force_ode::single_track_force_ode(double deltaT, tyreModel tyre_model, actuatorModel actuator_model) : dt(deltaT),
+    t(0.0), state(8), delta_ref(0.0), delta(0.0), Fxr_ref(0.0), alphaf(0.0), alphar(0.0), Fyf(0.0), Fyr(0.0),
     vehicleParams_set(false), steeringActuatorParams_set(false)
 {
-    // state = [ r, Vy, x, y, psi, steer_pos, steer_vel ]
+    // state = [ r, Vy, Vx, x, y, psi, steer_pos, steer_vel ]
 
     // Initial state values
     state[0] = 0.0;
@@ -16,25 +16,27 @@ single_track_ode::single_track_ode(double deltaT, tyreModel tyre_model, actuator
     state[4] = 0.0;
     state[5] = 0.0;
     state[6] = 0.0;
+    state[7] = 0.0;
 
     // Tyre and actuator models
     this->tyre_model = tyre_model;
     this->steeringActuator_model = actuator_model;
 }
 
-void single_track_ode::setInitialState(double r0, double Vy0, double x0, double y0, double psi0)
+void single_track_force_ode::setInitialState(double r0, double Vx0, double Vy0, double x0, double y0, double psi0)
 {
     // Initial state values
     state[0] = r0;
     state[1] = Vy0;
-    state[2] = x0;
-    state[3] = y0;
-    state[4] = psi0;
-    state[5] = 0.0;
+    state[2] = Vx0;
+    state[3] = x0;
+    state[4] = y0;
+    state[5] = psi0;
     state[6] = 0.0;
+    state[7] = 0.0;
 }
 
-void single_track_ode::setVehicleParams(double m, double a, double b, double Cf, double Cr, double mu, double Iz)
+void single_track_force_ode::setVehicleParams(double m, double a, double b, double Cf, double Cr, double mu, double Iz)
 {
     // Initialize vehicle parameters
     this->m = m;
@@ -48,7 +50,7 @@ void single_track_ode::setVehicleParams(double m, double a, double b, double Cf,
     vehicleParams_set = true;
 }
 
-void single_track_ode::setSteeringActuatorParams(double gain, double frequency, double damping, int delay)
+void single_track_force_ode::setSteeringActuatorParams(double gain, double frequency, double damping, int delay)
 {
     // Initialize steering actuator parameters
     mu_steer  = gain;
@@ -64,15 +66,9 @@ void single_track_ode::setSteeringActuatorParams(double gain, double frequency, 
     }
 }
 
-void single_track_ode::setVelocityActuatorParams(double gain)
+void single_track_force_ode::setReferenceCommands(double Fxr, double steer)
 {
-    // Initialize velocity actuator parameters
-    mu_speed = gain;
-}
-
-void single_track_ode::setReferenceCommands(double velocity, double steer)
-{
-    Vx_ref = velocity;
+    Fxr_ref = Fxr;
 
     switch (steeringActuator_model)
     {
@@ -90,7 +86,7 @@ void single_track_ode::setReferenceCommands(double velocity, double steer)
     }
 }
 
-void single_track_ode::integrate()
+void single_track_force_ode::integrate()
 {
     // Check vehicle parameters are set
     if (!vehicleParams_set) {
@@ -98,13 +94,13 @@ void single_track_ode::integrate()
     }
 
     // Check steering actuator parameters are set
-    if ((!steeringActuatorParams_set) && (steeringActuator_model!=single_track_ode::IDEAL)) {
+    if ((!steeringActuatorParams_set) && (steeringActuator_model!=single_track_force_ode::IDEAL)) {
         throw std::invalid_argument( "Steering actuator parameters not set!" );
     }
 
     // Integrate for one step ahead
     using namespace std::placeholders;
-    stepper.do_step(std::bind(&single_track_ode::vehicle_ode, this, _1, _2, _3), state, t, dt);
+    stepper.do_step(std::bind(&single_track_force_ode::vehicle_ode, this, _1, _2, _3), state, t, dt);
 
     // Update time and steering
     t += dt;
@@ -114,18 +110,19 @@ void single_track_ode::integrate()
     }
 }
 
-void single_track_ode::vehicle_ode(const state_type &state, state_type &dstate, double t)
+void single_track_force_ode::vehicle_ode(const state_type &state, state_type &dstate, double t)
 {
     using namespace boost::math;
 
     // Actual state
     const double r   = state[0];
     const double Vy  = state[1];
-    const double x   = state[2];
-    const double y   = state[3];
-    const double psi = state[4];
-    const double steer_pos = state[5];
-    const double steer_vel = state[6];
+    const double Vx  = state[2];
+    const double x   = state[3];
+    const double y   = state[4];
+    const double psi = state[5];
+    const double steer_pos = state[6];
+    const double steer_vel = state[7];
 
     // Steering actuator model
     switch (steeringActuator_model)
@@ -134,8 +131,8 @@ void single_track_ode::vehicle_ode(const state_type &state, state_type &dstate, 
             delta = delta_ref;
 
             // These states are not used
-            dstate[5] = 0.0;
             dstate[6] = 0.0;
+            dstate[7] = 0.0;
             break;
 
         case REAL:
@@ -148,17 +145,14 @@ void single_track_ode::vehicle_ode(const state_type &state, state_type &dstate, 
             delta = mu_steer*std::pow(wn_steer,2.0)*steer_pos;
 
             // Update the actuator model state
-            dstate[5] = steer_vel;
-            dstate[6] = -std::pow(wn_steer,2.0)*steer_pos-2*csi_steer*wn_steer*steer_vel+delta_ref_FIFO.front();
+            dstate[6] = steer_vel;
+            dstate[7] = -std::pow(wn_steer,2.0)*steer_pos-2*csi_steer*wn_steer*steer_vel+delta_ref_FIFO.front();
             break;
 
         default:
             throw std::invalid_argument( "Uknown steering actuator model!" );
             break;
     }
-
-    // Velocity actuator model
-    Vx = mu_speed*Vx_ref;
 
     // Slip angles
     if (std::abs(Vx)<=0.01) {
@@ -214,11 +208,16 @@ void single_track_ode::vehicle_ode(const state_type &state, state_type &dstate, 
     }
 
     // Vehicle equations
-    dstate[0] = (a*Fyf*cos(delta)-b*Fyr)/Iz;        // dr
-    dstate[1] = (Fyf*cos(delta)+Fyr)/m-r*Vx;        // dVy
-    dstate[2] = cos(psi)*Vx-sin(psi)*Vy;            // dx
-    dstate[3] = sin(psi)*Vx+cos(psi)*Vy;            // dy
-    dstate[4] = r;                                  // r
+    double Fx = Fxr_ref-Fyf*sin(delta);
+    double Fy = Fyr+Fyf*cos(delta);
+    double Mz = a*Fyf*cos(delta)-b*Fyr;
+
+    dstate[0] = Mz/Iz;                           // dr
+    dstate[1] = Fy/m-r*Vx;                       // dVy
+    dstate[2] = Fx/m+r*Vy;                       // dVx
+    dstate[3] = cos(psi)*Vx-sin(psi)*Vy;         // dx
+    dstate[4] = sin(psi)*Vx+cos(psi)*Vy;         // dy
+    dstate[5] = r;                               // r
 
     // Other variables
     ay = dstate[1]+r*Vx;
