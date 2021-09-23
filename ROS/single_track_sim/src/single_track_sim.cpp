@@ -5,6 +5,8 @@
 #include <geometry_msgs/Pose2D.h>
 #include <std_msgs/Float64MultiArray.h>
 
+#include "car_msgs/simulated_telemetry.h"
+
 #include <unistd.h>
 
 
@@ -120,6 +122,7 @@ void single_track_sim::Prepare(void)
  vehiclePose_publisher = Handle.advertise<geometry_msgs::Pose2D>("/car/ground_pose", 1);
  vehicleIMU_publisher = Handle.advertise<sensor_msgs::Imu>("/imu/data", 1);
  vehicleState_publisher = Handle.advertise<std_msgs::Float64MultiArray>("/car/state", 1);
+ telemetry_publisher = Handle.advertise<car_msgs::simulated_telemetry>("/car_simulator/telemetry", 1);
  clock_publisher = Handle.advertise<rosgraph_msgs::Clock>("/clock", 1);
  radioCommand_publisher = Handle.advertise<car_msgs::car_cmd>("/radio_cmd", 1);
 
@@ -404,6 +407,19 @@ void single_track_sim::PeriodicTask(void)
      vehicleStateMsg.data.push_back(force_act);
      vehicleStateMsg.data.push_back(steer_act);
      vehicleState_publisher.publish(vehicleStateMsg);
+ }
+
+ /*  Publish telemetry */
+ car_msgs::simulated_telemetry vehicleTelemetryMsg;
+ if (input_cmd == 0) {
+     vehicleTelemetryMsg.sideslip = sideslip;
+     vehicleTelemetryMsg.Vx = velocity_act;
+     vehicleTelemetryMsg.Vy = vy;
+ }
+ else {
+     vehicleTelemetryMsg.sideslip = sideslip;
+     vehicleTelemetryMsg.Vx = vx;
+     vehicleTelemetryMsg.Vy = vy;
  }
 
  /*  Publish clock */

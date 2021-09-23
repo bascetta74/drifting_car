@@ -20,6 +20,7 @@ class single_track_sim
     ros::Publisher vehiclePose_publisher;
     ros::Publisher vehicleIMU_publisher;
     ros::Publisher vehicleState_publisher;
+    ros::Publisher telemetry_publisher;
     ros::Publisher clock_publisher;
     ros::Publisher radioCommand_publisher;
     
