@@ -1,0 +1,38 @@
+# Simulator configuration parameters
+  /singletrack_sim/steering_actuator_model: 0      # Actuator model (0, ideal; 1, real)
+  /singletrack_sim/tyre_model: 1                   # Tyre model (0, linear; 1, fiala with saturation; 2, fiala without saturation)
+  /singletrack_sim/input_cmd: 0                    # Input commands (0, speed/steer; 1, Fxr/steer)
+  /singletrack_sim/automode_delay: 2.5             # Delay before automatic mode starts
+
+  /singletrack_sim/dt: 0.001                       # Integration step
+
+# Vehicle parameters
+  /singletrack_sim/m: 1.9                          # Vehicle mass
+  /singletrack_sim/cog_a: 0.1368                   # Distance of COG from front axle
+  /singletrack_sim/cog_b: 0.1232                   # Distance of COG from rear axle
+  /singletrack_sim/mu: 0.385                       # Ground friction coefficient
+  /singletrack_sim/Cf: 50.13                       # Front cornering stiffness
+  /singletrack_sim/Cr: 122.05                      # Rear cornering stiffness
+  /singletrack_sim/Iz: 0.029                       # Yaw moment of inertia
+
+# Steering actuator parameters
+  /singletrack_sim/mu_steer: 1.0                   # Transfer function gain
+  /singletrack_sim/wn_steer: 87.62                 # Transfer function crossover frequency
+  /singletrack_sim/csi_steer: 0.75                 # Transfer function damping
+  /singletrack_sim/tau_steer: 55                   # Transfer function delay (multiple of dt)
+
+# Velocity actuator parameters
+  /singletrack_sim/mu_speed: 5.1282                # Transfer function gain
+
+# Vehicle initial state
+  /singletrack_sim/r0: 0.0                         # Initial yaw rate
+  /singletrack_sim/Vx0: 0.0                        # Initial longitudinal velocity
+  /singletrack_sim/Vy0: 0.0                        # Initial lateral velocity
+  /singletrack_sim/x0: 0.0                         # Initial position x
+  /singletrack_sim/y0: 0.0                         # Initial position y
+  /singletrack_sim/psi0: 0.0                       # Initial heading
+
+# Measurements
+  /singletrack_sim/pose_decimation: 10             # Pose is published every decimation integration cycles
+  /singletrack_sim/imu_decimation: 10              # IMU is published every decimation integration cycles
+
