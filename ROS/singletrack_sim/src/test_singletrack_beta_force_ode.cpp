@@ -31,13 +31,13 @@ int main() {
     sim.setSteeringActuatorParams(mu_steer, wn_steer, csi_steer, tau_steer);
 
     // Set vehicle parameters
-    const double a  = 0.1513;
-    const double b  = 0.1087;
-    const double m  = 2.04;
+    const double a  = 0.1368;
+    const double b  = 0.1232;
+    const double m  = 1.9;
     const double mu = 0.385;
-    const double Cf = 25;
-    const double Cr = 50;
-    const double Iz = 0.030;
+    const double Cf = 50.13;
+    const double Cr = 122.05;
+    const double Iz = 0.029;
     sim.setVehicleParams(m, a, b, Cf, Cr, mu, Iz);
 
     // Open file to store simulation results

@@ -1,4 +1,4 @@
-#include "singletrack_sim/singletrack_vxvy_sim.h"
+#include "singletrack_sim/singletrack_beta_sim.h"
 
 #include <sensor_msgs/Imu.h>
 #include <rosgraph_msgs/Clock.h>
@@ -10,7 +10,7 @@
 #include <unistd.h>
 
 
-void singletrack_vxvy_sim::Prepare(void)
+void singletrack_beta_sim::Prepare(void)
 {
  /* Retrieve parameters from ROS parameter server */
  std::string FullParamName;
@@ -92,12 +92,12 @@ void singletrack_vxvy_sim::Prepare(void)
  if (false == Handle.getParam(FullParamName, r0))
   ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
 
- FullParamName = ros::this_node::getName()+"/Vx0";
- if (false == Handle.getParam(FullParamName, Vx0))
+ FullParamName = ros::this_node::getName()+"/beta0";
+ if (false == Handle.getParam(FullParamName, beta0))
   ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
 
- FullParamName = ros::this_node::getName()+"/Vy0";
- if (false == Handle.getParam(FullParamName, Vy0))
+ FullParamName = ros::this_node::getName()+"/V0";
+ if (false == Handle.getParam(FullParamName, V0))
   ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
 
  FullParamName = ros::this_node::getName()+"/x0";
@@ -122,7 +122,7 @@ void singletrack_vxvy_sim::Prepare(void)
   ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
 
  /* ROS topics */
- vehicleCommand_subscriber = Handle.subscribe("/controller_cmd", 1, &singletrack_vxvy_sim::vehicleCommand_MessageCallback, this);
+ vehicleCommand_subscriber = Handle.subscribe("/controller_cmd", 1, &singletrack_beta_sim::vehicleCommand_MessageCallback, this);
  vehiclePose_publisher = Handle.advertise<geometry_msgs::Pose2D>("/car/ground_pose", 1);
  vehicleIMU_publisher = Handle.advertise<sensor_msgs::Imu>("/imu/data", 1);
  vehicleState_publisher = Handle.advertise<std_msgs::Float64MultiArray>("/car/state", 1);
@@ -134,26 +134,29 @@ void singletrack_vxvy_sim::Prepare(void)
  if (actuator_model == 0) {         // ideal
   if (tyre_model == 0) {                // linear
       if (input_cmd == 0) {                 // velocity
-          sim_velocity = new singletrack_vxvy_velocity_ode(dt, singletrack_vxvy_velocity_ode::LINEAR, singletrack_vxvy_velocity_ode::IDEAL);
+          // sim_velocity = new singletrack_beta_velocity_ode(dt, singletrack_beta_velocity_ode::LINEAR, singletrack_beta_velocity_ode::IDEAL);
+          ROS_ERROR("Node %s: velocity input simulator is not implemented yet.", ros::this_node::getName().c_str());
       }
       else {                                // force
-          sim_force = new singletrack_vxvy_force_ode(dt, singletrack_vxvy_force_ode::LINEAR, singletrack_vxvy_force_ode::IDEAL);
+          sim_force = new singletrack_beta_force_ode(dt, singletrack_beta_force_ode::LINEAR, singletrack_beta_force_ode::IDEAL);
       }
   }
   else if (tyre_model == 1) {           // fiala with saturation
       if (input_cmd == 0) {                 // velocity
-          sim_velocity = new singletrack_vxvy_velocity_ode(dt, singletrack_vxvy_velocity_ode::FIALA_WITH_SATURATION, singletrack_vxvy_velocity_ode::IDEAL);
+          // sim_velocity = new singletrack_beta_velocity_ode(dt, singletrack_beta_velocity_ode::FIALA_WITH_SATURATION, singletrack_beta_velocity_ode::IDEAL);
+          ROS_ERROR("Node %s: velocity input simulator is not implemented yet.", ros::this_node::getName().c_str());
       }
       else {                                // force
-          sim_force = new singletrack_vxvy_force_ode(dt, singletrack_vxvy_force_ode::FIALA_WITH_SATURATION, singletrack_vxvy_force_ode::IDEAL);
+          sim_force = new singletrack_beta_force_ode(dt, singletrack_beta_force_ode::FIALA_WITH_SATURATION, singletrack_beta_force_ode::IDEAL);
       }
   }
   else if (tyre_model == 2) {           // fiala witout saturation
       if (input_cmd == 0) {                 // velocity
-          sim_velocity = new singletrack_vxvy_velocity_ode(dt, singletrack_vxvy_velocity_ode::FIALA_WITHOUT_SATURATION, singletrack_vxvy_velocity_ode::IDEAL);
+          // sim_velocity = new singletrack_beta_velocity_ode(dt, singletrack_beta_velocity_ode::FIALA_WITHOUT_SATURATION, singletrack_beta_velocity_ode::IDEAL);
+          ROS_ERROR("Node %s: velocity input simulator is not implemented yet.", ros::this_node::getName().c_str());
       }
       else {                                // force
-          sim_force = new singletrack_vxvy_force_ode(dt, singletrack_vxvy_force_ode::FIALA_WITHOUT_SATURATION, singletrack_vxvy_force_ode::IDEAL);
+          sim_force = new singletrack_beta_force_ode(dt, singletrack_beta_force_ode::FIALA_WITHOUT_SATURATION, singletrack_beta_force_ode::IDEAL);
       }
   }
   else {                                // error
@@ -163,26 +166,29 @@ void singletrack_vxvy_sim::Prepare(void)
  else if (actuator_model == 1) {    // real
   if (tyre_model == 0) {                // linear
       if (input_cmd == 0) {                 // velocity
-          sim_velocity = new singletrack_vxvy_velocity_ode(dt, singletrack_vxvy_velocity_ode::LINEAR, singletrack_vxvy_velocity_ode::REAL);
+          // sim_velocity = new singletrack_beta_velocity_ode(dt, singletrack_beta_velocity_ode::LINEAR, singletrack_beta_velocity_ode::REAL);
+          ROS_ERROR("Node %s: velocity input simulator is not implemented yet.", ros::this_node::getName().c_str());
       }
       else {                                // force
-          sim_force = new singletrack_vxvy_force_ode(dt, singletrack_vxvy_force_ode::LINEAR, singletrack_vxvy_force_ode::REAL);
+          sim_force = new singletrack_beta_force_ode(dt, singletrack_beta_force_ode::LINEAR, singletrack_beta_force_ode::REAL);
       }
   }
   else if (tyre_model == 1) {           // fiala with saturation
       if (input_cmd == 0) {                 // velocity
-          sim_velocity = new singletrack_vxvy_velocity_ode(dt, singletrack_vxvy_velocity_ode::FIALA_WITH_SATURATION, singletrack_vxvy_velocity_ode::REAL);
+          // sim_velocity = new singletrack_beta_velocity_ode(dt, singletrack_beta_velocity_ode::FIALA_WITH_SATURATION, singletrack_beta_velocity_ode::REAL);
+          ROS_ERROR("Node %s: velocity input simulator is not implemented yet.", ros::this_node::getName().c_str());
       }
       else {                                // force
-          sim_force = new singletrack_vxvy_force_ode(dt, singletrack_vxvy_force_ode::FIALA_WITH_SATURATION, singletrack_vxvy_force_ode::REAL);
+          sim_force = new singletrack_beta_force_ode(dt, singletrack_beta_force_ode::FIALA_WITH_SATURATION, singletrack_beta_force_ode::REAL);
       }
   }
   else if (tyre_model == 2) {           // fiala witout saturation
       if (input_cmd == 0) {                 // velocity
-          sim_velocity = new singletrack_vxvy_velocity_ode(dt, singletrack_vxvy_velocity_ode::FIALA_WITHOUT_SATURATION, singletrack_vxvy_velocity_ode::REAL);
+          // sim_velocity = new singletrack_beta_velocity_ode(dt, singletrack_beta_velocity_ode::FIALA_WITHOUT_SATURATION, singletrack_beta_velocity_ode::REAL);
+          ROS_ERROR("Node %s: velocity input simulator is not implemented yet.", ros::this_node::getName().c_str());
       }
       else {                                // force
-          sim_force = new singletrack_vxvy_force_ode(dt, singletrack_vxvy_force_ode::FIALA_WITHOUT_SATURATION, singletrack_vxvy_force_ode::REAL);
+          sim_force = new singletrack_beta_force_ode(dt, singletrack_beta_force_ode::FIALA_WITHOUT_SATURATION, singletrack_beta_force_ode::REAL);
       }
   }
   else {                                // error
@@ -195,13 +201,14 @@ void singletrack_vxvy_sim::Prepare(void)
 
  /* Initialize simulator class */
  if (input_cmd == 0) {
-     sim_velocity->setInitialState(r0, Vy0, x0, y0, psi0);
-     sim_velocity->setSteeringActuatorParams(mu_steer, wn_steer, csi_steer, tau_steer);
-     sim_velocity->setVelocityActuatorParams(mu_speed);
-     sim_velocity->setVehicleParams(m, a, b, Cf, Cr, mu, Iz);
+     ROS_ERROR("Node %s: velocity input simulator is not implemented yet.", ros::this_node::getName().c_str());
+     // sim_velocity->setInitialState(r0, Vy0, x0, y0, psi0);
+     // sim_velocity->setSteeringActuatorParams(mu_steer, wn_steer, csi_steer, tau_steer);
+     // sim_velocity->setVelocityActuatorParams(mu_speed);
+     // sim_velocity->setVehicleParams(m, a, b, Cf, Cr, mu, Iz);
  }
  else {
-     sim_force->setInitialState(r0, Vx0, Vy0, x0, y0, psi0);
+     sim_force->setInitialState(r0, beta0, V0, x0, y0, psi0);
      sim_force->setSteeringActuatorParams(mu_steer, wn_steer, csi_steer, tau_steer);
      sim_force->setVehicleParams(m, a, b, Cf, Cr, mu, Iz);
  }
@@ -213,7 +220,7 @@ void singletrack_vxvy_sim::Prepare(void)
  ROS_INFO("Node %s ready to run.", ros::this_node::getName().c_str());
 }
 
-void singletrack_vxvy_sim::RunPeriodically(void)
+void singletrack_beta_sim::RunPeriodically(void)
 {
  ROS_INFO("Node %s running.", ros::this_node::getName().c_str());
 
@@ -237,11 +244,12 @@ void singletrack_vxvy_sim::RunPeriodically(void)
  }
 }
 
-void singletrack_vxvy_sim::Shutdown(void)
+void singletrack_beta_sim::Shutdown(void)
 {
  // Delete ode object
  if (input_cmd == 0) {
-     delete sim_velocity;
+     // delete sim_velocity;
+     ROS_ERROR("Node %s: velocity input simulator is not implemented yet.", ros::this_node::getName().c_str());
  }
  else {
      delete sim_force;
@@ -250,22 +258,24 @@ void singletrack_vxvy_sim::Shutdown(void)
  ROS_INFO("Node %s shutting down.", ros::this_node::getName().c_str());
 }
 
-void singletrack_vxvy_sim::vehicleCommand_MessageCallback(const car_msgs::car_cmd::ConstPtr& msg)
+void singletrack_beta_sim::vehicleCommand_MessageCallback(const car_msgs::car_cmd::ConstPtr& msg)
 {
  /*  Set vehicle commands */
  if (input_cmd == 0) {
-     sim_velocity->setReferenceCommands(msg->speed_ref, msg->steer_ref);
+     // sim_velocity->setReferenceCommands(msg->speed_ref, msg->steer_ref);
+     ROS_ERROR("Node %s: velocity input simulator is not implemented yet.", ros::this_node::getName().c_str());
  }
  else {
      sim_force->setReferenceCommands(msg->speed_ref, msg->steer_ref);
  }
 }
 
-void singletrack_vxvy_sim::PeriodicTask(void)
+void singletrack_beta_sim::PeriodicTask(void)
 {
  /*  Integrate the model */
  if (input_cmd == 0) {
-     sim_velocity->integrate();
+     // sim_velocity->integrate();
+     ROS_ERROR("Node %s: velocity input simulator is not implemented yet.", ros::this_node::getName().c_str());
  }
  else {
      sim_force->integrate();
@@ -274,7 +284,8 @@ void singletrack_vxvy_sim::PeriodicTask(void)
  /*  Extract measurement from simulator */
  double x, y, theta;
  if (input_cmd == 0) {
-     sim_velocity->getPose(x, y, theta);
+     // sim_velocity->getPose(x, y, theta);
+     ROS_ERROR("Node %s: velocity input simulator is not implemented yet.", ros::this_node::getName().c_str());
  }
  else {
      sim_force->getPose(x, y, theta);
@@ -282,20 +293,23 @@ void singletrack_vxvy_sim::PeriodicTask(void)
 
  double ay, yawrate, vy;
  if (input_cmd == 0) {
-     sim_velocity->getLateralDynamics(ay, yawrate, vy);
+     // sim_velocity->getLateralDynamics(ay, yawrate, vy);
+     ROS_ERROR("Node %s: velocity input simulator is not implemented yet.", ros::this_node::getName().c_str());
  }
  else {
      sim_force->getLateralDynamics(ay, yawrate, vy);
  }
 
- double vx;
+ double vx, v;
  if (input_cmd == 1) {
      sim_force->getLongitudinalDynamics(vx);
+     sim_force->getAbsoluteVelocity(v);
  }
 
  double sideslip;
  if (input_cmd == 0) {
-     sim_velocity->getSideslip(sideslip);
+     // sim_velocity->getSideslip(sideslip);
+     ROS_ERROR("Node %s: velocity input simulator is not implemented yet.", ros::this_node::getName().c_str());
  }
  else {
      sim_force->getSideslip(sideslip);
@@ -303,7 +317,8 @@ void singletrack_vxvy_sim::PeriodicTask(void)
 
  double slip_front, slip_rear;
  if (input_cmd == 0) {
-     sim_velocity->getSlip(slip_front, slip_rear);
+     // sim_velocity->getSlip(slip_front, slip_rear);
+     ROS_ERROR("Node %s: velocity input simulator is not implemented yet.", ros::this_node::getName().c_str());
  }
  else {
      sim_force->getSlip(slip_front, slip_rear);
@@ -311,7 +326,8 @@ void singletrack_vxvy_sim::PeriodicTask(void)
 
  double force_front, force_rear;
  if (input_cmd == 0) {
-     sim_velocity->getLateralForce(force_front, force_rear);
+     // sim_velocity->getLateralForce(force_front, force_rear);
+     ROS_ERROR("Node %s: velocity input simulator is not implemented yet.", ros::this_node::getName().c_str());
  }
  else {
      sim_force->getLateralForce(force_front, force_rear);
@@ -319,7 +335,8 @@ void singletrack_vxvy_sim::PeriodicTask(void)
 
  double velocity_act, force_act, steer_act;
  if (input_cmd == 0) {
-     sim_velocity->getCommands(velocity_act, steer_act);
+     // sim_velocity->getCommands(velocity_act, steer_act);
+     ROS_ERROR("Node %s: velocity input simulator is not implemented yet.", ros::this_node::getName().c_str());
  }
  else {
      sim_force->getCommands(force_act, steer_act);
@@ -327,7 +344,8 @@ void singletrack_vxvy_sim::PeriodicTask(void)
 
  double time;
  if (input_cmd == 0) {
-     sim_velocity->getTime(time);
+     // sim_velocity->getTime(time);
+     ROS_ERROR("Node %s: velocity input simulator is not implemented yet.", ros::this_node::getName().c_str());
  }
  else {
      sim_force->getTime(time);
@@ -413,8 +431,8 @@ void singletrack_vxvy_sim::PeriodicTask(void)
      vehicleStateMsg.data.push_back(y);
      vehicleStateMsg.data.push_back(theta);
      vehicleStateMsg.data.push_back(yawrate);
-     vehicleStateMsg.data.push_back(vx);
-     vehicleStateMsg.data.push_back(vy);
+     vehicleStateMsg.data.push_back(v);
+     vehicleStateMsg.data.push_back(v);
      vehicleStateMsg.data.push_back(ay);
      vehicleStateMsg.data.push_back(sideslip);
      vehicleStateMsg.data.push_back(slip_front);
@@ -432,6 +450,7 @@ void singletrack_vxvy_sim::PeriodicTask(void)
      vehicleTelemetryMsg.sideslip = sideslip;
      vehicleTelemetryMsg.Vx = velocity_act;
      vehicleTelemetryMsg.Vy = vy;
+     vehicleTelemetryMsg.yaw_rate = yawrate;
  }
  else {
      vehicleTelemetryMsg.sideslip = sideslip;

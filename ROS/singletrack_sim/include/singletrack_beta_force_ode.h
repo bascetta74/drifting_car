@@ -35,6 +35,7 @@ public:
     void getPose(double &x, double &y, double &psi) { x = state[3]; y = state[4]; psi = state[5]; };
     void getLongitudinalDynamics(double &vx) { vx = state[2]*std::cos(state[1]); };
     void getLateralDynamics(double &ay, double &yawrate, double &vy) { ay = this->ay; yawrate = state[0]; vy = state[2]*std::sin(state[1]); };
+    void getAbsoluteVelocity(double &v) { v = state[2]; }
     void getSideslip(double &sideslip) { sideslip = state[1]; }
     void getSlip(double &slip_front, double &slip_rear) { slip_front = alphaf; slip_rear = alphar; }
     void getLateralForce(double &force_front, double &force_rear) { force_front = Fyf; force_rear = Fyr; }

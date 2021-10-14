@@ -127,6 +127,10 @@ add_executable(singletrack_vxvy_sim src/singletrack_vxvy_sim.cpp src/singletrack
 target_link_libraries(singletrack_vxvy_sim ${catkin_LIBRARIES})
 add_dependencies(singletrack_vxvy_sim car_msgs_generate_messages_cpp)
 
+add_executable(singletrack_beta_sim src/singletrack_beta_sim.cpp src/singletrack_beta_sim_node.cpp src/singletrack_beta_velocity_ode.cpp src/singletrack_beta_force_ode.cpp)
+target_link_libraries(singletrack_beta_sim ${catkin_LIBRARIES})
+add_dependencies(singletrack_beta_sim car_msgs_generate_messages_cpp)
+
 add_executable(test_singletrack_vxvy_velocity_ode src/test_singletrack_vxvy_velocity_ode.cpp src/singletrack_vxvy_velocity_ode.cpp)
 target_link_libraries(test_singletrack_vxvy_velocity_ode ${catkin_LIBRARIES})
 add_executable(test_singletrack_vxvy_force_ode src/test_singletrack_vxvy_force_ode.cpp src/singletrack_vxvy_force_ode.cpp)

@@ -1,11 +1,11 @@
-#include "singletrack_sim/singletrack_vxvy_sim.h"
+#include "singletrack_sim/singletrack_beta_sim.h"
 
 
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, NAME_OF_THIS_NODE);
   
-  singletrack_vxvy_sim singletrack_sim_node;
+  singletrack_beta_sim singletrack_sim_node;
    
   singletrack_sim_node.Prepare();
   

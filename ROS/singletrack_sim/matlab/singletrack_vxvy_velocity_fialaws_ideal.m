@@ -23,13 +23,13 @@ ode_res.Fyr       = res(:,16);
 clear res
 
 % Car parameters
-a  = 0.1513;
-b  = 0.1087;
-m  = 2.04;
+a  = 0.1368;
+b  = 0.1232;
+m  = 1.9;
 mu = 0.385;
-Cf = 25;
-Cr = 50;
-Iz = 0.030;
+Cf = 50.13;
+Cr = 122.05;
+Iz = 0.029;
 car_param = [a b m mu Cf Cr Iz];
 
 % Actuator parameters

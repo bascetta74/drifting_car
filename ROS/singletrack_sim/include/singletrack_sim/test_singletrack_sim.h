@@ -8,9 +8,6 @@
 
 #define NAME_OF_THIS_NODE "test_singletrack_sim"
 
-//#define SPEED
-#define FORCE
-
 
 class test_singletrack_sim
 {
@@ -20,9 +17,12 @@ class test_singletrack_sim
     /* ROS topics */
     ros::Publisher vehicleCommand_publisher;
     
-    /* Estimator periodic task */
+    /* Node periodic task */
     void PeriodicTask(void);
-    
+
+    /* Node parameters */
+    int input_cmd;
+
   public:
     double RunPeriod;
 
