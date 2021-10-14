@@ -1,0 +1,24 @@
+# Lopez feedback linearization configuration parameters
+  /test_fblin_lopez/run_period: 0.01          # Node execution period
+
+  /test_fblin_lopez/cog_dist_front: 0.1368    # Distance of cog from front (0.1368)
+  /test_fblin_lopez/cog_dist_rear: 0.1232     # Distance of cog from rear (0.1232)
+
+  /test_fblin_lopez/car2motor_velocity: 0.195 # Conversion factor from car speed in m/s to normalized motor speed ([-1,1])
+  
+  /test_fblin_lopez/P_dist: 0.35              # Distance of point P for feedback linearization
+  /test_fblin_lopez/speed_thd: 0.05           # Threshold to consider the absolute vehicle velocity equal to zero
+  /test_fblin_lopez/vel_filt_coeff: [0.0144, 0.0295, 0.0763, 0.0823, 0.0355, -0.0355, -0.0823, -0.0763, -0.0295, -0.0144]
+                                              # FIR velocity filter coefficients
+  /test_fblin_lopez/theta_offset: 0.0         # Offset on optitrack theta angle
+  
+  /test_fblin_lopez/Kp: 1.0                   # Position loop proportional gain
+  /test_fblin_lopez/Ti: 0.0                   # Position loop integral time
+  /test_fblin_lopez/vp_min: -10.0             # Position loop low saturation
+  /test_fblin_lopez/vp_max:  10.0             # Position loop up saturation
+
+  /test_fblin_lopez/radius: 1.0               # Radius for circle and squircle trajectories
+  /test_fblin_lopez/xcenter: -0.32            # Center coordinate x for circle and squircle trajectories
+  /test_fblin_lopez/ycenter: 1.20             # Center coordinate y for circle and squircle trajectories
+  /test_fblin_lopez/omega: 0.5                # Rotational velocity for circle and squircle trajectories
+  /test_fblin_lopez/const_speed: 0.7          # Constant velocity for step sequence

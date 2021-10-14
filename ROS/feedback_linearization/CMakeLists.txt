@@ -122,9 +122,13 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(test_feedback_linearization_driftcar src/test_feedback_linearization_driftcar.cpp src/test_feedback_linearization_driftcar_node.cpp src/fblin_lopez.cpp src/PIDcontrol.cpp src/trajectory.cpp)
-target_link_libraries(test_feedback_linearization_driftcar ${catkin_LIBRARIES})
-add_dependencies(test_feedback_linearization_driftcar car_msgs_generate_messages_cpp)
+add_executable(test_fblin_lopez src/test_fblin_lopez.cpp src/test_fblin_lopez_node.cpp src/fblin_lopez.cpp src/PIDcontrol.cpp src/trajectory.cpp)
+target_link_libraries(test_fblin_lopez ${catkin_LIBRARIES})
+add_dependencies(test_fblin_lopez car_msgs_generate_messages_cpp)
+
+add_executable(test_fblin_schlacher src/test_fblin_schlacher.cpp src/test_fblin_schlacher_node.cpp src/fblin_schlacher.cpp src/PIDcontrol.cpp src/trajectory.cpp)
+target_link_libraries(test_fblin_schlacher ${catkin_LIBRARIES})
+add_dependencies(test_fblin_schlacher car_msgs_generate_messages_cpp)
 
 ## Declare a C++vehicleSideslip library
 # add_library(${PROJECT_NAME}

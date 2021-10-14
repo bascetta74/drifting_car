@@ -1,0 +1,37 @@
+# Lopez feedback linearization configuration parameters
+  /test_fblin_schlacher/run_period: 0.01          # Node execution period
+
+  /test_fblin_schlacher/mass: 1.9                 # Car mass
+  /test_fblin_schlacher/yaw_inertia: 0.029        # Car yaw inertia
+  /test_fblin_schlacher/corn_stiff_front: 50.13   # Cornering stiffness front wheels
+  /test_fblin_schlacher/corn_stiff_rear: 122.05   # Cornering stiffness rear wheels
+  /test_fblin_schlacher/cog_dist_front: 0.1368    # Distance of cog from front
+  /test_fblin_schlacher/cog_dist_rear: 0.1232     # Distance of cog from rear
+
+  /test_fblin_schlacher/car2motor_force: 1.0      # Conversion factor from car force in N to normalized motor current ([-1,1])
+  
+  /test_fblin_schlacher/speed_thd: 0.05           # Threshold to consider the absolute vehicle velocity equal to zero
+  /test_fblin_schlacher/vel_filt_coeff: [0.0144, 0.0295, 0.0763, 0.0823, 0.0355, -0.0355, -0.0823, -0.0763, -0.0295, -0.0144]
+                                                  # FIR velocity filter coefficients
+  /test_fblin_schlacher/theta_offset: 0.0         # Offset on optitrack theta angle
+
+  /test_fblin_schlacher/Kcx: 10.0                 # PD on vxp, proportional gain (Kp)
+  /test_fblin_schlacher/Tdx: 1.0                  # PD on vxp, derivative time constant (Kd/Kp)
+  /test_fblin_schlacher/Nx: 100.0                 # PD on vxp, derivative filter N (N Kd/Kp)
+  /test_fblin_schlacher/Kcy: 1200.0               # PID on vyp, proportional gain (Kp)
+  /test_fblin_schlacher/Tiy: 20.0                 # PID on vyp, integral time constant (Kp/Ki)
+  /test_fblin_schlacher/Tdy: 6.67                 # PID on vyp, derivative time constant Kd/Kp)
+  /test_fblin_schlacher/Ny: 666.7                 # PID on vyp, derivative filter N (N Kd/Kp)
+  /test_fblin_schlacher/vp_min: -10.0             # Minimum velocity of point P
+  /test_fblin_schlacher/vp_max: 10.0              # Maximum velocity of point P
+
+  
+  /test_fblin_schlacher/T: 5.0                    # Trajectory duration
+  /test_fblin_schlacher/T0: 1.0                   # Trajectory start time
+  /test_fblin_schlacher/A1: 2.0                   # Vy trajectory coefficient A1
+  /test_fblin_schlacher/T1: 1.5                   # Vy trajectory time T1
+  /test_fblin_schlacher/A2: -2.5                  # Vy trajectory coefficient A2
+  /test_fblin_schlacher/T2: 2.5                   # Vy trajectory time T2
+  /test_fblin_schlacher/T3: 3.5                   # Vy trajectory time T3
+  /test_fblin_schlacher/delta_vx: 2.0             # Vx trajectory velocity increment
+

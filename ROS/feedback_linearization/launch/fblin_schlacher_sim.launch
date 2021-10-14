@@ -1,0 +1,21 @@
+<launch>
+  <!-- load parameter files -->
+
+  <!-- Run controller node -->
+  <node pkg="feedback_linearization" type="test_fblin_schlacher" name="test_fblin_schlacher" output="screen">
+    <rosparam file="$(find feedback_linearization)/config/fblin_schlacher_params.yaml" command="load"/>
+    <rosparam param="/use_sim_time">true</rosparam>
+    <rosparam param="/test_fblin_schlacher/use_ideal_sim">false</rosparam>
+  </node> 
+
+  <!--- Run single track simulator node -->
+  <node pkg="singletrack_sim" type="singletrack_beta_sim" respawn="false" name="singletrack_beta_sim" output="screen">
+    <rosparam file="$(find singletrack_sim)/config/singletrack_beta_sim.yaml" command="load" />
+    <rosparam param="/singletrack_beta_sim/input_cmd">1</rosparam> <!-- Set force input mode -->
+    <rosparam param="/singletrack_beta_sim/steering_actuator_model">0</rosparam> <!-- Set ideal steering actuator -->
+    <rosparam param="/singletrack_beta_sim/tyre_model">0</rosparam> <!-- Set linear tyre model -->
+    <rosparam param="/singletrack_beta_sim/automode_delay">5.0</rosparam> <!-- Set delay before starting autonomous mode -->
+    <rosparam param="/singletrack_beta_sim/V0">1.0</rosparam> <!-- Set initial longitudinal velocity -->
+  </node> 
+</launch>
+

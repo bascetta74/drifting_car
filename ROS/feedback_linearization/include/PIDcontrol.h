@@ -1,6 +1,10 @@
 #ifndef PID_CONTROL_H_
 #define PID_CONTROL_H_
 
+// PID Controller class
+// PID implemented equation
+// Kc * (1 + 1/Ti*1/s + s*Td/(1+s*Td/N)
+
 class PIDcontrol
 {
     private:
@@ -16,6 +20,7 @@ class PIDcontrol
     public:
         PIDcontrol(double Kc, double Ts, double uMin, double uMax);
         PIDcontrol(double Kc, double Ti, double Ts, double uMin, double uMax);
+        PIDcontrol(double Kc, double Td, double N, double Ts, double uMin, double uMax);
         PIDcontrol(double Kc, double Ti, double Td, double N, double Ts, double uMin, double uMax);
         ~PIDcontrol();
 

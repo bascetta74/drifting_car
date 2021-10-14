@@ -1,5 +1,5 @@
-#ifndef TEST_FEEDBACK_LINEARIZATION_DRIFTCAR_H_
-#define TEST_FEEDBACK_LINEARIZATION_DRIFTCAR_H_
+#ifndef TEST_FBLIN_LOPEZ_H_
+#define TEST_FBLIN_LOPEZ_H_
 
 #include "ros/ros.h"
 #include <vector>
@@ -23,7 +23,7 @@
 #include "fblin_lopez.h"
 
  
-class test_feedback_linearization_driftcar
+class test_fblin_lopez
 {
   private: 
     ros::NodeHandle Handle;
@@ -76,4 +76,4 @@ class test_feedback_linearization_driftcar
     void Shutdown(void);
 };
 
-#endif /* TEST_FEEDBACK_LINEARIZATION_DRIFTCAR_H_ */
+#endif /* TEST_FBLIN_LOPEZ_H_ */

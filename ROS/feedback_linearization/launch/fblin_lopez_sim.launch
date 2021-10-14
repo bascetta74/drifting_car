@@ -1,0 +1,8 @@
+<launch>
+  <!-- load parameter files -->
+  <rosparam file="$(find feedback_linearization)/config/fblin_lopez_params.yaml" command="load"/>
+  <rosparam param="/use_sim_time">true</rosparam>
+  <rosparam param="/test_fblin_lopez/use_ideal_sim">true</rosparam>
+
+  <node pkg="feedback_linearization" type="test_fblin_lopez" name="test_fblin_lopez" output="screen"/>
+</launch>

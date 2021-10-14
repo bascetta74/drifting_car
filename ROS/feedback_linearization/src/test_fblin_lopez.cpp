@@ -1,4 +1,4 @@
-#include "feedback_linearization/test_feedback_linearization_driftcar.h"
+#include "feedback_linearization/test_fblin_lopez.h"
 
 #include <tf/transform_datatypes.h>
 #include <geometry_msgs/PointStamped.h>
@@ -8,7 +8,7 @@
 #include "trajectory.h"
 #include "car_msgs/car_cmd.h"
 
-void test_feedback_linearization_driftcar::Prepare(void)
+void test_fblin_lopez::Prepare(void)
 {
  RunPeriod = RUN_PERIOD_DEFAULT;
 
@@ -100,10 +100,10 @@ void test_feedback_linearization_driftcar::Prepare(void)
   use_sim_time = false;
 
  /* ROS topics */
- vehiclePose_subscriber = Handle.subscribe("/car/ground_pose", 1, &test_feedback_linearization_driftcar::vehiclePose_MessageCallback, this);
- vehicleIMU_subscriber = Handle.subscribe("/imu/data", 1, &test_feedback_linearization_driftcar::vehicleIMU_MessageCallback, this);
- telemetry_subscriber = Handle.subscribe("/car_simulator/telemetry", 1, &test_feedback_linearization_driftcar::simulated_telemetry_MessageCallback, this);
- radiocmd_subscriber = Handle.subscribe("/radio_cmd", 1, &test_feedback_linearization_driftcar::radioCommand_MessageCallback, this);
+ vehiclePose_subscriber = Handle.subscribe("/car/ground_pose", 1, &test_fblin_lopez::vehiclePose_MessageCallback, this);
+ vehicleIMU_subscriber = Handle.subscribe("/imu/data", 1, &test_fblin_lopez::vehicleIMU_MessageCallback, this);
+ telemetry_subscriber = Handle.subscribe("/car_simulator/telemetry", 1, &test_fblin_lopez::simulated_telemetry_MessageCallback, this);
+ radiocmd_subscriber = Handle.subscribe("/radio_cmd", 1, &test_fblin_lopez::radioCommand_MessageCallback, this);
 
  controllerCommand_publisher = Handle.advertise<car_msgs::car_cmd>("/controller_cmd", 1);
  vehicleState_publisher = Handle.advertise<std_msgs::Float64MultiArray>("/feedback_linearization/vehicleState", 1);
@@ -146,7 +146,7 @@ void test_feedback_linearization_driftcar::Prepare(void)
    ROS_INFO("Node %s ready to run.", ros::this_node::getName().c_str());
 }
 
-void test_feedback_linearization_driftcar::RunPeriodically(float Period)
+void test_fblin_lopez::RunPeriodically(float Period)
 {
  ros::Rate LoopRate(1.0/Period);
 
@@ -162,7 +162,7 @@ void test_feedback_linearization_driftcar::RunPeriodically(float Period)
  }
 }
 
-void test_feedback_linearization_driftcar::Shutdown(void)
+void test_fblin_lopez::Shutdown(void)
 {
  if (_linearizer)
  {
@@ -185,7 +185,7 @@ void test_feedback_linearization_driftcar::Shutdown(void)
  ROS_INFO("Node %s shutting down.", ros::this_node::getName().c_str());
 }
 
-void test_feedback_linearization_driftcar::vehiclePose_MessageCallback(const geometry_msgs::Pose2D::ConstPtr &msg)
+void test_fblin_lopez::vehiclePose_MessageCallback(const geometry_msgs::Pose2D::ConstPtr &msg)
 {
   if (!use_ideal_sim)
   {
@@ -242,13 +242,13 @@ void test_feedback_linearization_driftcar::vehiclePose_MessageCallback(const geo
   }
 }
 
-void test_feedback_linearization_driftcar::vehicleIMU_MessageCallback(const sensor_msgs::Imu::ConstPtr& msg)
+void test_fblin_lopez::vehicleIMU_MessageCallback(const sensor_msgs::Imu::ConstPtr& msg)
 {
   /* Updating yaw rate */
   _vehicleAngularVelocity = msg->angular_velocity.z;
 }
 
-void test_feedback_linearization_driftcar::simulated_telemetry_MessageCallback(const car_msgs::simulated_telemetry::ConstPtr& msg)
+void test_fblin_lopez::simulated_telemetry_MessageCallback(const car_msgs::simulated_telemetry::ConstPtr& msg)
 {
  if (use_ideal_sim)
  {
@@ -258,12 +258,12 @@ void test_feedback_linearization_driftcar::simulated_telemetry_MessageCallback(c
  }
 }
 
-void test_feedback_linearization_driftcar::radioCommand_MessageCallback(const car_msgs::car_cmd::ConstPtr& msg)
+void test_fblin_lopez::radioCommand_MessageCallback(const car_msgs::car_cmd::ConstPtr& msg)
 {
   _car_control_state = msg->state;
 }
 
-void test_feedback_linearization_driftcar::PeriodicTask(void)
+void test_fblin_lopez::PeriodicTask(void)
 {
   double xref, yref, xPref, yPref, xP, yP, vPx, vPy;
 
