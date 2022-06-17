@@ -84,7 +84,19 @@ void singletrack_beta_sim::Prepare(void)
 
  // Velocity actuator model parameters
  FullParamName = ros::this_node::getName()+"/mu_speed";
- if (false == Handle.getParam(FullParamName, mu_speed))
+ if (false == Handle.getParam(FullParamName, mu_steer))
+  ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
+
+ FullParamName = ros::this_node::getName()+"/wn_speed";
+ if (false == Handle.getParam(FullParamName, wn_steer))
+  ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
+
+ FullParamName = ros::this_node::getName()+"/csi_speed";
+ if (false == Handle.getParam(FullParamName, csi_steer))
+  ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
+
+ FullParamName = ros::this_node::getName()+"/tau_speed";
+ if (false == Handle.getParam(FullParamName, tau_steer))
   ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(), FullParamName.c_str());
 
  // Vehicle initial state
@@ -209,7 +221,7 @@ void singletrack_beta_sim::Prepare(void)
  }
  else {
      sim_force->setInitialState(r0, beta0, V0, x0, y0, psi0);
-     sim_force->setSteeringActuatorParams(mu_steer, wn_steer, csi_steer, tau_steer);
+     sim_force->setActuatorParams(mu_steer, wn_steer, csi_steer, tau_steer, mu_speed, wn_speed, csi_speed, tau_speed);
      sim_force->setVehicleParams(m, a, b, Cf, Cr, mu, Iz);
  }
 

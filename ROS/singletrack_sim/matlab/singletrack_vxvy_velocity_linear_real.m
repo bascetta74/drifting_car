@@ -2,6 +2,9 @@ close all;
 clear; 
 clc
 
+% Run cpp simulation
+system('./test_singletrack_vxvy_velocity_ode linear real');
+
 % Load cpp simulation results
 res = load('test_singletrack_vxvy_velocity_linear_real.txt');
 ode_res.t         = res(:,1);
@@ -21,6 +24,8 @@ ode_res.alphar    = res(:,14);
 ode_res.Fyf       = res(:,15);
 ode_res.Fyr       = res(:,16);
 clear res
+
+delete('test_singletrack_vxvy_velocity_linear_real.txt');
 
 % Car parameters
 a  = 0.1368;
@@ -77,24 +82,17 @@ sim_res = sim('carsim_vxvy_velocity.slx','StartTime','speed_ref.Time(1)','StopTi
 % Plot the input signals
 figure,
 subplot(2,1,1),...
-    plot(sim_res.time,sim_res.speed_ref, ode_res.t,ode_res.speed_ref,'--'),ylabel('Vx ref [m/s]'),xlabel('Time (s)'),...
+    plot(sim_res.time,sim_res.speed_cmd, ode_res.t,ode_res.speed_cmd,'--'),ylabel('Vx [m/s]'),xlabel('Time (s)'),...
     grid,legend('Simulink','ODEINT')
 subplot(2,1,2),...
-    plot(ode_res.t,abs(sim_res.speed_ref-ode_res.speed_ref)),ylabel('Vx ref abs error [m/s]'),xlabel('Time (s)'),grid
+    plot(ode_res.t,abs(sim_res.speed_cmd-ode_res.speed_cmd)),ylabel('Vx abs error [m/s]'),xlabel('Time (s)'),grid
 
 figure,
 subplot(2,1,1),...
-    plot(sim_res.time,sim_res.steer_ref, ode_res.t,ode_res.steer_ref,'--'),ylabel('Delta ref [rad]'),xlabel('Time (s)'),...
+    plot(sim_res.time,sim_res.steer_cmd, ode_res.t,ode_res.steer_cmd,'--'),ylabel('Delta [rad]'),xlabel('Time (s)'),...
     grid,legend('Simulink','ODEINT')
 subplot(2,1,2),...
-    plot(ode_res.t,abs(sim_res.steer_ref-ode_res.steer_ref)),ylabel('Delta ref abs error [rad]'),xlabel('Time (s)'),grid
-
-figure,
-subplot(2,1,1),...
-    plot(sim_res.time,sim_res.steer_cmd, ode_res.t,ode_res.steer_cmd,'--'),ylabel('Delta cmd [rad]'),xlabel('Time (s)'),...
-    grid,legend('Simulink','ODEINT')
-subplot(2,1,2),...
-    plot(ode_res.t,abs(sim_res.steer_cmd-ode_res.steer_cmd)),ylabel('Delta cmd abs error [m/s]'),xlabel('Time (s)'),grid
+    plot(ode_res.t,abs(sim_res.steer_cmd-ode_res.steer_cmd)),ylabel('Delta abs error [rad]'),xlabel('Time (s)'),grid
 
 % Plot lateral dynamics measured outputs
 figure,

@@ -2,11 +2,11 @@
 
 #include <boost/math/special_functions/sign.hpp>
 
-singletrack_vxvy_force_ode::singletrack_vxvy_force_ode(double deltaT, tyreModel tyre_model, actuatorModel actuator_model) : dt(deltaT),
-    t(0.0), state(8), delta_ref(0.0), delta(0.0), Fxr_ref(0.0), alphaf(0.0), alphar(0.0), Fyf(0.0), Fyr(0.0),
-    vehicleParams_set(false), steeringActuatorParams_set(false)
+singletrack_vxvy_force_ode::singletrack_vxvy_force_ode(double deltaT, tyreModel tyre_model, actuatorModel actuator_model, double vx_thd) : dt(deltaT),
+    t(0.0), state(10), delta_ref(0.0), delta(0.0), Fxr_ref(0.0), alphaf(0.0), alphar(0.0), Fyf(0.0), Fyr(0.0),
+    vehicleParams_set(false), actuatorParams_set(false)
 {
-    // state = [ r, Vx, Vy, x, y, psi, steer_pos, steer_vel ]
+    // state = [ r, Vx, Vy, x, y, psi, steer_pos, steer_vel, force_pos, force_vel ]
 
     // Initial state values
     state[0] = 0.0;
@@ -17,10 +17,15 @@ singletrack_vxvy_force_ode::singletrack_vxvy_force_ode(double deltaT, tyreModel 
     state[5] = 0.0;
     state[6] = 0.0;
     state[7] = 0.0;
+    state[8] = 0.0;
+    state[9] = 0.0;
 
     // Tyre and actuator models
     this->tyre_model = tyre_model;
-    this->steeringActuator_model = actuator_model;
+    this->actuator_model = actuator_model;
+
+    // Vx threshold for slip/sideslip computation
+    this->vx_thd = vx_thd;
 }
 
 void singletrack_vxvy_force_ode::setInitialState(double r0, double Vx0, double Vy0, double x0, double y0, double psi0)
@@ -34,6 +39,8 @@ void singletrack_vxvy_force_ode::setInitialState(double r0, double Vx0, double V
     state[5] = psi0;
     state[6] = 0.0;
     state[7] = 0.0;
+    state[8] = 0.0;
+    state[9] = 0.0;
 }
 
 void singletrack_vxvy_force_ode::setVehicleParams(double m, double a, double b, double Cf, double Cr, double mu, double Iz)
@@ -50,38 +57,48 @@ void singletrack_vxvy_force_ode::setVehicleParams(double m, double a, double b, 
     vehicleParams_set = true;
 }
 
-void singletrack_vxvy_force_ode::setSteeringActuatorParams(double gain, double frequency, double damping, int delay)
+void singletrack_vxvy_force_ode::setActuatorParams(double steer_gain, double steer_frequency, double steer_damping, int steer_delay,
+                                                   double force_gain, double force_frequency, double force_damping, int force_delay)
 {
     // Initialize steering actuator parameters
-    mu_steer  = gain;
-    wn_steer  = frequency;
-    csi_steer = damping;
-    tau_steer = delay;      // Multiples of dt
+    mu_steer  = steer_gain;
+    wn_steer  = steer_frequency;
+    csi_steer = steer_damping;
+    tau_steer = steer_delay;      // Multiples of dt
 
-    steeringActuatorParams_set = true;
+    // Initialize velocity actuator parameters
+    mu_force  = force_gain;
+    wn_force  = force_frequency;
+    csi_force = force_damping;
+    tau_force = force_delay;      // Multiples of dt
+
+    actuatorParams_set = true;
 
     // Initialize the FIFO to represent the delay
-    for (auto k=0; k<tau_steer; k++) {
+    for (auto k=0; k<tau_steer-1; k++) {
         delta_ref_FIFO.push(0.0);
+    }
+    for (auto k=0; k<tau_force-1; k++) {
+        Fxr_ref_FIFO.push(0.0);
     }
 }
 
 void singletrack_vxvy_force_ode::setReferenceCommands(double Fxr, double steer)
 {
-    Fxr_ref = Fxr;
-
-    switch (steeringActuator_model)
+    switch (actuator_model)
     {
         case IDEAL:
+            Fxr_ref   = Fxr;
             delta_ref = steer;
             break;
 
         case REAL:
+            Fxr_ref_FIFO.push(Fxr);
             delta_ref_FIFO.push(steer);
             break;
 
         default:
-            throw std::invalid_argument( "Uknown steering actuator model!" );
+            throw std::invalid_argument( "Unknown steering actuator model!" );
             break;
     }
 }
@@ -94,8 +111,8 @@ void singletrack_vxvy_force_ode::integrate()
     }
 
     // Check steering actuator parameters are set
-    if ((!steeringActuatorParams_set) && (steeringActuator_model!=singletrack_vxvy_force_ode::IDEAL)) {
-        throw std::invalid_argument( "Steering actuator parameters not set!" );
+    if ((!actuatorParams_set) && (actuator_model!=singletrack_vxvy_force_ode::IDEAL)) {
+        throw std::invalid_argument( "Actuator parameters not set!" );
     }
 
     // Integrate for one step ahead
@@ -105,7 +122,8 @@ void singletrack_vxvy_force_ode::integrate()
     // Update time and steering
     t += dt;
 
-    if (steeringActuator_model==REAL) {
+    if (actuator_model==singletrack_vxvy_force_ode::REAL) {
+        Fxr_ref_FIFO.pop();
         delta_ref_FIFO.pop();
     }
 }
@@ -123,45 +141,58 @@ void singletrack_vxvy_force_ode::vehicle_ode(const state_type &state, state_type
     const double psi = state[5];
     const double steer_pos = state[6];
     const double steer_vel = state[7];
+    const double force_pos = state[8];
+    const double force_vel = state[9];
 
     // Steering actuator model
-    switch (steeringActuator_model)
+    switch (actuator_model)
     {
         case IDEAL:
+            Fxr   = Fxr_ref;
             delta = delta_ref;
 
             // These states are not used
             dstate[6] = 0.0;
             dstate[7] = 0.0;
+            dstate[8] = 0.0;
+            dstate[9] = 0.0;
             break;
 
         case REAL:
             // Check the delta_ref FIFO is not empty
             if (delta_ref_FIFO.empty()) {
-                throw std::length_error( "dela_ref FIFO is empty!");
+                throw std::length_error( "delta_ref FIFO is empty!");
+            }
+
+            // Check the Fxr_ref FIFO is not empty
+            if (Fxr_ref_FIFO.empty()) {
+                throw std::length_error( "Fxr_ref FIFO is empty!");
             }
 
             // Compute delta command
+            Fxr   = mu_force*std::pow(wn_force,2.0)*force_pos;
             delta = mu_steer*std::pow(wn_steer,2.0)*steer_pos;
 
             // Update the actuator model state
             dstate[6] = steer_vel;
             dstate[7] = -std::pow(wn_steer,2.0)*steer_pos-2*csi_steer*wn_steer*steer_vel+delta_ref_FIFO.front();
+            dstate[8] = force_vel;
+            dstate[9] = -std::pow(wn_force,2.0)*force_pos-2*csi_force*wn_force*force_vel+Fxr_ref_FIFO.front();
             break;
 
         default:
-            throw std::invalid_argument( "Uknown steering actuator model!" );
+            throw std::invalid_argument( "Unknown steering actuator model!" );
             break;
     }
 
     // Slip angles
-    if (std::abs(Vx)<=0.01) {
+    if (std::abs(Vx)<=vx_thd) {
         alphaf = 0.0;
         alphar = 0.0;
     }
     else {
-        alphaf = std::atan((Vy+a*r)/Vx)-delta;
-        alphar = std::atan((Vy-b*r)/Vx);
+        alphaf = std::atan2(Vy+a*r,Vx)-delta;
+        alphar = std::atan2(Vy-b*r,Vx);
     }
 
     // Tyre forces
@@ -203,12 +234,12 @@ void singletrack_vxvy_force_ode::vehicle_ode(const state_type &state, state_type
             Fyf = 0.0;
             Fyr = 0.0;
 
-            throw std::invalid_argument( "Uknown tyre model!" );
+            throw std::invalid_argument( "Unknown tyre model!" );
             break;
     }
 
     // Vehicle equations
-    double Fx = Fxr_ref-Fyf*std::sin(delta);
+    double Fx = Fxr-Fyf*std::sin(delta);
     double Fy = Fyr+Fyf*std::cos(delta);
     double Mz = a*Fyf*std::cos(delta)-b*Fyr;
 
@@ -221,7 +252,7 @@ void singletrack_vxvy_force_ode::vehicle_ode(const state_type &state, state_type
 
     // Other variables
     ay = dstate[2]+r*Vx;
-    if (std::abs(Vx)<=0.01) {
+    if (std::abs(Vx)<=vx_thd) {
         sideslip = 0.0;
     }
     else {

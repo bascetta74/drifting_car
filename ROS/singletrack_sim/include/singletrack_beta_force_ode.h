@@ -5,7 +5,7 @@ using namespace boost::numeric::odeint;
 
 typedef std::vector<double> state_type;
 
-// Simulation of a single-track dynamic model, rear-wheel drive, with different tyre models and steer actuator model
+// Simulation of a single-track dynamic model, rear-wheel drive, with different tyre models and actuator models
 // Control inputs: rear longitudinal force, steer
 
 class singletrack_beta_force_ode
@@ -22,11 +22,12 @@ public:
       REAL = 1
     } actuatorModel;
 
-    singletrack_beta_force_ode(double deltaT, tyreModel tyre_model, actuatorModel actuator_model);
+    singletrack_beta_force_ode(double deltaT, tyreModel tyre_model, actuatorModel actuator_model, double vx_thd);
 
     void setInitialState(double r0, double beta0, double V0, double x0, double y0, double psi0);
     void setVehicleParams(double m, double a, double b, double Cf, double Cr, double mu, double Iz);
-    void setSteeringActuatorParams(double gain, double frequency, double damping, int delay);
+    void setActuatorParams(double steer_gain, double steer_frequency, double steer_damping, int steer_delay,
+                           double force_gain, double force_frequency, double force_damping, int force_delay);
 
     void integrate();
     
@@ -39,22 +40,24 @@ public:
     void getSideslip(double &sideslip) { sideslip = state[1]; }
     void getSlip(double &slip_front, double &slip_rear) { slip_front = alphaf; slip_rear = alphar; }
     void getLateralForce(double &force_front, double &force_rear) { force_front = Fyf; force_rear = Fyr; }
-    void getCommands(double &Fxr, double &steer) { Fxr = Fxr_ref; steer = delta; };
+    void getCommands(double &Fxr, double &steer) { Fxr = this->Fxr; steer = delta; };
     void getTime(double &time) { time = t; };
 
 private:
     // Simulator and integrator variables
     double t, dt;
-    double delta_ref, delta, Fxr_ref;
-    std::queue<double> delta_ref_FIFO;
+    double vx_thd;
+    double Fxr_ref, Fxr, delta_ref, delta;
+    std::queue<double> delta_ref_FIFO, Fxr_ref_FIFO;
     double ay, alphaf, alphar, Fyf, Fyr;
     double m, a, b, Cf, Cr, mu, Iz;
     double mu_steer, wn_steer, csi_steer;
-    int tau_steer;
+    double mu_force, wn_force, csi_force;
+    int tau_steer, tau_force;
 
-    bool vehicleParams_set, steeringActuatorParams_set;
+    bool vehicleParams_set, actuatorParams_set;
     tyreModel tyre_model;
-    actuatorModel steeringActuator_model;
+    actuatorModel actuator_model;
 
     state_type state;
     runge_kutta_dopri5 < state_type > stepper;

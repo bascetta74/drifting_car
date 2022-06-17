@@ -5,7 +5,7 @@ using namespace boost::numeric::odeint;
 
 typedef std::vector<double> state_type;
 
-// Simulation of a single-track dynamic model, rear-wheel drive, with different tyre models and steer actuator model
+// Simulation of a single-track dynamic model, rear-wheel drive, with different tyre models and actuator models
 // Control inputs: longitudinal velocity, steer
 
 class singletrack_beta_velocity_ode
@@ -22,12 +22,12 @@ public:
       REAL = 1
     } actuatorModel;
 
-    singletrack_beta_velocity_ode(double deltaT, tyreModel tyre_model, actuatorModel actuator_model);
+    singletrack_beta_velocity_ode(double deltaT, tyreModel tyre_model, actuatorModel actuator_model, double vx_thd);
 
     void setInitialState(double r0, double beta0, double x0, double y0, double psi0);
     void setVehicleParams(double m, double a, double b, double Cf, double Cr, double mu, double Iz);
-    void setSteeringActuatorParams(double gain, double frequency, double damping, int delay);
-    void setVelocityActuatorParams(double gain);
+    void setActuatorParams(double steer_gain, double steer_frequency, double steer_damping, int steer_delay,
+                           double speed_gain, double speed_frequency, double speed_damping, int speed_delay);
 
     void integrate();
     
@@ -44,16 +44,18 @@ public:
 private:
     // Simulator and integrator variables
     double t, dt;
+    double vx_thd;
     double Vx_ref, Vx, delta_ref, delta;
-    std::queue<double> delta_ref_FIFO;
+    std::queue<double> delta_ref_FIFO, Vx_ref_FIFO;
     double sideslip, ay, alphaf, alphar, Fyf, Fyr;
     double m, a, b, Cf, Cr, mu, Iz;
-    double mu_steer, wn_steer, csi_steer, mu_speed;
-    int tau_steer;
+    double mu_steer, wn_steer, csi_steer;
+    double mu_speed, wn_speed, csi_speed;
+    int tau_steer, tau_speed;
 
-    bool vehicleParams_set, steeringActuatorParams_set;
+    bool vehicleParams_set, actuatorParams_set;
     tyreModel tyre_model;
-    actuatorModel steeringActuator_model;
+    actuatorModel actuator_model;
 
     state_type state;
     runge_kutta_dopri5 < state_type > stepper;

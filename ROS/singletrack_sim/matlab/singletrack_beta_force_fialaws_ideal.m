@@ -2,8 +2,11 @@ close all;
 clear; 
 clc
 
+% Run cpp simulation
+system('./test_singletrack_beta_force_ode fiala_w_sat ideal');
+
 % Load cpp simulation results
-res = load('test_singletrack_beta_force_fialaws_ideal.txt');
+res = load('test_singletrack_beta_force_fiala_w_sat_ideal.txt');
 ode_res.t         = res(:,1);
 ode_res.Fxr_ref   = res(:,2);
 ode_res.steer_ref = res(:,3);
@@ -22,6 +25,8 @@ ode_res.alphar    = res(:,15);
 ode_res.Fyf       = res(:,16);
 ode_res.Fyr       = res(:,17);
 clear res
+
+delete('test_singletrack_beta_force_fiala_w_sat_ideal.txt');
 
 % Car parameters
 a  = 0.1368;
@@ -79,17 +84,17 @@ sim_res = sim('carsim_beta_force.slx','StartTime','steer_ref.Time(1)','StopTime'
 % Plot the input signals
 figure,
 subplot(2,1,1),...
-    plot(sim_res.time,sim_res.Fxr_ref, ode_res.t,ode_res.Fxr_ref,'--'),ylabel('Fxr ref [N]'),xlabel('Time (s)'),...
+    plot(sim_res.time,sim_res.Fxr_cmd, ode_res.t,ode_res.Fxr_cmd,'--'),ylabel('Fxr [N]'),xlabel('Time (s)'),...
     grid,legend('Simulink','ODEINT')
 subplot(2,1,2),...
-    plot(ode_res.t,abs(sim_res.Fxr_ref-ode_res.Fxr_ref)),ylabel('Fxr ref abs error [N]'),xlabel('Time (s)'),grid
+    plot(ode_res.t,abs(sim_res.Fxr_cmd-ode_res.Fxr_cmd)),ylabel('Fxr abs error [N]'),xlabel('Time (s)'),grid
 
 figure,
 subplot(2,1,1),...
-    plot(sim_res.time,sim_res.steer_ref, ode_res.t,ode_res.steer_ref,'--'),ylabel('Delta [rad]'),xlabel('Time (s)'),...
+    plot(sim_res.time,sim_res.steer_cmd, ode_res.t,ode_res.steer_cmd,'--'),ylabel('Delta [rad]'),xlabel('Time (s)'),...
     grid,legend('Simulink','ODEINT')
 subplot(2,1,2),...
-    plot(ode_res.t,abs(sim_res.steer_ref-ode_res.steer_ref)),ylabel('Delta abs error [rad]'),xlabel('Time (s)'),grid
+    plot(ode_res.t,abs(sim_res.steer_cmd-ode_res.steer_cmd)),ylabel('Delta abs error [rad]'),xlabel('Time (s)'),grid
 
 % Plot longitudinal dynamics measured outputs
 figure,
