@@ -26,8 +26,8 @@ public:
 
     void setInitialState(double r0, double Vy0, double x0, double y0, double psi0);
     void setVehicleParams(double m, double a, double b, double Cf, double Cr, double mu, double Iz);
-    void setActuatorParams(double steer_gain, double steer_frequency, double steer_damping, int steer_delay,
-                           double speed_gain, double speed_frequency, double speed_damping, int speed_delay);
+    void setActuatorParams(double steer_gain, double steer_frequency, double steer_damping, int steer_delay, double steer_initial,
+                           double speed_gain, double speed_frequency, double speed_damping, int speed_delay, double speed_initial);
 
     void integrate();
     

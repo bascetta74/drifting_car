@@ -26,15 +26,15 @@ public:
 
     void setInitialState(double r0, double beta0, double x0, double y0, double psi0);
     void setVehicleParams(double m, double a, double b, double Cf, double Cr, double mu, double Iz);
-    void setActuatorParams(double steer_gain, double steer_frequency, double steer_damping, int steer_delay,
-                           double speed_gain, double speed_frequency, double speed_damping, int speed_delay);
+    void setActuatorParams(double steer_gain, double steer_frequency, double steer_damping, int steer_delay, double steer_initial,
+                           double speed_gain, double speed_frequency, double speed_damping, int speed_delay, double speed_initial);
 
     void integrate();
     
     void setReferenceCommands(double velocity, double steer);
     
     void getPose(double &x, double &y, double &psi) { x = state[2]; y = state[3]; psi = state[4]; };
-    void getLateralDynamics(double &ay, double &yawrate, double &vy) { ay = this->ay; yawrate = state[0]; vy = state[1]; };
+    void getLateralDynamics(double &ay, double &yawrate, double &vy) { ay = this->ay; yawrate = state[0]; vy = Vx*std::tan(state[1]); };
     void getSideslip(double &sideslip) { sideslip = state[1]; }
     void getSlip(double &slip_front, double &slip_rear) { slip_front = alphaf; slip_rear = alphar; }
     void getLateralForce(double &force_front, double &force_rear) { force_front = Fyf; force_rear = Fyr; }

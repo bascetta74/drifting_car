@@ -55,8 +55,8 @@ void singletrack_beta_velocity_ode::setVehicleParams(double m, double a, double 
     vehicleParams_set = true;
 }
 
-void singletrack_beta_velocity_ode::setActuatorParams(double steer_gain, double steer_frequency, double steer_damping, int steer_delay,
-                                                      double speed_gain, double speed_frequency, double speed_damping, int speed_delay)
+void singletrack_beta_velocity_ode::setActuatorParams(double steer_gain, double steer_frequency, double steer_damping, int steer_delay, double steer_initial,
+                                                      double speed_gain, double speed_frequency, double speed_damping, int speed_delay, double speed_initial)
 {
     // Initialize steering actuator parameters
     mu_steer  = steer_gain;
@@ -74,11 +74,15 @@ void singletrack_beta_velocity_ode::setActuatorParams(double steer_gain, double 
 
     // Initialize the FIFO to represent the delay
     for (auto k=0; k<tau_steer-1; k++) {
-        delta_ref_FIFO.push(0.0);
+        delta_ref_FIFO.push(steer_initial);
     }
     for (auto k=0; k<tau_speed-1; k++) {
-        Vx_ref_FIFO.push(0.0);
+        Vx_ref_FIFO.push(speed_initial);
     }
+
+    // Initialize actuator states
+    delta = state[5] = steer_initial;
+    Vx    = state[7] = speed_initial;
 }
 
 void singletrack_beta_velocity_ode::setReferenceCommands(double velocity, double steer)
@@ -167,14 +171,14 @@ void singletrack_beta_velocity_ode::vehicle_ode(const state_type &state, state_t
             }
 
             // Compute delta command
-            Vx    = mu_speed*std::pow(wn_speed,2.0)*speed_pos;
-            delta = mu_steer*std::pow(wn_steer,2.0)*steer_pos;
+            Vx    = speed_pos;
+            delta = steer_pos;
 
             // Update the actuator model state
             dstate[5] = steer_vel;
-            dstate[6] = -std::pow(wn_steer,2.0)*steer_pos-2*csi_steer*wn_steer*steer_vel+delta_ref_FIFO.front();
+            dstate[6] = -std::pow(wn_steer,2.0)*steer_pos-2*csi_steer*wn_steer*steer_vel+mu_steer*std::pow(wn_steer,2.0)*delta_ref_FIFO.front();
             dstate[7] = speed_vel;
-            dstate[8] = -std::pow(wn_speed,2.0)*speed_pos-2*csi_speed*wn_speed*speed_vel+Vx_ref_FIFO.front();
+            dstate[8] = -std::pow(wn_speed,2.0)*speed_pos-2*csi_speed*wn_speed*speed_vel+mu_speed*std::pow(wn_speed,2.0)*Vx_ref_FIFO.front();
             break;
 
         default:
@@ -188,8 +192,8 @@ void singletrack_beta_velocity_ode::vehicle_ode(const state_type &state, state_t
         alphar = 0.0;
     }
     else {
-        alphaf = std::atan2(beta+a*r,Vx)-delta;
-        alphar = std::atan2(beta-b*r,Vx);
+        alphaf = std::atan2(Vx*std::tan(beta)+a*r,Vx)-delta;
+        alphar = std::atan2(Vx*std::tan(beta)-b*r,Vx);
     }
 
     // Tyre forces
@@ -236,12 +240,12 @@ void singletrack_beta_velocity_ode::vehicle_ode(const state_type &state, state_t
     }
 
     // Vehicle equations
-    dstate[0] = (a*Fyf-b*Fyr)/Iz;                                                                            // dr
-    dstate[1] = (Fyf*(std::cos(beta)+std::sin(beta)*delta)+Fyr*std::cos(beta))/(m*Vx)*std::cos(beta)-r;      // dbeta
-    dstate[2] = Vx/std::cos(beta)*std::cos(psi+beta);                                                        // dx
-    dstate[3] = Vx/std::cos(beta)*std::sin(psi+beta);                                                        // dy
-    dstate[4] = r;                                                                                           // dpsi
+    dstate[0] = (a*Fyf-b*Fyr)/Iz;                                                                               // dr
+    dstate[1] = (Fyr+Fyf*std::cos(delta))/(m*Vx)*std::pow(std::cos(beta),2.0)-r*std::pow(std::cos(beta),2.0);   // dbeta
+    dstate[2] = Vx/std::cos(beta)*std::cos(psi+beta);                                                           // dx
+    dstate[3] = Vx/std::cos(beta)*std::sin(psi+beta);                                                           // dy
+    dstate[4] = r;                                                                                              // dpsi
 
     // Other variables
-    ay = Vx*dstate[1]+r*Vx;
+    ay = (Fyf*cos(delta)+Fyr)/m;
 }

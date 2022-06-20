@@ -57,8 +57,8 @@ void singletrack_vxvy_force_ode::setVehicleParams(double m, double a, double b, 
     vehicleParams_set = true;
 }
 
-void singletrack_vxvy_force_ode::setActuatorParams(double steer_gain, double steer_frequency, double steer_damping, int steer_delay,
-                                                   double force_gain, double force_frequency, double force_damping, int force_delay)
+void singletrack_vxvy_force_ode::setActuatorParams(double steer_gain, double steer_frequency, double steer_damping, int steer_delay, double steer_initial,
+                                                   double force_gain, double force_frequency, double force_damping, int force_delay, double force_initial)
 {
     // Initialize steering actuator parameters
     mu_steer  = steer_gain;
@@ -76,11 +76,15 @@ void singletrack_vxvy_force_ode::setActuatorParams(double steer_gain, double ste
 
     // Initialize the FIFO to represent the delay
     for (auto k=0; k<tau_steer-1; k++) {
-        delta_ref_FIFO.push(0.0);
+        delta_ref_FIFO.push(steer_initial);
     }
     for (auto k=0; k<tau_force-1; k++) {
-        Fxr_ref_FIFO.push(0.0);
+        Fxr_ref_FIFO.push(force_initial);
     }
+
+    // Initialize actuator states
+    delta = state[6] = steer_initial;
+    Fxr   = state[8] = force_initial;
 }
 
 void singletrack_vxvy_force_ode::setReferenceCommands(double Fxr, double steer)
@@ -170,14 +174,14 @@ void singletrack_vxvy_force_ode::vehicle_ode(const state_type &state, state_type
             }
 
             // Compute delta command
-            Fxr   = mu_force*std::pow(wn_force,2.0)*force_pos;
-            delta = mu_steer*std::pow(wn_steer,2.0)*steer_pos;
+            Fxr   = force_pos;
+            delta = steer_pos;
 
             // Update the actuator model state
             dstate[6] = steer_vel;
-            dstate[7] = -std::pow(wn_steer,2.0)*steer_pos-2*csi_steer*wn_steer*steer_vel+delta_ref_FIFO.front();
+            dstate[7] = -std::pow(wn_steer,2.0)*steer_pos-2*csi_steer*wn_steer*steer_vel+mu_steer*std::pow(wn_steer,2.0)*delta_ref_FIFO.front();
             dstate[8] = force_vel;
-            dstate[9] = -std::pow(wn_force,2.0)*force_pos-2*csi_force*wn_force*force_vel+Fxr_ref_FIFO.front();
+            dstate[9] = -std::pow(wn_force,2.0)*force_pos-2*csi_force*wn_force*force_vel+mu_force*std::pow(wn_force,2.0)*Fxr_ref_FIFO.front();
             break;
 
         default:
