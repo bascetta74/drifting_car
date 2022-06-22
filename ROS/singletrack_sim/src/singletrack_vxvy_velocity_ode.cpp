@@ -149,8 +149,8 @@ void singletrack_vxvy_velocity_ode::vehicle_ode(const state_type &state, state_t
     switch (actuator_model)
     {
         case IDEAL:
-            Vx    = Vx_ref;
-            delta = delta_ref;
+            Vx    = mu_speed*Vx_ref;
+            delta = mu_steer*delta_ref;
 
             // These states are not used
             dstate[5] = 0.0;

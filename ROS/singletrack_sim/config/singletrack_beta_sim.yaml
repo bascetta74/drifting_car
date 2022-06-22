@@ -1,5 +1,5 @@
 # Simulator configuration parameters
-  /singletrack_beta_sim/steering_actuator_model: 0      # Actuator model (0, ideal; 1, real)
+  /singletrack_beta_sim/actuator_model: 0               # Actuator model (0, ideal; 1, real)
   /singletrack_beta_sim/tyre_model: 1                   # Tyre model (0, linear; 1, fiala with saturation; 2, fiala without saturation)
   /singletrack_beta_sim/input_cmd: 0                    # Input commands (0, speed/steer; 1, Fxr/steer)
   /singletrack_beta_sim/automode_delay: 2.5             # Delay before automatic mode starts
@@ -23,11 +23,20 @@
 
 # Velocity actuator parameters
   /singletrack_beta_sim/mu_speed: 5.1282                # Transfer function gain
+  /singletrack_beta_sim/wn_speed: 650.0                 # Transfer function crossover frequency
+  /singletrack_beta_sim/csi_speed: 0.9                  # Transfer function damping
+  /singletrack_beta_sim/tau_speed: 36                   # Transfer function delay (multiple of dt)
+
+# Force actuator parameters
+  /singletrack_beta_sim/mu_force: 1.0                   # Transfer function gain
+  /singletrack_beta_sim/wn_force: 650.0                 # Transfer function crossover frequency
+  /singletrack_beta_sim/csi_force: 0.9                  # Transfer function damping
+  /singletrack_beta_sim/tau_force: 0                    # Transfer function delay (multiple of dt)
 
 # Vehicle initial state
   /singletrack_beta_sim/r0: 0.0                         # Initial yaw rate
-  /singletrack_beta_sim/beta0: 0.0                      # Initial sideslip
-  /singletrack_beta_sim/V0: 0.0                         # Initial absolute velocity
+  /singletrack_beta_sim/Vx0: 0.0                        # Initial longitudinal velocity
+  /singletrack_beta_sim/Vy0: 0.0                        # Initial lateral velocity
   /singletrack_beta_sim/x0: 0.0                         # Initial position x
   /singletrack_beta_sim/y0: 0.0                         # Initial position y
   /singletrack_beta_sim/psi0: 0.0                       # Initial heading

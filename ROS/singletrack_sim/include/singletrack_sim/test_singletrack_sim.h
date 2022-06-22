@@ -23,6 +23,10 @@ class test_singletrack_sim
     /* Node parameters */
     int input_cmd;
 
+    /* Node state variables */
+    double _time;
+    ros::Time _t0;
+
   public:
     double RunPeriod;
 

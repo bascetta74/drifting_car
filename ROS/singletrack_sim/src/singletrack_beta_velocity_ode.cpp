@@ -149,8 +149,8 @@ void singletrack_beta_velocity_ode::vehicle_ode(const state_type &state, state_t
     switch (actuator_model)
     {
         case IDEAL:
-            Vx    = Vx_ref;
-            delta = delta_ref;
+            Vx    = mu_speed*Vx_ref;
+            delta = mu_steer*delta_ref;
 
             // These states are not used
             dstate[5] = 0.0;
@@ -241,7 +241,12 @@ void singletrack_beta_velocity_ode::vehicle_ode(const state_type &state, state_t
 
     // Vehicle equations
     dstate[0] = (a*Fyf-b*Fyr)/Iz;                                                                               // dr
-    dstate[1] = (Fyr+Fyf*std::cos(delta))/(m*Vx)*std::pow(std::cos(beta),2.0)-r*std::pow(std::cos(beta),2.0);   // dbeta
+    if (std::abs(Vx)<=vx_thd) {                                                                                 // dbeta
+        dstate[1] = 0.0;
+    }
+    else {
+        dstate[1] = (Fyr+Fyf*std::cos(delta))/(m*Vx)*std::pow(std::cos(beta),2.0)-r*std::pow(std::cos(beta),2.0);
+    }
     dstate[2] = Vx/std::cos(beta)*std::cos(psi+beta);                                                           // dx
     dstate[3] = Vx/std::cos(beta)*std::sin(psi+beta);                                                           // dy
     dstate[4] = r;                                                                                              // dpsi

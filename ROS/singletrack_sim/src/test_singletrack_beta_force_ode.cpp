@@ -18,6 +18,7 @@ int main(int argc, char** argv) {
 
     // Create simulator class
     const double dT = 0.001;
+    const double Tend = 60;
 
     singletrack_beta_force_ode* sim;
     if (!strcmp(argv[1], "linear") && !strcmp(argv[2], "ideal")) {
@@ -91,7 +92,7 @@ int main(int argc, char** argv) {
 
     // Simulate vehicle motion
     double time = 0.0;
-    for (auto k=0; k<10e3; k++) {
+    for (auto k=0; k<Tend/dT; k++) {
         // Vehicle commands
         double Fxr_ref   = initial_force+0.5*time;
         double steer_ref = initial_steer+std::sin(0.1*time);

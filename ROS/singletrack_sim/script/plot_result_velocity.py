@@ -19,7 +19,7 @@ vehicleState_slipRear = []
 vehicleState_forceFront = []
 vehicleState_forceRear = []
 vehicleState_yawrate = []
-vehicleState_FxrCmd = []
+vehicleState_speedCmd = []
 vehicleState_steerCmd = []
 
 # Controller commands
@@ -49,7 +49,7 @@ for topic, msg, t in bag.read_messages():
         vehicleState_slipRear.append(msg.data[10])
         vehicleState_forceFront.append(msg.data[11])
         vehicleState_forceRear.append(msg.data[12])
-        vehicleState_FxrCmd.append(msg.data[13])
+        vehicleState_speedCmd.append(msg.data[13])
         vehicleState_steerCmd.append(msg.data[14])
     if topic == "/car/ground_pose":
         carpose_x.append(msg.x)
@@ -65,16 +65,15 @@ bag.close()
 
 # Read data from txt
 t = []
-force_ref = []
+speed_ref = []
 steer_ref = []
-force_cmd = []
+speed_cmd = []
 steer_cmd = []
 x = []
 y = []
 psi = []
 ay = []
 r = []
-vx = []
 vy = []
 beta = []
 alphaf = []
@@ -89,22 +88,21 @@ for line in f:
     columns = line.split(";")
     
     t.append(float(columns[0]))
-    force_ref.append(float(columns[1]))
+    speed_ref.append(float(columns[1]))
     steer_ref.append(float(columns[2]))
-    force_cmd.append(float(columns[3]))
+    speed_cmd.append(float(columns[3]))
     steer_cmd.append(float(columns[4]))
     x.append(float(columns[5]))
     y.append(float(columns[6]))
     psi.append(float(columns[7]))
     ay.append(float(columns[8]))
     r.append(float(columns[9]))
-    vx.append(float(columns[10]))
-    vy.append(float(columns[11]))
-    beta.append(float(columns[12]))
-    alphaf.append(float(columns[13]))
-    alphar.append(float(columns[14]))
-    Fyf.append(float(columns[15]))
-    Fyr.append(float(columns[16]))
+    vy.append(float(columns[10]))
+    beta.append(float(columns[11]))
+    alphaf.append(float(columns[12]))
+    alphar.append(float(columns[13]))
+    Fyf.append(float(columns[14]))
+    Fyr.append(float(columns[15]))
 
 f.close()
 
@@ -119,10 +117,10 @@ plt.legend()
 
 plt.figure(2)
 plt.subplot(211)
-plt.plot(vehicleState_time,vehicleState_FxrCmd, label='ROS node')
-plt.plot(t,force_cmd,'--', label='ODE sim')
+plt.plot(vehicleState_time,vehicleState_speedCmd, label='ROS node')
+plt.plot(t,speed_cmd,'--', label='ODE sim')
 plt.xlabel("Time [s]")
-plt.ylabel("Fx command [N]")
+plt.ylabel("Speed command [N]")
 plt.legend()
 plt.subplot(212)
 plt.plot(vehicleState_time,vehicleState_steerCmd, label='ROS node')
@@ -132,13 +130,6 @@ plt.ylabel("Steer command [N]")
 plt.legend()
 
 plt.figure(3)
-plt.subplot(211)
-plt.plot(vehicleState_time,vehicleState_vx, label='ROS node')
-plt.plot(t,vx,'--', label='ODE sim')
-plt.xlabel("Time [s]")
-plt.ylabel("Longitudinal velocity [m/s]")
-plt.legend()
-plt.subplot(212)
 plt.plot(vehicleState_time,vehicleState_vy, label='ROS node')
 plt.plot(t,vy,'--', label='ODE sim')
 plt.xlabel("Time [s]")

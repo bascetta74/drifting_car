@@ -29,8 +29,10 @@ class singletrack_vxvy_sim
     double dt, automode_delay;
     int actuator_model, tyre_model, input_cmd;
     double r0, Vx0, Vy0, x0, y0, psi0;
+    double speed_ref, force_ref, steer_ref;
     double mu_steer, wn_steer, csi_steer, tau_steer;
     double mu_speed, wn_speed, csi_speed, tau_speed;
+    double mu_force, wn_force, csi_force, tau_force;
     double m, a, b, Cf, Cr, mu, Iz;
     int pose_decimation, imu_decimation;
 

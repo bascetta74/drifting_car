@@ -152,8 +152,8 @@ void singletrack_vxvy_force_ode::vehicle_ode(const state_type &state, state_type
     switch (actuator_model)
     {
         case IDEAL:
-            Fxr   = Fxr_ref;
-            delta = delta_ref;
+            Fxr   = mu_force*Fxr_ref;
+            delta = mu_steer*delta_ref;
 
             // These states are not used
             dstate[6] = 0.0;
