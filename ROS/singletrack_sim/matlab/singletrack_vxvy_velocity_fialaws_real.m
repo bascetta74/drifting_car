@@ -77,7 +77,7 @@ else
 end
 
 sim_res = sim('carsim_vxvy_velocity.slx','StartTime','speed_ref.Time(1)','StopTime',...
-    'speed_ref.Time(end)','SrcWorkspace' ,'current');
+    'speed_ref.Time(end)+Ts','SrcWorkspace' ,'current');
 
 % Plot the input signals
 figure,

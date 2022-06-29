@@ -2,9 +2,7 @@
   /singletrack_beta_sim/actuator_model: 0               # Actuator model (0, ideal; 1, real)
   /singletrack_beta_sim/tyre_model: 1                   # Tyre model (0, linear; 1, fiala with saturation; 2, fiala without saturation)
   /singletrack_beta_sim/input_cmd: 0                    # Input commands (0, speed/steer; 1, Fxr/steer)
-  /singletrack_beta_sim/automode_delay: 2.5             # Delay before automatic mode starts
-
-  /singletrack_beta_sim/dt: 0.001                       # Integration step
+  /singletrack_beta_sim/automode_delay: 2500000         # Delay before automatic mode starts (in microseconds)
 
 # Vehicle parameters
   /singletrack_beta_sim/m: 1.9                          # Vehicle mass
@@ -42,6 +40,6 @@
   /singletrack_beta_sim/psi0: 0.0                       # Initial heading
 
 # Measurements
-  /singletrack_beta_sim/pose_decimation: 10             # Pose is published every decimation integration cycles
-  /singletrack_beta_sim/imu_decimation: 10              # IMU is published every decimation integration cycles
+  /singletrack_beta_sim/pose_pub_dt: 10000              # Pose publishing period in microseconds
+  /singletrack_beta_sim/imu_pub_dt: 10000               # IMU publishing period in microseconds
 

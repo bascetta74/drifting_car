@@ -77,7 +77,7 @@ else
 end
 
 sim_res = sim('carsim_beta_velocity.slx','StartTime','steer_ref.Time(1)','StopTime',...
-    'steer_ref.Time(end)','SrcWorkspace' ,'current');
+    'steer_ref.Time(end)+Ts','SrcWorkspace' ,'current');
 
 % Plot the input signals
 figure,
