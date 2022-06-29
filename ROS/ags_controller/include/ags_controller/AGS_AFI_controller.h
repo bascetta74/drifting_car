@@ -50,7 +50,8 @@ class AGS_AFI_controller
     ros::Time _t0;
     unsigned int _car_control_state;
 
-    double _time, _vehicleAngularVelocity, _vehicleSideslip, _vehicleLongitudinalVelocity, _speedRef, _steerRef, _dampingRef;
+    double _time, _vehicleAngularVelocity, _vehicleSideslip, _vehicleLongitudinalVelocity;
+    double _speedRef, _steerRef, _FyfRef, _dampingRef;
     std::vector<double> _vehiclePose, _vehicleVelocity;
 
     boost::circular_buffer<double> _vehiclePositionXBuffer, _vehiclePositionYBuffer, _vehiclePositionTimeBuffer;

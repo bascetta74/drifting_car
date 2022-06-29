@@ -11,7 +11,7 @@
   /AGS_AFI_controller/car2motor_velocity: 0.195         # Conversion factor from car speed in m/s to normalized motor speed ([-1,1])
   
   /AGS_AFI_controller/speed_thd: 0.05                   # Threshold to consider the absolute vehicle velocity equal to zero
-  /AGS_AFI_controller/vel_filt_coeff: [0.0144, 0.0295, 0.0763, 0.0823, 0.0355, -0.0355, -0.0823, -0.0763, -0.0295, -0.0144]
+  /AGS_AFI_controller/vel_filt_coeff: [1, -1] #[0.0144, 0.0295, 0.0763, 0.0823, 0.0355, -0.0355, -0.0823, -0.0763, -0.0295, -0.0144]
                                                         # FIR velocity filter coefficients
   /AGS_AFI_controller/theta_offset: 0.0                 # Offset on optitrack theta angle
 

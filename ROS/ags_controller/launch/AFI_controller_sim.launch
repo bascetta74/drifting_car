@@ -1,12 +1,18 @@
 <launch>
+  <arg name="input_cmd" value="0" />        <!-- Set input mode (0 velocity/steer / 1 force/steer) -->
+  <arg name="actuator_model" value="0" />   <!-- Set actuator model (0 ideal / 1 real) -->
+  <arg name="tyre_model" value="1" />       <!-- Set tyre model (0 linear / 1 Fiala with saturation / 2 Fiala without saturation) -->
+
   <!--- Run single track simulator node -->
-  <node pkg="single_track_sim" type="single_track_sim" respawn="false" name="single_track_sim" output="screen">
-    <rosparam file="$(find single_track_sim)/config/single_track_sim.yaml" command="load" />
-
-    <rosparam param="/single_track_sim//tyre_model">1</rosparam>
-    <rosparam param="/single_track_sim/steering_actuator_model">0</rosparam>
-
+  <node pkg="singletrack_sim" type="singletrack_vxvy_sim" respawn="false" name="singletrack_vxvy_sim" output="screen">
+    <rosparam file="$(find singletrack_sim)/config/singletrack_vxvy_sim.yaml" command="load" />
     <rosparam param="/use_sim_time">true</rosparam>
+    <rosparam param="/singletrack_vxvy_sim/input_cmd" subst_value="True">$(arg input_cmd)</rosparam>
+    <rosparam param="/singletrack_vxvy_sim/actuator_model" subst_value="True">$(arg actuator_model)</rosparam>
+    <rosparam param="/singletrack_vxvy_sim/tyre_model" subst_value="True">$(arg tyre_model)</rosparam>
+    <rosparam param="/singletrack_vxvy_sim/automode_delay">2500000</rosparam> <!-- Set delay before starting autonomous mode -->
+    <rosparam param="/singletrack_vxvy_sim/Vx0">1.0</rosparam> <!-- Set initial longitudinal velocity -->
+    <rosparam param="/singletrack_vxvy_sim/Vy0">0.0</rosparam> <!-- Set initial lateral velocity -->
   </node> 
 
   <!--- Run AFI controller node -->
