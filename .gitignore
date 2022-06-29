@@ -29,4 +29,5 @@ ROS/feedback_linearization/simulator/slprj
 
 # Files
 *.so
+*.bag
 
