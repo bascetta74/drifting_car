@@ -3,7 +3,7 @@ clear;
 clc
 
 % Run cpp simulation
-system('./test_singletrack_vxvy_force_ode linear ideal');
+system('../test/test_singletrack_vxvy_force_ode linear ideal');
 
 % Load cpp simulation results
 res = load('test_singletrack_vxvy_force_linear_ideal.txt');

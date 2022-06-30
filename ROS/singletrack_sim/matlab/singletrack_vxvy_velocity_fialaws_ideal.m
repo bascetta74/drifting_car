@@ -3,7 +3,7 @@ clear;
 clc
 
 % Run cpp simulation
-system('./test_singletrack_vxvy_velocity_ode fiala_w_sat ideal');
+system('../test/test_singletrack_vxvy_velocity_ode fiala_w_sat ideal');
 
 % Load cpp simulation results
 res = load('test_singletrack_vxvy_velocity_fiala_w_sat_ideal.txt');

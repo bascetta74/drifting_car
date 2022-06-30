@@ -3,7 +3,7 @@ clear;
 clc
 
 % Run cpp simulation
-system('./test_singletrack_beta_velocity_ode fiala_w_sat real');
+system('../test/test_singletrack_beta_velocity_ode fiala_w_sat real');
 
 % Load cpp simulation results
 res = load('test_singletrack_beta_velocity_fiala_w_sat_real.txt');

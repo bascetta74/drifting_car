@@ -3,7 +3,7 @@ clear;
 clc
 
 % Run cpp simulation
-system('./test_singletrack_beta_force_ode fiala_wo_sat real');
+system('../test/test_singletrack_beta_force_ode fiala_wo_sat real');
 
 % Load cpp simulation results
 res = load('test_singletrack_beta_force_fiala_wo_sat_real.txt');
