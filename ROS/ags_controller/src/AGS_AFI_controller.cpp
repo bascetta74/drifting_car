@@ -57,6 +57,40 @@ void AGS_AFI_controller::Prepare(void) {
         ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(),
                   FullParamName.c_str());
 
+    // Sideslip estimator parameters
+#ifdef VEL_BETA_EST
+    FullParamName = ros::this_node::getName() + "/P";
+    if (false == Handle.getParam(FullParamName, P))
+        ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(),
+                  FullParamName.c_str());
+
+    FullParamName = ros::this_node::getName() + "/Kpv";
+    if (false == Handle.getParam(FullParamName, Kpv))
+        ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(),
+                  FullParamName.c_str());
+#endif
+#ifdef ACC_BETA_EST
+    FullParamName = ros::this_node::getName() + "/Kpa";
+    if (false == Handle.getParam(FullParamName, Kpa))
+        ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(),
+                  FullParamName.c_str());
+
+    FullParamName = ros::this_node::getName() + "/Kda";
+    if (false == Handle.getParam(FullParamName, Kda))
+        ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(),
+                  FullParamName.c_str());
+
+    FullParamName = ros::this_node::getName() + "/Ta";
+    if (false == Handle.getParam(FullParamName, Ta))
+        ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(),
+                  FullParamName.c_str());
+
+    FullParamName = ros::this_node::getName() + "/v_thd";
+    if (false == Handle.getParam(FullParamName, v_thd))
+        ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(),
+                  FullParamName.c_str());
+#endif
+
     /* ROS topics */
     vehiclePose_subscriber = Handle.subscribe("/car/ground_pose", 1, &AGS_AFI_controller::vehiclePose_MessageCallback,
                                               this);
@@ -92,6 +126,20 @@ void AGS_AFI_controller::Prepare(void) {
     } else {
         ROS_ERROR("Node %s: unable to create controller class.", ros::this_node::getName().c_str());
     }
+
+    /* Construct sideslip estimator object */
+#ifdef VEL_BETA_EST
+    _timePose = 0.0;
+    _sideslip_estimator = NULL;
+
+    _sideslip_estimator = new velocity_sideslip_estimator(P, Kpv);
+#endif
+#ifdef ACC_BETA_EST
+    _timePose = 0.0;
+    _sideslip_estimator = NULL;
+
+    _sideslip_estimator = new acceleration_sideslip_estimator(Kpa, Kda, Ta, v_thd);
+#endif
 }
 
 void AGS_AFI_controller::RunPeriodically(float Period) {
@@ -115,10 +163,27 @@ void AGS_AFI_controller::Shutdown(void) {
         delete _AGS_controller;
     }
 
+#if defined(VEL_BETA_EST) || defined(ACC_BETA_EST)
+    // Delete sideslip estimator object
+    if (_sideslip_estimator) {
+        delete _sideslip_estimator;
+    }
+#endif
+
     ROS_INFO("Node %s shutting down.", ros::this_node::getName().c_str());
 }
 
 void AGS_AFI_controller::vehiclePose_MessageCallback(const geometry_msgs::Pose2D::ConstPtr &msg) {
+#if defined(VEL_BETA_EST) || defined(ACC_BETA_EST)
+    /* Updating time pose */
+    if (_timePose == 0.0) {
+        _tPose0 = ros::Time::now();
+    }
+    else {
+        _timePose = (ros::Time::now() - _tPose0).toNSec() * 1.0e-9;
+    }
+#endif
+
     /* Updating position buffer */
     _vehiclePositionXBuffer.push_back(msg->x);
     _vehiclePositionYBuffer.push_back(msg->y);
@@ -151,6 +216,7 @@ void AGS_AFI_controller::vehiclePose_MessageCallback(const geometry_msgs::Pose2D
             _vehicleVelocity.at(1) += (*it_coeff) * (*it_posY / averagePeriod);
 
         /* Vehicle sideslip */
+#if !defined(VEL_BETA_EST) && !defined(ACC_BETA_EST)
         if (sqrt(pow(_vehicleVelocity.at(0), 2) + pow(_vehicleVelocity.at(1), 2)) > speed_thd)
             _vehicleSideslip = atan2(-_vehicleVelocity.at(0) * sin(_vehiclePose.at(2)) +
                                      _vehicleVelocity.at(1) * cos(_vehiclePose.at(2)),
@@ -158,6 +224,12 @@ void AGS_AFI_controller::vehiclePose_MessageCallback(const geometry_msgs::Pose2D
                                      _vehicleVelocity.at(1) * sin(_vehiclePose.at(2)));
         else
             _vehicleSideslip = 0.0;
+#endif
+#if defined(VEL_BETA_EST) || defined(ACC_BETA_EST)
+        _sideslip_estimator->setReferencePositions(_vehiclePose.at(0), _vehiclePose.at(1));
+        _sideslip_estimator->integrate(_timePose);
+        _sideslip_estimator->getSideslip(_vehicleSideslip, _vehiclePose.at(2));
+#endif
 
         /* Vehicle longitudinal velocity */
         _vehicleLongitudinalVelocity =

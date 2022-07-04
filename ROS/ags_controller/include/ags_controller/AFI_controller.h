@@ -8,12 +8,23 @@
  
 #define NAME_OF_THIS_NODE "AFI_controller"
 
+// Sideslip estimator (if no definition is present the arctan estimator is used)
+#define VEL_BETA_EST
+//#define ACC_BETA_EST
+
 #include <sensor_msgs/Imu.h>
 #include <geometry_msgs/Pose2D.h>
 #include "car_msgs/car_cmd.h"
 
 #include <vector>
 #include <boost/circular_buffer.hpp>
+
+#ifdef VEL_BETA_EST
+#include "velocity_sideslip_estimator.h"
+#endif
+#ifdef ACC_BETA_EST
+#include "acceleration_sideslip_estimator.h"
+#endif
 
 
 class AFI_controller
@@ -32,6 +43,12 @@ class AFI_controller
     unsigned int vel_filt_order;
     std::vector<double> vel_filt_coeff;
     double theta_offset, speed_thd;
+#ifdef VEL_BETA_EST
+    double P, Kpv;
+#endif
+#ifdef ACC_BETA_EST
+    double Kpa, Kda, Ta, v_thd;
+#endif
 
     /* ROS topic callbacks */
     void vehiclePose_MessageCallback(const geometry_msgs::Pose2D::ConstPtr& msg);
@@ -50,6 +67,17 @@ class AFI_controller
     std::vector<double> _vehiclePose, _vehicleVelocity;
 
     boost::circular_buffer<double> _vehiclePositionXBuffer, _vehiclePositionYBuffer, _vehiclePositionTimeBuffer;
+
+#ifdef VEL_BETA_EST
+    double _timePose;
+    ros::Time _tPose0;
+    velocity_sideslip_estimator* _sideslip_estimator;
+#endif
+#ifdef ACC_BETA_EST
+    double _timePose;
+    ros::Time _tPose0;
+    acceleration_sideslip_estimator* _sideslip_estimator;
+#endif
 
   public:
     double RunPeriod;

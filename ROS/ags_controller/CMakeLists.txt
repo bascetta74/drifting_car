@@ -127,11 +127,13 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(AGS_AFI_controller src/AGS_AFI_controller.cpp src/AGS_AFI_controller_node.cpp)
+add_executable(AGS_AFI_controller src/AGS_AFI_controller.cpp src/AGS_AFI_controller_node.cpp
+               src/velocity_sideslip_estimator.cpp src/acceleration_sideslip_estimator.cpp)
 target_link_libraries(AGS_AFI_controller ${catkin_LIBRARIES} POLIMIControl matio)
 add_dependencies(AGS_AFI_controller car_msgs_generate_messages_cpp)
 
-add_executable(AFI_controller src/AFI_controller.cpp src/AFI_controller_node.cpp)
+add_executable(AFI_controller src/AFI_controller.cpp src/AFI_controller_node.cpp
+               src/velocity_sideslip_estimator.cpp src/acceleration_sideslip_estimator.cpp)
 target_link_libraries(AFI_controller ${catkin_LIBRARIES})
 add_dependencies(AFI_controller car_msgs_generate_messages_cpp)
 
