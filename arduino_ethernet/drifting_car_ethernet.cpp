@@ -85,27 +85,27 @@ void setup()
 	initialize_odroid_message(&from_odroid);
 	initialize_odroid_message(&to_odroid);
 
-	#ifdef DEBUG_1
+#ifdef DEBUG_1
 	// Open serial communication for debugging
 	Serial.begin(57600);
 	while (!Serial) {
 		; // wait for serial port to connect
 	}
-	#endif
+#endif
 
 	// Start UDP connection
 	init_udpConnection(server_mac, server_ip, server_port);
 
-	#ifdef DEBUG_1
+#ifdef DEBUG_1
 	Serial.println("UDP connection started, waiting for client...");
-	#endif
+#endif
 
 	// Wait for connection of a client
 	wait_client_connection();
 
-	#ifdef DEBUG_1
+#ifdef DEBUG_1
 	Serial.println("Client connected, starting loop...");
-	#endif
+#endif
 
 	// Enable watchdog for connection lost
 	wdt_enable(WDTO_120MS);
@@ -114,9 +114,15 @@ void setup()
 	Timer1.initialize(LOOP_PERIOD*1000000);
 	Timer1.attachInterrupt(timer_callback);
 
-	#ifdef DEBUG_1
+#ifdef DEBUG_1
 	Serial.println("Arduino state: SAFE");
-	#endif
+#endif
+
+#ifdef TEST_LOOP_TIMING
+	pinMode(4, OUTPUT);
+	digitalWrite(4, LOW);
+	output_on = false;
+#endif
 }
 
 // The loop function is called in an endless loop
@@ -137,12 +143,12 @@ void timer_callback()
 			arduino_state.state = HALT;
 			arduino_state.info = FAULT_COMM_BYTENUM;
 
-			#ifdef DEBUG_1
+#ifdef DEBUG_1
 			Serial.print("Wrong number of byte received (");
 			Serial.print((int)byte_received);
 			Serial.print("), error ");
 			Serial.println(arduino_state.info);
-			#endif
+#endif
 		}
 
 		// Decode the message
@@ -152,14 +158,14 @@ void timer_callback()
 			arduino_state.state = HALT;
 			arduino_state.info = message_decode_error;
 
-			#ifdef DEBUG_1
+#ifdef DEBUG_1
 			Serial.print("Error decoding incoming message (error ");
 			Serial.print(arduino_state.info);
 			Serial.println(")");
-			#endif
+#endif
 		}
 
-		#ifdef DEBUG_2
+#ifdef DEBUG_2
 		Serial.print("receiving ("); Serial.print(message_decode_error); Serial.print(") ");
 		Serial.print("steer: ");
 		Serial.print(from_odroid.steer_cmd);
@@ -177,7 +183,7 @@ void timer_callback()
 		Serial.print(from_odroid.arduino_state);
 		Serial.print(" - state info: ");
 		Serial.println(from_odroid.arduino_state_info);
-		#endif
+#endif
 
 		// Get current measures from the radio
 		curr_steer  = get_steer_value_us();
@@ -191,27 +197,27 @@ void timer_callback()
 				arduino_state.state = MANUAL;
 				arduino_state.info  = 0;
 
-				#ifdef DEBUG_1
+#ifdef DEBUG_1
 				Serial.println("Arduino state: MANUAL");
-				#endif
+#endif
 			}
 			else if (arduino_state.state == MANUAL)
 			{
 				arduino_state.state = AUTOMATIC;
 				arduino_state.info  = 0;
 
-				#ifdef DEBUG_1
+#ifdef DEBUG_1
 				Serial.println("Arduino state: AUTOMATIC");
-				#endif
+#endif
 			}
 			else if (arduino_state.state == AUTOMATIC)
 			{
 				arduino_state.state = MANUAL;
 				arduino_state.info  = 0;
 
-				#ifdef DEBUG_1
+#ifdef DEBUG_1
 				Serial.println("Arduino state: MANUAL");
-				#endif
+#endif
 			}
 		}
 
@@ -301,7 +307,7 @@ void timer_callback()
 		// Encode the message
 		encode_odroid_message(message_out, &to_odroid);
 
-		#ifdef DEBUG_2
+#ifdef DEBUG_2
 		telemetry_message tmp;
 		message_decode_error = decode_odroid_message(message_out, &tmp);
 		Serial.print("sending ("); Serial.print(message_decode_error); Serial.print(") ");
@@ -321,7 +327,7 @@ void timer_callback()
 		Serial.print(tmp.arduino_state);
 		Serial.print(" - state info: ");
 		Serial.println(tmp.arduino_state_info);
-		#endif
+#endif
 
 		// Send the message back
 		byte_sent = send_udpMessage((const uint8_t*) message_out, MESSAGE_SIZE);
@@ -330,12 +336,12 @@ void timer_callback()
 			arduino_state.state = HALT;
 			arduino_state.info = FAULT_COMM_BYTENUM;
 
-			#ifdef DEBUG_1
+#ifdef DEBUG_1
 			Serial.print("Wrong number of byte sent (");
 			Serial.print((int)byte_sent);
 			Serial.print("), error ");
 			Serial.println(arduino_state.info);
-			#endif
+#endif
 		}
 	}
 
@@ -350,16 +356,16 @@ void timer_callback()
 	wdt_reset();
 
 	// Generate a square wave to check loop timing
-	#ifdef TEST_LOOP_TIMING
+#ifdef TEST_LOOP_TIMING
 	if (output_on)
 	{
 		output_on = false;
-		digitalWrite(4,LOW);
+		digitalWrite(4, LOW);
 	}
 	else
 	{
 		output_on = true;
 		digitalWrite(4, HIGH);
 	}
-	#endif
+#endif
 }
