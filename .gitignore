@@ -27,6 +27,9 @@ ROS/AMPC_RC5/
 #Simulink additional files generated from compilation
 ROS/feedback_linearization/simulator/slprj
 
+# Clion ide file
+.idea/
+
 # Files
 *.so
 *.bag
