@@ -1,10 +1,10 @@
-CCLNFLAGS = -lstdc++ -lm -lpthread -ldl
+CCLNFLAGS = -lstdc++ -lm -lpthread -ldl -lPOLIMIcontrol -lmatio
 
 CCLNDIRS = 
 
 CCOPT = -m64 -fexceptions -fPIC -fno-omit-frame-pointer -fno-strict-aliasing -pthread -O2 -fwrapv -DNDEBUG -DIL_STD
 
-CCFLAGS = $(CCOPT) -I../include -I../../singletrack_sim/include
+CCFLAGS = $(CCOPT) -I../include -I../../singletrack_sim/include -I/usr/local/include/POLIMIcontrol
 
 CCC = g++ -O0 -std=c++11
 

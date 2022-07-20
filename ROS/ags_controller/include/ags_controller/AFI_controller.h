@@ -42,12 +42,12 @@ class AFI_controller
     double a, Cf, car2motor_conversion;
     unsigned int vel_filt_order;
     std::vector<double> vel_filt_coeff;
-    double theta_offset, speed_thd;
+    double theta_offset, speed_thd, beta_Ts;
 #ifdef VEL_BETA_EST
-    double P, Kpv;
+    double vbeta_P, vbeta_Kpv;
 #endif
 #ifdef ACC_BETA_EST
-    double Kpa, Kda, Ta, v_thd;
+    double abeta_Kpa, abeta_Kda, abeta_Ta, abeta_v_thd;
 #endif
 
     /* ROS topic callbacks */
@@ -69,13 +69,9 @@ class AFI_controller
     boost::circular_buffer<double> _vehiclePositionXBuffer, _vehiclePositionYBuffer, _vehiclePositionTimeBuffer;
 
 #ifdef VEL_BETA_EST
-    double _timePose;
-    ros::Time _tPose0;
     velocity_sideslip_estimator* _sideslip_estimator;
 #endif
 #ifdef ACC_BETA_EST
-    double _timePose;
-    ros::Time _tPose0;
     acceleration_sideslip_estimator* _sideslip_estimator;
 #endif
 

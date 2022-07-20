@@ -1,66 +1,62 @@
 #include "acceleration_sideslip_estimator.h"
 
-acceleration_sideslip_estimator::acceleration_sideslip_estimator(double Kpa, double Kda, double Ta, double v_thd, double dT) :
-    Kpa(Kpa), Kda(Kda), Ta(Ta), v_thd(v_thd), dT(dT), t(0.0), state(6), x_ref(0.0), y_ref(0.0), heading(0.0), ax(0.0), ay(0.0), w(0.0)
-{
-    // state = [ x, y, gamma, v, PD_state_ax, PD_state_ay ]
+#include <cmath>
 
-    // Initial state values
-    state[0] = 0.0;
-    state[1] = 0.0;
-    state[2] = 0.0;
-    state[3] = 0.0;
-    state[4] = 0.0;
-    state[5] = 0.0;
+acceleration_sideslip_estimator::acceleration_sideslip_estimator(double Kp, double Kd, double T, double v_thd, double Ts) :
+    v_thd(v_thd), x_ref(0.0), y_ref(0.0), theta_ref(0.0), x(0.0), y(0.0), gamma(0.0), ax(0.0), ay(0.0)
+{
+    // Discrete integrators
+    PD_ax = PD_ay = NULL;
+    dx = dy = dgamma = dv = NULL;
+    dx = new discrete_integrator_fwEul(1.0, Ts);
+    dy = new discrete_integrator_fwEul(1.0, Ts);
+    dgamma = new discrete_integrator_fwEul(1.0, Ts);
+    dv = new discrete_integrator_fwEul(1.0, Ts);
+    PD_ax = new PID_controller(Kp, Kd/Kp, Kd/(Kp*T), Ts, -1000, 1000);
+    PD_ay = new PID_controller(Kp, Kd/Kp, Kd/(Kp*T), Ts, -1000, 1000);
 }
 
-void acceleration_sideslip_estimator::setInitialState(double x0, double y0, double gamma0, double v0)
+acceleration_sideslip_estimator::acceleration_sideslip_estimator(double Kp, double Kd, double T, double v_thd, double Ts,
+                                                                 double x0, double y0, double gamma0, double v0) :
+        v_thd(v_thd), x_ref(0.0), y_ref(0.0), theta_ref(0.0), x(x0), y(y0), gamma(gamma0), ax(0.0), ay(0.0)
 {
-    // Initial state values
-    state[0] = x0;
-    state[1] = y0;
-    state[2] = gamma0;
-    state[3] = v0;
-    state[4] = 0.0;
-    state[5] = 0.0;
+    // Discrete integrators
+    PD_ax = PD_ay = NULL;
+    dx = dy = dgamma = dv = NULL;
+    dx = new discrete_integrator_fwEul(1.0, Ts, x0);
+    dy = new discrete_integrator_fwEul(1.0, Ts, y0);
+    dgamma = new discrete_integrator_fwEul(1.0, Ts, gamma0);
+    dv = new discrete_integrator_fwEul(1.0, Ts, v0);
+    PD_ax = new PID_controller(Kp, Kd/Kp, Kd/(Kp*T), Ts, -1000, 1000);
+    PD_ay = new PID_controller(Kp, Kd/Kp, Kd/(Kp*T), Ts, -1000, 1000);
 }
 
-void acceleration_sideslip_estimator::estimate(double time, double &sideslip)
+acceleration_sideslip_estimator::~acceleration_sideslip_estimator()
 {
-    // Integrate the observer
-    using namespace std::placeholders;
-
-    const double abs_err = 1.0e-10, rel_err = 1.0e-6;
-    integrate_adaptive(make_controlled<error_stepper_type>(abs_err, rel_err),
-                       std::bind(&acceleration_sideslip_estimator::estimator_ode, this, _1, _2, _3), state, t, time, dT);
-
-    // Compute sideslip
-    sideslip = state[2]-heading;
-
-    // Update time
-    t = time;
+    // Delete discrete integrator objects
+    if (dx)
+        delete dx;
+    if (dy)
+        delete dy;
+    if (dgamma)
+        delete dgamma;
+    if (dv)
+        delete dv;
+    if (PD_ax)
+        delete PD_ax;
+    if (PD_ay)
+        delete PD_ay;
 }
 
-void acceleration_sideslip_estimator::estimator_ode(const state_type &state, state_type &dstate, double t)
+void acceleration_sideslip_estimator::execute()
 {
-    using namespace boost::math;
-
-    // Actual state
-    const double x      = state[0];
-    const double y      = state[1];
-    const double gamma  = state[2];
-    const double v      = state[3];
-    const double xPD_ax = state[4];
-    const double xPD_ay = state[5];
-
     // Trajectory tracking controller equations
-    dstate[4] = -xPD_ax/Ta+(x_ref-x)/Ta;  // dxPD_ax
-    dstate[5] = -xPD_ay/Ta+(y_ref-y)/Ta;  // dxPD_ay
-    ax = -Kda/Ta*xPD_ax+(Kpa+Kda/Ta)*(x_ref-x);
-    ay = -Kda/Ta*xPD_ay+(Kpa+Kda/Ta)*(y_ref-y);
+    PD_ax->evaluate(x, x_ref, ax);
+    PD_ay->evaluate(y, y_ref, ay);
 
     // Linearizing controller equations
-    dstate[3] = ax*std::cos(gamma)+ay*std::sin(gamma);  // dv
+    double v, w;
+    dv->evaluate(ax*std::cos(gamma)+ay*std::sin(gamma), v);
     if (std::abs(v)<v_thd) {
         w = 0.0;
     }
@@ -68,8 +64,16 @@ void acceleration_sideslip_estimator::estimator_ode(const state_type &state, sta
         w = (ay*std::cos(gamma)-ax*std::sin(gamma))/v;
     }
 
-    // Vehicle equations
-    dstate[0] = v*std::cos(gamma);  // dx
-    dstate[1] = v*std::sin(gamma);  // dy
-    dstate[2] = w;                  // dgamma
+    // Feedback linearisation and unicycle model
+    dx->evaluate(v*std::cos(gamma), x);
+    dy->evaluate(v*std::sin(gamma), y);
+    dgamma->evaluate(w, gamma);
+}
+
+void acceleration_sideslip_estimator::execute(int nStep)
+{
+    // Execute nStep times the estimator
+    for (auto k=0; k<nStep; k++) {
+        this->execute();
+    }
 }

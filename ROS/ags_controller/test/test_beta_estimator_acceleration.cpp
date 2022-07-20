@@ -51,9 +51,9 @@ int main(int argc, char** argv) {
     const double Kda   = 100.0;
     const double Ta    = 0.001;
     const double v_thd = 0.1;
-    const double dTest = 0.001;
+    const double Ts    = 0.001;
 
-    acceleration_sideslip_estimator est = acceleration_sideslip_estimator(Kpa, Kda, Ta, v_thd, dTest);
+    acceleration_sideslip_estimator est = acceleration_sideslip_estimator(Kpa, Kda, Ta, v_thd, Ts);
     std::cout << "Running acceleration_sideslip_estimator" << std::endl;;
 
     // Open file to store simulation results
@@ -91,29 +91,25 @@ int main(int argc, char** argv) {
             double velocity_cmd, steer_cmd;
             sim.getCommands(velocity_cmd, steer_cmd);
 
-            // Integrate and get variables form estimator
+            // Integrate and get variables from estimator
             est.setVehiclePose(x, y, psi);
 
             double beta_est;
-            est.estimate(t, beta_est);
+            est.execute();
+            est.getSideslip(beta_est);
 
-            double axFbl, ayFbl, v, w;
+            double axFbl, ayFbl;
             est.getFbLControl(axFbl, ayFbl);
-            est.getUnicycleControl(v, w);
 
             double xun, yun, gammaun;
             est.getUnicycleState(xun, yun, gammaun);
-
-            double xerr, yerr;
-            est.getTrackingError(xerr, yerr);
 
             // Store data to file
             result_file << std::setprecision(16) <<
                         t << ";" << velocity_ref << ";" << steer_ref << ";" << velocity_cmd << ";" << steer_cmd << ";"
                         << x << ";" << y << ";" << psi << ";" << ay << ";" << r << ";" << vy << ";" << beta << ";"
                         << alphaf << ";" << alphar << ";" << Fyf << ";" << Fyr << ";"
-                        << beta_est << ";" << axFbl << ";" << ayFbl << ";" << v << ";" << w << ";"
-                        << xun << ";" << yun << ";" << gammaun << ";" << xerr << ";" << yerr << std::endl;
+                        << beta_est << ";" << axFbl << ";" << ayFbl << ";" << xun << ";" << yun << ";" << gammaun << std::endl;
         }
 
         // Integrate model
@@ -144,25 +140,21 @@ int main(int argc, char** argv) {
         }
 
         double beta_est;
-        est.estimate(t, beta_est);
+        est.execute();
+        est.getSideslip(beta_est);
 
-        double axFbl, ayFbl, v, w;
+        double axFbl, ayFbl;
         est.getFbLControl(axFbl, ayFbl);
-        est.getUnicycleControl(v, w);
 
         double xun, yun, gammaun;
         est.getUnicycleState(xun, yun, gammaun);
-
-        double xerr, yerr;
-        est.getTrackingError(xerr, yerr);
 
         // Store data to file
         result_file << std::setprecision(16) <<
                     t << ";" << velocity_ref << ";" << steer_ref << ";" << velocity_cmd << ";" << steer_cmd << ";"
                     << x << ";" << y << ";" << psi << ";" << ay << ";" << r << ";" << vy << ";" << beta << ";"
                     << alphaf << ";" << alphar << ";" << Fyf << ";" << Fyr << ";"
-                    << beta_est << ";" << axFbl << ";" << ayFbl << ";" << v << ";" << w << ";"
-                    << xun << ";" << yun << ";" << gammaun << ";" << xerr << ";" << yerr << std::endl;
+                    << beta_est << ";" << axFbl << ";" << ayFbl << ";" << xun << ";" << yun << ";" << gammaun << std::endl;
 
         // Update time
         time += dT;

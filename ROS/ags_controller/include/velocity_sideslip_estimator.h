@@ -1,37 +1,29 @@
-#include <boost/numeric/odeint.hpp>
-
-using namespace boost::numeric::odeint;
-
-typedef std::vector<double> state_type;
-typedef runge_kutta_dopri5<state_type> error_stepper_type;
-
 // Implementation of the closed-loop velocity based sideslip estimator
+
+#include <discrete_integrator.h>
 
 class velocity_sideslip_estimator
 {
 public:
-    velocity_sideslip_estimator(double P, double Kpv, double dT);
+    velocity_sideslip_estimator(double P, double Kp, double Ts);
+    velocity_sideslip_estimator(double P, double Kp, double Ts, double x0, double y0, double gamma0);
+    ~velocity_sideslip_estimator();
 
-    void setInitialState(double x0, double y0, double gamma0);
-    void setVehiclePose(double x, double y, double heading) { this->x_ref = x; this->y_ref = y; this->heading = heading; };
-
-    void estimate(double time, double &sideslip);
+    void setVehiclePose(double x, double y, double heading) { this->x_ref = x; this->y_ref = y; this->theta_ref = heading; };
+    void execute();
+    void execute(int nStep);
+    void getSideslip(double &sideslip) { sideslip = gamma-theta_ref; };
     
-    void getFbLControl(double &vPx, double &vPy) { vPx = vxP; vPy = vyP; };
-    void getUnicycleControl(double &v, double &w) { v = this->v; w = this->w; };
-    void getUnicycleState(double &x, double &y, double &gamma) { x = state[0]; y = state[1]; gamma = state[2]; };
-    void getTrackingError(double &xerr, double &yerr) { xerr = x_ref-state[0]; yerr = y_ref-state[1]; };
-    void getTime(double &time) { time = t; };
+    void getFbLControl(double &vPx, double &vPy) { vPx = this->vxP; vPy = this->vyP; };
+    void getUnicycleState(double &x, double &y, double &gamma) { x = this->x; y = this->y; gamma = this->gamma; };
 
 private:
     // Estimator and integrator variables
-    double t, dT;
-    double P, Kpv;
-    double x_ref, y_ref, heading;
-    double vxP, vyP, v, w;
+    double P, Kp;
+    double vxP, vyP, x, y, gamma;
+    double x_ref, y_ref, theta_ref;
 
-    state_type state;
-
-    // ODE function
-    void estimator_ode(const state_type &state, state_type &dstate, double t);
+    discrete_integrator_fwEul* dx;
+    discrete_integrator_fwEul* dy;
+    discrete_integrator_fwEul* dgamma;
 };

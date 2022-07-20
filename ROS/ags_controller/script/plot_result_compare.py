@@ -265,4 +265,4 @@ plt.ylabel("Longitudinal velocity [m/s]")
 plt.legend()
 
 plt.show(block=False)
-raw_input("Press Enter to continue...")
+input("Press Enter to continue...")

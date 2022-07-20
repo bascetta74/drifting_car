@@ -14,12 +14,14 @@
   /AFI_controller/theta_offset: 0.0                 # Offset on optitrack theta angle
 
 # Sideslip velocity estimator parameters
-  /AFI_controller/P: 0.1                            # Point P position for feedback linearization
-  /AFI_controller/Kpv: 100.0                        # Proportional gain trajectory tracking controller
+  /AFI_controller/vbeta_P: 0.1                      # Point P position for feedback linearization
+  /AFI_controller/vbeta_Kpv: 100.0                  # Proportional gain trajectory tracking controller
+  /AFI_controller/vbeta_Ts: 0.001                   # Sampling time
 
 # Sideslip acceleration estimator parameters
-  /AFI_controller/v_thd: 0.1                        # Velocity threshold for feedback linearization singularity
-  /AFI_controller/Kpa: 1000.0                       # Proportional gain trajectory tracking controller
-  /AFI_controller/Kda: 100.0                        # Derivative gain trajectory tracking controller
-  /AFI_controller/Ta: 0.001                         # Derivative filter time constant trajectory tracking controller
+  /AFI_controller/abeta_v_thd: 0.1                  # Velocity threshold for feedback linearization singularity
+  /AFI_controller/abeta_Kpa: 1000.0                 # Proportional gain trajectory tracking controller
+  /AFI_controller/abeta_Kda: 100.0                  # Derivative gain trajectory tracking controller
+  /AFI_controller/abeta_Ta: 0.001                   # Derivative filter time constant trajectory tracking controller
+  /AFI_controller/abeta_Ts: 0.001                   # Sampling time
 

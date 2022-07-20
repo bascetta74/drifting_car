@@ -1,59 +1,59 @@
 #include "velocity_sideslip_estimator.h"
 
-velocity_sideslip_estimator::velocity_sideslip_estimator(double P, double Kpv, double dT) : P(P), Kpv(Kpv), dT(dT),
-    t(0.0), state(3), x_ref(0.0), y_ref(0.0), heading(0.0), vxP(0.0), vyP(0.0), v(0.0), w(0.0)
-{
-    // state = [ x, y, gamma ]
+#include <cmath>
 
-    // Initial state values
-    state[0] = 0.0;
-    state[1] = 0.0;
-    state[2] = 0.0;
+velocity_sideslip_estimator::velocity_sideslip_estimator(double P, double Kp, double Ts) :
+    P(P), Kp(Kp), x_ref(0.0), y_ref(0.0), theta_ref(0.0), x(0.0), y(0.0), gamma(0.0), vxP(0.0), vyP(0.0)
+{
+    // Discrete integrators
+    dx = dy = dgamma = NULL;
+    dx = new discrete_integrator_fwEul(1.0, Ts);
+    dy = new discrete_integrator_fwEul(1.0, Ts);
+    dgamma = new discrete_integrator_fwEul(1.0, Ts);
 }
 
-void velocity_sideslip_estimator::setInitialState(double x0, double y0, double gamma0)
+velocity_sideslip_estimator::velocity_sideslip_estimator(double P, double Kp, double Ts, double x0, double y0, double gamma0) :
+    P(P), Kp(Kp), x_ref(0.0), y_ref(0.0), theta_ref(0.0), x(x0), y(y0), gamma(gamma0), vxP(0.0), vyP(0.0)
 {
-    // Initial state values
-    state[0] = x0;
-    state[1] = y0;
-    state[2] = gamma0;
+    // Discrete integrators
+    dx = dy = dgamma = NULL;
+    dx = new discrete_integrator_fwEul(1.0, Ts, x0);
+    dy = new discrete_integrator_fwEul(1.0, Ts, y0);
+    dgamma = new discrete_integrator_fwEul(1.0, Ts, gamma0);
 }
 
-void velocity_sideslip_estimator::estimate(double time, double &sideslip)
+velocity_sideslip_estimator::~velocity_sideslip_estimator()
 {
-    // Integrate the observer
-    using namespace std::placeholders;
-
-    const double abs_err = 1.0e-10, rel_err = 1.0e-6;
-    integrate_adaptive(make_controlled<error_stepper_type>(abs_err, rel_err),
-                       std::bind(&velocity_sideslip_estimator::estimator_ode, this, _1, _2, _3), state, t, time, dT);
-
-    // Compute sideslip
-    sideslip = state[2]-heading;
-
-    // Update time
-    t = time;
+    // Delete discrete integrator objects
+    if (dx)
+        delete dx;
+    if (dy)
+        delete dy;
+    if (dgamma)
+        delete dgamma;
 }
 
-void velocity_sideslip_estimator::estimator_ode(const state_type &state, state_type &dstate, double t)
+void velocity_sideslip_estimator::execute()
 {
-    using namespace boost::math;
-
-    // Actual state
-    const double x     = state[0];
-    const double y     = state[1];
-    const double gamma = state[2];
-
     // Trajectory tracking controller equations
-    vxP = Kpv*(x_ref-x);
-    vyP = Kpv*(y_ref-y);
+    vxP = Kp*(x_ref-x);
+    vyP = Kp*(y_ref-y);
 
     // Linearizing controller equations
+    double v, w;
     v = vxP*std::cos(gamma)+vyP*std::sin(gamma);
     w = (vyP*std::cos(gamma)-vxP*std::sin(gamma))/P;
 
-    // Vehicle equations
-    dstate[0] = v*std::cos(gamma);  // dx
-    dstate[1] = v*std::sin(gamma);  // dy
-    dstate[2] = w;                  // dgamma
+    // Feedback linearisation and unicycle model
+    dx->evaluate(v*std::cos(gamma), x);
+    dy->evaluate(v*std::sin(gamma), y);
+    dgamma->evaluate(w, gamma);
+}
+
+void velocity_sideslip_estimator::execute(int nStep)
+{
+    // Execute nStep times the estimator
+    for (auto k=0; k<nStep; k++) {
+        this->execute();
+    }
 }
