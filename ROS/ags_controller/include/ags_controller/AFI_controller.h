@@ -9,8 +9,8 @@
 #define NAME_OF_THIS_NODE "AFI_controller"
 
 // Sideslip estimator (if no definition is present the arctan estimator is used)
-#define VEL_BETA_EST
-//#define ACC_BETA_EST
+//#define VEL_BETA_EST
+#define ACC_BETA_EST
 
 #include <sensor_msgs/Imu.h>
 #include <geometry_msgs/Pose2D.h>
@@ -20,10 +20,10 @@
 #include <boost/circular_buffer.hpp>
 
 #ifdef VEL_BETA_EST
-#include "velocity_sideslip_estimator.h"
+#include "sideslip_estimator_velocity.h"
 #endif
 #ifdef ACC_BETA_EST
-#include "acceleration_sideslip_estimator.h"
+#include "sideslip_estimator_acceleration.h"
 #endif
 
 
@@ -42,12 +42,16 @@ class AFI_controller
     double a, Cf, car2motor_conversion;
     unsigned int vel_filt_order;
     std::vector<double> vel_filt_coeff;
-    double theta_offset, speed_thd, beta_Ts;
+    double theta_offset, speed_thd;
+
 #ifdef VEL_BETA_EST
     double vbeta_P, vbeta_Kpv;
 #endif
 #ifdef ACC_BETA_EST
     double abeta_Kpa, abeta_Kda, abeta_Ta, abeta_v_thd;
+#endif
+#if defined(VEL_BETA_EST) || defined(ACC_BETA_EST)
+    double beta_Ts;
 #endif
 
     /* ROS topic callbacks */
@@ -62,7 +66,7 @@ class AFI_controller
     ros::Time _t0;
     unsigned int _car_control_state;
 
-    double _time, _vehicleAngularVelocity, _vehicleSideslip, _vehicleLongitudinalVelocity;
+    double _time, _vehicleAngularVelocity, _vehicleSideslip, _vehicleIdealSideslip, _vehicleLongitudinalVelocity;
     double _speedRef, _steerRef, _FyfRef;
     std::vector<double> _vehiclePose, _vehicleVelocity;
 
@@ -70,9 +74,14 @@ class AFI_controller
 
 #ifdef VEL_BETA_EST
     velocity_sideslip_estimator* _sideslip_estimator;
+    double _betaest_vPx, _betaest_vPy;
 #endif
 #ifdef ACC_BETA_EST
     acceleration_sideslip_estimator* _sideslip_estimator;
+    double _betaest_ax, _betaest_ay;
+#endif
+#if defined(VEL_BETA_EST) || defined(ACC_BETA_EST)
+    double _betaest_x, _betaest_y, _betaest_gamma;
 #endif
 
   public:

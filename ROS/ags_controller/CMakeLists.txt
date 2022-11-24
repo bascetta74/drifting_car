@@ -128,12 +128,12 @@ include_directories(
 )
 
 add_executable(AGS_AFI_controller src/AGS_AFI_controller.cpp src/AGS_AFI_controller_node.cpp
-               src/velocity_sideslip_estimator.cpp src/acceleration_sideslip_estimator.cpp)
+               src/sideslip_estimator_velocity.cpp src/sideslip_estimator_acceleration.cpp)
 target_link_libraries(AGS_AFI_controller ${catkin_LIBRARIES} POLIMIcontrol matio)
 add_dependencies(AGS_AFI_controller car_msgs_generate_messages_cpp)
 
 add_executable(AFI_controller src/AFI_controller.cpp src/AFI_controller_node.cpp
-               src/velocity_sideslip_estimator.cpp src/acceleration_sideslip_estimator.cpp)
+               src/sideslip_estimator_velocity.cpp src/sideslip_estimator_acceleration.cpp)
 target_link_libraries(AFI_controller ${catkin_LIBRARIES} POLIMIcontrol matio)
 add_dependencies(AFI_controller car_msgs_generate_messages_cpp)
 

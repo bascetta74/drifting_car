@@ -19,7 +19,7 @@
   /AFI_controller/vbeta_Ts: 0.001                   # Sampling time
 
 # Sideslip acceleration estimator parameters
-  /AFI_controller/abeta_v_thd: 0.1                  # Velocity threshold for feedback linearization singularity
+  /AFI_controller/abeta_v_thd: 0.01                 # Velocity threshold for feedback linearization singularity
   /AFI_controller/abeta_Kpa: 1000.0                 # Proportional gain trajectory tracking controller
   /AFI_controller/abeta_Kda: 100.0                  # Derivative gain trajectory tracking controller
   /AFI_controller/abeta_Ta: 0.001                   # Derivative filter time constant trajectory tracking controller

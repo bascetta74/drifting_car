@@ -59,34 +59,44 @@ void AGS_AFI_controller::Prepare(void) {
 
     // Sideslip estimator parameters
 #ifdef VEL_BETA_EST
-    FullParamName = ros::this_node::getName() + "/P";
-    if (false == Handle.getParam(FullParamName, P))
+    FullParamName = ros::this_node::getName() + "/vbeta_P";
+    if (false == Handle.getParam(FullParamName, vbeta_P))
         ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(),
                   FullParamName.c_str());
 
-    FullParamName = ros::this_node::getName() + "/Kpv";
-    if (false == Handle.getParam(FullParamName, Kpv))
+    FullParamName = ros::this_node::getName() + "/vbeta_Kpv";
+    if (false == Handle.getParam(FullParamName, vbeta_Kpv))
+        ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(),
+                  FullParamName.c_str());
+
+    FullParamName = ros::this_node::getName() + "/vbeta_Ts";
+    if (false == Handle.getParam(FullParamName, beta_Ts))
         ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(),
                   FullParamName.c_str());
 #endif
 #ifdef ACC_BETA_EST
-    FullParamName = ros::this_node::getName() + "/Kpa";
-    if (false == Handle.getParam(FullParamName, Kpa))
+    FullParamName = ros::this_node::getName() + "/abeta_Kpa";
+    if (false == Handle.getParam(FullParamName, abeta_Kpa))
         ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(),
                   FullParamName.c_str());
 
-    FullParamName = ros::this_node::getName() + "/Kda";
-    if (false == Handle.getParam(FullParamName, Kda))
+    FullParamName = ros::this_node::getName() + "/abeta_Kda";
+    if (false == Handle.getParam(FullParamName, abeta_Kda))
         ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(),
                   FullParamName.c_str());
 
-    FullParamName = ros::this_node::getName() + "/Ta";
-    if (false == Handle.getParam(FullParamName, Ta))
+    FullParamName = ros::this_node::getName() + "/abeta_Ta";
+    if (false == Handle.getParam(FullParamName, abeta_Ta))
         ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(),
                   FullParamName.c_str());
 
-    FullParamName = ros::this_node::getName() + "/v_thd";
-    if (false == Handle.getParam(FullParamName, v_thd))
+    FullParamName = ros::this_node::getName() + "/abeta_v_thd";
+    if (false == Handle.getParam(FullParamName, abeta_v_thd))
+        ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(),
+                  FullParamName.c_str());
+
+    FullParamName = ros::this_node::getName() + "/abeta_Ts";
+    if (false == Handle.getParam(FullParamName, beta_Ts))
         ROS_ERROR("Node %s: unable to retrieve parameter %s.", ros::this_node::getName().c_str(),
                   FullParamName.c_str());
 #endif
@@ -103,7 +113,7 @@ void AGS_AFI_controller::Prepare(void) {
     /* Initialize node state */
     _time = 0.0;
 
-    _vehicleSideslip = _vehicleAngularVelocity = _vehicleLongitudinalVelocity = _speedRef = _steerRef = 0.0;
+    _vehicleSideslip = _vehicleIdealSideslip = _vehicleAngularVelocity = _vehicleLongitudinalVelocity = _speedRef = _steerRef = 0.0;
 
     _vehiclePose.assign(3, 0.0);
     _vehicleVelocity.assign(2, 0.0);
@@ -117,6 +127,14 @@ void AGS_AFI_controller::Prepare(void) {
 
     _car_control_state = car_msgs::car_cmd::STATE_SAFE;
 
+#ifdef VEL_BETA_EST
+    _betaest_x = _betaest_y = _betaest_gamma = _betaest_vPx = _betaest_vPy = 0.0;
+#endif
+
+#ifdef ACC_BETA_EST
+    _betaest_x = _betaest_y = _betaest_gamma = _betaest_ax = _betaest_ay = 0.0;
+#endif
+
     /* Construct AGS controller object and load controller matrices */
     _AGS_controller = NULL;
     _AGS_controller = new AGS_controller(matrix_filename.c_str(), RunPeriod, 3, Eigen::VectorXd::Zero(4));
@@ -129,16 +147,12 @@ void AGS_AFI_controller::Prepare(void) {
 
     /* Construct sideslip estimator object */
 #ifdef VEL_BETA_EST
-    _timePose = 0.0;
     _sideslip_estimator = NULL;
-
-    _sideslip_estimator = new velocity_sideslip_estimator(P, Kpv);
+    _sideslip_estimator = new velocity_sideslip_estimator(vbeta_P, vbeta_Kpv, beta_Ts);
 #endif
 #ifdef ACC_BETA_EST
-    _timePose = 0.0;
     _sideslip_estimator = NULL;
-
-    _sideslip_estimator = new acceleration_sideslip_estimator(Kpa, Kda, Ta, v_thd);
+    _sideslip_estimator = new acceleration_sideslip_estimator(abeta_Kpa, abeta_Kda, abeta_Ta, abeta_v_thd, beta_Ts, 0.0, 0.0, 0.0, 0.01);
 #endif
 }
 
@@ -174,16 +188,6 @@ void AGS_AFI_controller::Shutdown(void) {
 }
 
 void AGS_AFI_controller::vehiclePose_MessageCallback(const geometry_msgs::Pose2D::ConstPtr &msg) {
-#if defined(VEL_BETA_EST) || defined(ACC_BETA_EST)
-    /* Updating time pose */
-    if (_timePose == 0.0) {
-        _tPose0 = ros::Time::now();
-    }
-    else {
-        _timePose = (ros::Time::now() - _tPose0).toNSec() * 1.0e-9;
-    }
-#endif
-
     /* Updating position buffer */
     _vehiclePositionXBuffer.push_back(msg->x);
     _vehiclePositionYBuffer.push_back(msg->y);
@@ -196,6 +200,21 @@ void AGS_AFI_controller::vehiclePose_MessageCallback(const geometry_msgs::Pose2D
     _vehiclePose.at(1) = msg->y;
     _vehiclePose.at(2) = msg->theta + theta_offset;
 
+    /* Compute sideslip from estimators */
+#if defined(VEL_BETA_EST) || defined(ACC_BETA_EST)
+    _sideslip_estimator->setVehiclePose(_vehiclePose.at(0), _vehiclePose.at(1), _vehiclePose.at(2));
+    _sideslip_estimator->execute(std::round(RunPeriod/beta_Ts));
+    _sideslip_estimator->getSideslip(_vehicleSideslip);
+    _sideslip_estimator->getUnicycleState(_betaest_x, _betaest_y, _betaest_gamma);
+#endif
+#ifdef VEL_BETA_EST
+    _sideslip_estimator->getFbLControl(_betaest_vPx, _betaest_vPy);
+#endif
+#ifdef ACC_BETA_EST
+    _sideslip_estimator->getFbLControl(_betaest_ax, _betaest_ay);
+#endif
+
+    /* Compute ideal sideslip and longitudinal velocity */
     if (_car_control_state == car_msgs::car_cmd::STATE_AUTOMATIC) {
         /* Compute average position sampling time in the last N samples */
         double averagePeriod = (_vehiclePositionTimeBuffer.back() - _vehiclePositionTimeBuffer.front()) /
@@ -216,19 +235,16 @@ void AGS_AFI_controller::vehiclePose_MessageCallback(const geometry_msgs::Pose2D
             _vehicleVelocity.at(1) += (*it_coeff) * (*it_posY / averagePeriod);
 
         /* Vehicle sideslip */
-#if !defined(VEL_BETA_EST) && !defined(ACC_BETA_EST)
         if (sqrt(pow(_vehicleVelocity.at(0), 2) + pow(_vehicleVelocity.at(1), 2)) > speed_thd)
-            _vehicleSideslip = atan2(-_vehicleVelocity.at(0) * sin(_vehiclePose.at(2)) +
+            _vehicleIdealSideslip = atan2(-_vehicleVelocity.at(0) * sin(_vehiclePose.at(2)) +
                                      _vehicleVelocity.at(1) * cos(_vehiclePose.at(2)),
                                      _vehicleVelocity.at(0) * cos(_vehiclePose.at(2)) +
                                      _vehicleVelocity.at(1) * sin(_vehiclePose.at(2)));
         else
-            _vehicleSideslip = 0.0;
-#endif
-#if defined(VEL_BETA_EST) || defined(ACC_BETA_EST)
-        _sideslip_estimator->setReferencePositions(_vehiclePose.at(0), _vehiclePose.at(1));
-        _sideslip_estimator->integrate(_timePose);
-        _sideslip_estimator->getSideslip(_vehicleSideslip, _vehiclePose.at(2));
+            _vehicleIdealSideslip = 0.0;
+
+#if !defined(VEL_BETA_EST) && !defined(ACC_BETA_EST)
+        _vehicleSideslip = _vehicleIdealSideslip;
 #endif
 
         /* Vehicle longitudinal velocity */
@@ -237,7 +253,7 @@ void AGS_AFI_controller::vehiclePose_MessageCallback(const geometry_msgs::Pose2D
     } else {
         // Reset vehicle velocity and sideslip
         _vehicleVelocity.at(0) = _vehicleVelocity.at(1) = 0.0;
-        _vehicleSideslip = _vehicleLongitudinalVelocity = 0.0;
+        _vehicleSideslip = _vehicleIdealSideslip = _vehicleLongitudinalVelocity = 0.0;
     }
 }
 
@@ -344,5 +360,21 @@ void AGS_AFI_controller::PeriodicTask(void) {
     controllerStateMsg.data.push_back(_speedRef);
     controllerStateMsg.data.push_back(_steerRef);
     controllerStateMsg.data.push_back(_FyfRef);
+    controllerStateMsg.data.push_back(_vehicleIdealSideslip);
+    controllerStateMsg.data.push_back(_betaest_x);
+    controllerStateMsg.data.push_back(_betaest_y);
+    controllerStateMsg.data.push_back(_betaest_gamma);
+#ifdef VEL_BETA_EST
+    controllerStateMsg.data.push_back(_betaest_vPx);
+    controllerStateMsg.data.push_back(_betaest_vPy);
+#endif
+#ifdef ACC_BETA_EST
+    controllerStateMsg.data.push_back(_betaest_ax);
+    controllerStateMsg.data.push_back(_betaest_ay);
+#endif
+#if !defined(VEL_BETA_EST) && !defined(ACC_BETA_EST)
+    controllerStateMsg.data.push_back(0.0);
+    controllerStateMsg.data.push_back(0.0);
+#endif
     controllerState_publisher.publish(controllerStateMsg);
 }

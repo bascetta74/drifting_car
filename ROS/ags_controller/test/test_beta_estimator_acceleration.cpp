@@ -50,10 +50,10 @@ int main(int argc, char** argv) {
     const double Kpa   = 1000.0;
     const double Kda   = 100.0;
     const double Ta    = 0.001;
-    const double v_thd = 0.1;
+    const double v_thd = 0.01;
     const double Ts    = 0.001;
 
-    acceleration_sideslip_estimator est = acceleration_sideslip_estimator(Kpa, Kda, Ta, v_thd, Ts);
+    acceleration_sideslip_estimator est = acceleration_sideslip_estimator(Kpa, Kda, Ta, v_thd, Ts, 0.0, 0.0, 0.0, 0.01);
     std::cout << "Running acceleration_sideslip_estimator" << std::endl;;
 
     // Open file to store simulation results

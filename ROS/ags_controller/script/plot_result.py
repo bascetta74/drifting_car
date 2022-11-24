@@ -24,6 +24,12 @@ controllerState_longVel = []
 controllerState_speedRef = []
 controllerState_steerRef = []
 controllerState_FyfRef = []
+controllerState_sideslipIdeal = []
+controllerState_betaest_x = []
+controllerState_betaest_y = []
+controllerState_betaest_gamma = []
+controllerState_betaest_cvx = []
+controllerState_betaest_cvy = []
 
 # State published by the simulator
 carState_time = []
@@ -73,9 +79,15 @@ for topic, msg, t in bag.read_messages():
             controllerState_sideslip.append(msg.data[6])
             controllerState_yawrate.append(msg.data[7])
             controllerState_longVel.append(msg.data[8])
-            controllerState_speedRef.append(msg.data[9])
+            controllerState_speedRef.append(msg.data[9]/0.195)
             controllerState_steerRef.append(msg.data[10])
             controllerState_FyfRef.append(msg.data[11])
+            controllerState_sideslipIdeal.append(msg.data[12])
+            controllerState_betaest_x.append(msg.data[13])
+            controllerState_betaest_y.append(msg.data[14])
+            controllerState_betaest_gamma.append(msg.data[15])
+            controllerState_betaest_cvx.append(msg.data[16])
+            controllerState_betaest_cvy.append(msg.data[17])
         if topic == "/car/state":
             carState_time.append(msg.data[0])
             carState_x.append(msg.data[1])
@@ -173,8 +185,9 @@ plt.xlabel("Time [s]")
 plt.ylabel("Yaw rate [rad/s]")
 
 plt.figure(7)
-plt.plot(controllerState_time,controllerState_sideslip, label="controller")
 plt.plot(carState_time,carState_sideslip, label="simulator")
+plt.plot(controllerState_time,controllerState_sideslip,'--', label="sideslip estimator")
+plt.plot(controllerState_time,controllerState_sideslipIdeal,'r:', label="ideal sideslip")
 plt.xlabel("Time [s]")
 plt.ylabel("Sideslip [rad]")
 plt.legend()
@@ -185,6 +198,31 @@ plt.plot(carState_time,carState_speedAct, label="simulator")
 plt.xlabel("Time [s]")
 plt.ylabel("Longitudinal velocity [m/s]")
 plt.legend()
+
+plt.figure(9)
+plt.subplot(211)
+plt.plot(controllerState_time,controllerState_betaest_x, label="beta est")
+plt.plot(carState_time,carState_x,'--', label="simulator")
+plt.xlabel("Time [s]")
+plt.ylabel("x [m]")
+plt.legend()
+plt.subplot(212)
+plt.plot(controllerState_time,controllerState_betaest_y, label="beta est")
+plt.plot(carState_time,carState_y,'--', label="simulator")
+plt.xlabel("Time [s]")
+plt.ylabel("y [m]")
+plt.legend()
+
+plt.figure(10)
+plt.subplot(211)
+plt.plot(controllerState_time,controllerState_betaest_cvx)
+plt.xlabel("Time [s]")
+plt.ylabel("Beta estimator control x [m]")
+plt.legend()
+plt.subplot(212)
+plt.plot(controllerState_time,controllerState_betaest_cvy)
+plt.xlabel("Time [s]")
+plt.ylabel("Beta estimator control y [m]")
 
 plt.show(block=False)
 input("Press Enter to continue...")

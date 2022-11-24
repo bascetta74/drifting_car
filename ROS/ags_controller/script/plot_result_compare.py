@@ -108,7 +108,7 @@ for topic, msg, t in bag_1.read_messages():
             controllerState_sideslip_1.append(msg.data[6])
             controllerState_yawrate_1.append(msg.data[7])
             controllerState_longVel_1.append(msg.data[8])
-            controllerState_speedRef_1.append(msg.data[9])
+            controllerState_speedRef_1.append(msg.data[9]/0.195)
             controllerState_steerRef_1.append(msg.data[10])
             controllerState_FyfRef_1.append(msg.data[11])
         if topic == "/car/state":
@@ -160,7 +160,7 @@ for topic, msg, t in bag_2.read_messages():
             controllerState_sideslip_2.append(msg.data[6])
             controllerState_yawrate_2.append(msg.data[7])
             controllerState_longVel_2.append(msg.data[8])
-            controllerState_speedRef_2.append(msg.data[9])
+            controllerState_speedRef_2.append(msg.data[9]/0.195)
             controllerState_steerRef_2.append(msg.data[10])
             controllerState_FyfRef_2.append(msg.data[11])
         if topic == "/car/state":

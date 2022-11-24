@@ -1,4 +1,4 @@
-#include "acceleration_sideslip_estimator.h"
+#include "sideslip_estimator_acceleration.h"
 
 #include <cmath>
 
@@ -27,8 +27,8 @@ acceleration_sideslip_estimator::acceleration_sideslip_estimator(double Kp, doub
     dy = new discrete_integrator_fwEul(1.0, Ts, y0);
     dgamma = new discrete_integrator_fwEul(1.0, Ts, gamma0);
     dv = new discrete_integrator_fwEul(1.0, Ts, v0);
-    PD_ax = new PID_controller(Kp, Kd/Kp, Kd/(Kp*T), Ts, -1000, 1000);
-    PD_ay = new PID_controller(Kp, Kd/Kp, Kd/(Kp*T), Ts, -1000, 1000);
+    PD_ax = new PID_controller(Kp, Kd/Kp, Kd/(Kp*T), Ts, -1.0e+16, 1.0e+16);
+    PD_ay = new PID_controller(Kp, Kd/Kp, Kd/(Kp*T), Ts, -1.0e+16, 1.0e+16);
 }
 
 acceleration_sideslip_estimator::~acceleration_sideslip_estimator()
